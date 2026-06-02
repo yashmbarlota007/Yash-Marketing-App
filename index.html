@@ -25,8 +25,10 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        // https://script.google.com/macros/s/AKfycbzPA2XEaSDvfGYdUlx94148Q-m7VEsW8K-4VgXuxgVeCmXf-spCNvRX7yJF-7gcJDk8Xg/exec
-        const API_URL = "https://script.google.com/macros/s/AKfycbzzV6p9WpI0M2KzQ4rP4k_R6X7Uu3T_V5b2sN3kXQk9m9m9m9m9m9m9m9m9/exec"; 
+        
+        // 🔥 YASH SIR, APNA NAYA GOOGLE SCRIPT LINK IN DO QUOTES KE BEECH PASTE KAREIN 🔥
+        const API_URL = "https://script.google.com/macros/s/AKfycbzPA2XEaSDvfGYdUlx94148Q-m7VEsW8K-4VgXuxgVeCmXf-spCNvRX7yJF-7gcJDk8Xg/exec"; 
+        
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
@@ -56,7 +58,7 @@
                     });
                     return await response.json();
                 } catch (e) {
-                    return { success: false, message: "Network Error: Check Internet" };
+                    return { success: false, message: "Network Error: Check Internet or API Link" };
                 }
             };
 
@@ -147,7 +149,7 @@
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value);
-                            if(e.target.value !== "") setSelectedType(null); // Search karte hi category se bahar
+                            if(e.target.value !== "") setSelectedType(null); 
                         }}
                         className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
                     />
@@ -165,7 +167,6 @@
                         const smartImg = getSmartImage(p);
                         return (
                             <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
-                                {/* THE NEW PRIVACY STOCK BADGE */}
                                 <div className="absolute top-2 right-2 text-[9px] font-black px-2 py-1 rounded-full bg-green-100 text-green-800 shadow-sm border border-green-200 flex items-center gap-1 z-10">
                                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> IN STOCK
                                 </div>
@@ -191,7 +192,6 @@
                 </div>
             );
 
-            // LOGIC: Agar search mein kuch likha hai, toh sirf search result dikhao
             if (searchQuery.trim() !== "") {
                 const searchResults = inStockProducts.filter(p => 
                     p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -206,7 +206,6 @@
                 );
             }
 
-            // LOGIC: Agar category select nahi ki, toh Categories dikhao
             if (!selectedType) {
                 const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))];
                 return (
@@ -232,7 +231,6 @@
                 );
             }
 
-            // LOGIC: Agar category selected hai, toh uske products dikhao
             const filteredProducts = inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice));
             
             return (
