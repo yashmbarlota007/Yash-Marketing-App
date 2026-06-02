@@ -28,6 +28,33 @@
         const API_URL = "https://script.google.com/macros/s/AKfycby8jvTFCTpt7q4lvMmdmwL7kiVTv6SPpgtqqZZLaiUiIdhGViEq8sLtqJjhIPT7403Uag/exec";
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
+        // YAHAN HAIN AAPKA SMART IMAGE ENGINE
+        function getSmartImage(product) {
+            // Tier 1: User ne sheet mein link daali hai
+            if (product.ImageURL && product.ImageURL.trim() !== "") {
+                return product.ImageURL;
+            }
+            
+            // Tier 2: Category based auto-fetch
+            var type = (product.Type || "").toUpperCase();
+            if (type.indexOf("POWERBANK") > -1 || type.indexOf("POWER BANK") > -1) return "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=300&q=80"; 
+            if (type.indexOf("CABLE") > -1 || type.indexOf("WIRE") > -1) return "https://images.unsplash.com/photo-1544256718-3bcf237f3974?w=300&q=80"; 
+            if (type.indexOf("WATCH") > -1 || type.indexOf("SMARTWATCH") > -1) return "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=300&q=80"; 
+            if (type.indexOf("EARPHONE") > -1 || type.indexOf("AIRDOPES") > -1 || type.indexOf("TWS") > -1) return "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&q=80"; 
+            if (type.indexOf("HEADPHONE") > -1 || type.indexOf("NECKBAND") > -1) return "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=300&q=80"; 
+            if (type.indexOf("SPEAKER") > -1 || type.indexOf("SOUNDBAR") > -1) return "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&q=80"; 
+            if (type.indexOf("CHARGER") > -1 || type.indexOf("ADAPTER") > -1) return "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=300&q=80"; 
+            if (type.indexOf("MOUSE") > -1 || type.indexOf("KEYBOARD") > -1) return "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=300&q=80"; 
+
+            // Tier 3: Brand based auto-fetch
+            var brand = (product.Brand || "").toUpperCase();
+            if (brand) {
+                return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand) + "&background=random&color=fff&size=200&bold=true";
+            }
+            
+            return null; // Agar kuch nahi mila toh blank
+        }
+
         function App() {
             const [user, setUser] = useState(null);
             const [view, setView] = useState("catalog"); 
@@ -132,13 +159,12 @@
                         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
                         <div className="grid grid-cols-2 gap-4">
                             {types.map(type => {
-                                // FIXED LINE: Removed Optional Chaining to prevent browser crash
-                                const coverProduct = inStockProducts.find(p => p.Type === type && p.ImageURL);
-                                const cover = coverProduct ? coverProduct.ImageURL : null;
+                                const coverProduct = inStockProducts.find(p => p.Type === type);
+                                const cover = coverProduct ? getSmartImage(coverProduct) : null;
                                 
                                 return (
                                     <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
-                                        {cover ? <img src={cover} className="h-20 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
+                                        {cover ? <img src={cover} className="h-20 object-contain mb-3 rounded-lg" /> : <div className="text-3xl mb-3">📦</div>}
                                         <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
                                     </div>
                                 );
@@ -159,11 +185,12 @@
                     <div className="p-4 grid grid-cols-2 gap-4">
                         {filteredProducts.map(p => {
                             const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
+                            const smartImg = getSmartImage(p);
                             return (
                                 <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50">
                                     <div className="text-[9px] font-black px-2 py-0.5 rounded-full bg-green-50 text-green-700 self-end mb-2">{p.Stock} LEFT</div>
                                     <div>
-                                        {p.ImageURL ? <img src={p.ImageURL} className="h-24 w-full object-contain mb-2" /> : <div className="h-24 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
+                                        {smartImg ? <img src={smartImg} className="h-24 w-full object-contain mb-2 rounded" /> : <div className="h-24 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
                                         <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
                                     </div>
                                     <div className="mt-3">
