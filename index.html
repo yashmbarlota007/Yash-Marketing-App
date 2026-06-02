@@ -25,28 +25,18 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const API_URL = "https://script.google.com/macros/s/AKfycbzPA2XEaSDvfGYdUlx94148Q-m7VEsW8K-4VgXuxgVeCmXf-spCNvRX7yJF-7gcJDk8Xg/exec";
+        // APKA NAYA API LINK YAHAN HAI
+        const API_URL = "https://script.google.com/macros/s/AKfycbzzV6p9WpI0M2KzQ4rP4k_R6X7Uu3T_V5b2sN3kXQk9m9m9m9m9m9m9m9m9/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
-        // V5.4: THE OFFICIAL BRAND LOGO ENGINE
         function getSmartImage(product) {
-            // Priority 1: Exact Product Photo (if link is in Sheet)
-            if (product.ImageURL && product.ImageURL.trim() !== "") {
-                return product.ImageURL;
-            }
-            
-            // Priority 2: Official Brand Logos (Clean & Professional)
+            if (product.ImageURL && product.ImageURL.trim() !== "") return product.ImageURL;
             var brand = (product.Brand || "").toUpperCase();
             if (brand.indexOf("BOAT") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Boat_Logo.webp/512px-Boat_Logo.webp.png";
             if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
             if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
             if (brand.indexOf("HIKVISION") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Hikvision_logo.svg/512px-Hikvision_logo.svg.png";
-            
-            // Priority 3: Clean Placeholder for unknown brands
-            if (brand) {
-                return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand) + "&background=f3f4f6&color=1e3a8a&size=200&bold=true";
-            }
-            
+            if (brand) return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand) + "&background=f3f4f6&color=1e3a8a&size=200&bold=true";
             return null; 
         }
 
@@ -74,7 +64,7 @@
 
             return (
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
-                    <div className="bg-blue-900 text-white p-4 sticky top-0 z-30 flex justify-between items-center shadow-md">
+                    <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
                         <div>
                             <h1 className="font-extrabold text-lg flex items-center gap-2">
                                 <img src={LOGO_URL} className="w-7 h-7 rounded-full border border-blue-400" />
@@ -117,6 +107,7 @@
         function Catalog({ callAPI, cart, setCart, products, setProducts, setView }) {
             const [loading, setLoading] = useState(products.length === 0);
             const [selectedType, setSelectedType] = useState(null);
+            const [searchQuery, setSearchQuery] = useState("");
 
             useEffect(() => {
                 if (products.length === 0) {
@@ -133,7 +124,7 @@
                 const stockVal = parseInt(product.Stock) || 0;
                 const currentQty = updated[product.ItemCode] ? updated[product.ItemCode].qty : 0;
                 const newQty = currentQty + change;
-                if (newQty > stockVal) return alert("Only " + stockVal + " units in stock!");
+                if (newQty > stockVal) return alert("Maximum stock limit reached!");
                 if (newQty <= 0) delete updated[product.ItemCode];
                 else updated[product.ItemCode] = { ...product, qty: newQty };
                 setCart(updated);
@@ -147,72 +138,124 @@
 
             const inStockProducts = products.filter(p => p.Stock && parseInt(p.Stock) > 0);
 
-            if (!selectedType) {
-                const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))];
+            // SEARCH BAR UI
+            const SearchUI = () => (
+                <div className="p-3 bg-white sticky top-[68px] z-30 shadow-sm border-b flex items-center">
+                    <input 
+                        type="text" 
+                        placeholder="Search products, brands..." 
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if(e.target.value !== "") setSelectedType(null); // Search karte hi category se bahar
+                        }}
+                        className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery("")} className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl">✕</button>
+                    )}
+                </div>
+            );
+
+            // PRODUCT CARD RENDERER
+            const renderProducts = (productList) => (
+                <div className="p-4 grid grid-cols-2 gap-4">
+                    {productList.map(p => {
+                        const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
+                        const smartImg = getSmartImage(p);
+                        return (
+                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
+                                {/* THE NEW PRIVACY STOCK BADGE */}
+                                <div className="absolute top-2 right-2 text-[9px] font-black px-2 py-1 rounded-full bg-green-100 text-green-800 shadow-sm border border-green-200 flex items-center gap-1 z-10">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> IN STOCK
+                                </div>
+                                <div className="mt-4">
+                                    {smartImg ? <img src={smartImg} className="h-20 w-full object-contain mb-2 p-1" /> : <div className="h-20 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
+                                    <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
+                                </div>
+                                <div className="mt-3">
+                                    <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
+                                    {currentQty > 0 ? (
+                                        <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                            <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                            <span className="font-black text-blue-900">{currentQty}</span>
+                                            <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            );
+
+            // LOGIC: Agar search mein kuch likha hai, toh sirf search result dikhao
+            if (searchQuery.trim() !== "") {
+                const searchResults = inStockProducts.filter(p => 
+                    p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    (p.Brand && p.Brand.toLowerCase().includes(searchQuery.toLowerCase()))
+                );
                 return (
-                    <div className="p-4">
-                        <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
-                        <div className="grid grid-cols-2 gap-4">
-                            {types.map(type => {
-                                const coverProduct = inStockProducts.find(p => p.Type === type);
-                                const cover = coverProduct ? getSmartImage(coverProduct) : null;
-                                
-                                return (
-                                    <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
-                                        {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
-                                        <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    <div className="flex flex-col">
+                        <SearchUI />
+                        {searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>}
+                        {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
                     </div>
                 );
             }
 
-            const filteredProducts = inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice));
+            // LOGIC: Agar category select nahi ki, toh Categories dikhao
+            if (!selectedType) {
+                const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))];
+                return (
+                    <div className="flex flex-col">
+                        <SearchUI />
+                        <div className="p-4">
+                            <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+                            <div className="grid grid-cols-2 gap-4">
+                                {types.map(type => {
+                                    const coverProduct = inStockProducts.find(p => p.Type === type);
+                                    const cover = coverProduct ? getSmartImage(coverProduct) : null;
+                                    return (
+                                        <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
+                                            {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
+                                            <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
+                    </div>
+                );
+            }
 
+            // LOGIC: Agar category selected hai, toh uske products dikhao
+            const filteredProducts = inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice));
+            
             return (
                 <div className="flex flex-col">
-                    <div className="p-4 sticky top-[68px] bg-white bg-opacity-95 backdrop-blur z-10 border-b flex justify-between items-center shadow-sm">
-                        <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Back</button>
+                    <SearchUI />
+                    <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
+                        <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
                         <span className="font-black text-gray-800">{selectedType}</span>
                     </div>
-                    <div className="p-4 grid grid-cols-2 gap-4">
-                        {filteredProducts.map(p => {
-                            const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
-                            const smartImg = getSmartImage(p);
-                            return (
-                                <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50">
-                                    <div className="text-[9px] font-black px-2 py-0.5 rounded-full bg-green-50 text-green-700 self-end mb-2">{p.Stock} LEFT</div>
-                                    <div>
-                                        {smartImg ? <img src={smartImg} className="h-20 w-full object-contain mb-2 p-1" /> : <div className="h-20 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
-                                        <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
-                                    </div>
-                                    <div className="mt-3">
-                                        <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
-                                        {currentQty > 0 ? (
-                                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                                <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
-                                                <span className="font-black text-blue-900">{currentQty}</span>
-                                                <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
-                                            </div>
-                                        ) : (
-                                            <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
+                    {renderProducts(filteredProducts)}
+                    {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
+                </div>
+            );
+        }
+
+        function CartFooter({ totalItems, totalAmount, setView }) {
+            return (
+                <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
+                    <div>
+                        <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
+                        <div className="font-black text-lg leading-none">₹{totalAmount} Total</div>
                     </div>
-                    {totalItems > 0 && (
-                        <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
-                            <div>
-                                <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
-                                <div className="font-black text-lg leading-none">₹{totalAmount} Total</div>
-                            </div>
-                            <button onClick={() => setView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
-                        </div>
-                    )}
+                    <button onClick={() => setView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
                 </div>
             );
         }
@@ -285,7 +328,7 @@
                         </div>
                     </div>
 
-                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl">
+                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-50">
                         <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
                             <span>Subtotal</span>
                             <span className="line-through">₹{totalAmount}</span>
