@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Yash Marketing</title>
-<meta name="apple-mobile-web-app-title" content="Yash Marketing">
-<meta name="application-name" content="Yash Marketing">
+    
+    <!-- Custom Home Screen Icons (Replaces Vercel 'V') -->
+    <meta name="apple-mobile-web-app-title" content="Yash Marketing">
+    <meta name="application-name" content="Yash Marketing">
+    <link rel="icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&rounded=true&bold=true">
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=180&bold=true">
+
     <!-- Modern Styling Engine -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -26,6 +31,9 @@
         const { useState, useEffect } = React;
 
         const API_URL = "https://script.google.com/macros/s/AKfycby8jvTFCTpt7q4lvMmdmwL7kiVTv6SPpgtqqZZLaiUiIdhGViEq8sLtqJjhIPT7403Uag/exec";
+
+        // Yahan aap apne actual logo ka Google Drive/Image link daal sakte hain baad mein
+        const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function App() {
             const [user, setUser] = useState(null);
@@ -49,13 +57,16 @@
 
             return (
                 <div className="max-w-md mx-auto bg-white min-h-screen relative pb-20 shadow-lg">
-                    {/* Header */}
+                    {/* Header - Updated to Yash Marketing */}
                     <div className="bg-gray-900 text-white p-4 sticky top-0 z-20 flex justify-between items-center">
                         <div>
-                            <h1 className="font-bold text-lg leading-tight">Yash Wholesale</h1>
-                            <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">{user.shopName}</p>
+                            <h1 className="font-bold text-lg leading-tight flex items-center gap-2">
+                                <img src={LOGO_URL} alt="Logo" className="w-6 h-6 rounded-full" />
+                                Yash Marketing
+                            </h1>
+                            <p className="text-xs text-gray-400 font-medium tracking-wide uppercase mt-0.5">{user.shopName}</p>
                         </div>
-                        <button onClick={() => setView(view === "catalog" ? "cart" : "catalog")} className="relative bg-gray-800 p-2 rounded-lg font-bold">
+                        <button onClick={() => setView(view === "catalog" ? "cart" : "catalog")} className="relative bg-gray-800 p-2 rounded-lg font-bold transition-colors hover:bg-gray-700">
                             {view === "catalog" ? "🛒 Cart" : "📦 Catalog"}
                             {Object.keys(cart).length > 0 && (
                                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow-md">
@@ -73,6 +84,7 @@
             );
         }
 
+        // Login Screen - Updated with Custom Logo and Branding
         function LoginScreen({ onLogin, callAPI, loading, setLoading }) {
             const [phone, setPhone] = useState("");
             
@@ -88,17 +100,22 @@
 
             return (
                 <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-                    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm text-center">
-                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-white text-2xl shadow-inner">📦</div>
-                        <h2 className="text-2xl font-extrabold mb-1">Dealer Portal</h2>
-                        <p className="text-gray-500 text-sm mb-6">Authorized Access Only</p>
+                    <div className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm text-center border-t-4 border-blue-900">
                         
-                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} 
-                            className="w-full border-2 border-gray-200 p-3 rounded-lg mb-4 font-bold text-center text-xl tracking-wider focus:border-blue-600 outline-none transition-colors" 
-                            placeholder="Mobile Number" />
+                        {/* Branded Logo replacing the Box Emoji */}
+                        <img src={LOGO_URL} alt="Yash Marketing Logo" className="w-20 h-20 mx-auto mb-4 drop-shadow-md rounded-full" />
+                        
+                        <h2 className="text-2xl font-black mb-1 text-gray-900">Yash Marketing</h2>
+                        <p className="text-blue-700 font-bold text-sm mb-8 tracking-widest uppercase">Dealer Portal</p>
+                        
+                        <div className="bg-gray-50 p-4 rounded-xl mb-6 shadow-inner border border-gray-100">
+                            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} 
+                                className="w-full bg-transparent p-2 text-center font-bold text-xl tracking-wider focus:outline-none text-gray-800 placeholder-gray-400" 
+                                placeholder="Mobile Number" />
+                        </div>
                         
                         <button onClick={handleLogin} disabled={loading} 
-                            className="w-full bg-blue-600 text-white font-bold p-4 rounded-lg active:scale-95 transition-transform flex justify-center shadow-md hover:bg-blue-700">
+                            className="w-full bg-blue-900 text-white font-bold p-4 rounded-xl active:scale-95 transition-transform flex justify-center shadow-md hover:bg-blue-800">
                             {loading ? <div className="border-2 border-white w-6 h-6 rounded-full spinner"></div> : "Secure Login"}
                         </button>
                     </div>
@@ -127,10 +144,8 @@
                 setCart(updated);
             };
 
-            // Dynamic Filters based on available brands
             const filters = ["All", ...new Set(products.map(p => p.Brand).filter(Boolean))];
             
-            // Search & Filter Logic
             const filteredProducts = products.filter(p => {
                 const matchesSearch = p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                       p.ItemCode.toLowerCase().includes(searchQuery.toLowerCase());
@@ -138,41 +153,42 @@
                 return matchesSearch && matchesFilter;
             });
 
-            if (loading) return <div className="flex justify-center items-center h-64"><div className="border-4 border-blue-600 border-t-transparent w-10 h-10 rounded-full spinner"></div></div>;
+            if (loading) return <div className="flex justify-center items-center h-64"><div className="border-4 border-blue-900 border-t-transparent w-10 h-10 rounded-full spinner"></div></div>;
 
             return (
                 <div className="flex flex-col">
-                    {/* Sticky Search & Filter Bar */}
-                    <div className="p-4 sticky top-[60px] bg-gray-50 z-10 border-b shadow-sm">
-                        <input type="text" placeholder="Search by model or code..." 
-                            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full border p-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500 font-medium shadow-inner" />
+                    <div className="p-4 sticky top-[68px] bg-gray-50 z-10 border-b shadow-sm">
+                        <div className="relative mb-3">
+                            <input type="text" placeholder="Search by model or code..." 
+                                value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full border p-3 pl-10 rounded-xl outline-none focus:ring-2 focus:ring-blue-900 font-medium shadow-inner bg-white" />
+                            <span className="absolute left-3 top-3.5 text-gray-400">🔍</span>
+                        </div>
                         
                         <div className="flex overflow-x-auto space-x-2 pb-1 no-scrollbar">
                             {filters.map(f => (
                                 <button key={f} onClick={() => setActiveFilter(f)}
-                                    className={`px-5 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${activeFilter === f ? 'bg-blue-600 text-white shadow-md' : 'bg-white border text-gray-600 hover:bg-gray-100'}`}>
+                                    className={`px-5 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${activeFilter === f ? 'bg-blue-900 text-white shadow-md' : 'bg-white border text-gray-600 hover:bg-gray-100'}`}>
                                     {f}
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {/* Product Grid */}
                     <div className="p-4 grid grid-cols-2 gap-4">
                         {filteredProducts.map(p => (
-                            <div key={p.ItemCode} className="bg-white rounded-xl border border-gray-100 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                            <div key={p.ItemCode} className="bg-white rounded-xl border border-gray-100 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
                                 <div>
-                                    {p.ImageURL ? <img src={p.ImageURL} className="h-28 w-full object-contain mb-3" alt={p.ProductName}/> 
-                                                : <div className="h-28 w-full bg-gray-50 rounded mb-3 flex items-center justify-center text-gray-300 text-xs">No Image</div>}
-                                    <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-1 rounded font-extrabold uppercase tracking-wider">{p.Brand}</span>
-                                    <h3 className="font-bold text-sm mt-2 leading-snug text-gray-800">{p.ProductName}</h3>
+                                    {p.ImageURL ? <img src={p.ImageURL} className="h-28 w-full object-contain mb-3 p-1" alt={p.ProductName}/> 
+                                                : <div className="h-28 w-full bg-gray-50 rounded-lg mb-3 flex items-center justify-center text-gray-300 text-xs border border-dashed">No Image</div>}
+                                    <span className="text-[10px] bg-gray-100 text-gray-700 px-2 py-1 rounded font-extrabold uppercase tracking-wider">{p.Brand}</span>
+                                    <h3 className="font-bold text-sm mt-2 leading-snug text-gray-800 line-clamp-2">{p.ProductName}</h3>
                                 </div>
                                 <div className="mt-4">
-                                    {p.MRP && <div className="text-xs text-gray-400 line-through mb-0.5 font-semibold">MRP: ₹{p.MRP}</div>}
-                                    <div className="font-extrabold text-lg text-green-600 mb-3">₹{p.DealerPrice}</div>
-                                    <button onClick={() => addToCart(p)} className="w-full bg-gray-900 text-white text-sm font-bold py-2.5 rounded-lg active:scale-95 transition-transform hover:bg-gray-800">
-                                        + ADD
+                                    {p.MRP && <div className="text-[11px] text-gray-400 line-through mb-0.5 font-semibold">MRP: ₹{p.MRP}</div>}
+                                    <div className="font-black text-lg text-green-600 mb-3 tracking-tight">₹{p.DealerPrice}</div>
+                                    <button onClick={() => addToCart(p)} className="w-full bg-blue-900 text-white text-sm font-bold py-2.5 rounded-lg active:scale-95 transition-transform shadow-sm hover:bg-blue-800">
+                                        + ADD TO CART
                                     </button>
                                 </div>
                             </div>
@@ -206,30 +222,36 @@
                 }
             };
 
-            if (cartItems.length === 0) return <div className="p-10 text-center text-gray-500 font-medium">Your cart is empty.</div>;
+            if (cartItems.length === 0) return <div className="p-10 text-center text-gray-500 font-medium mt-10">Your cart is empty.</div>;
 
             return (
                 <div className="p-4 bg-gray-50 min-h-screen">
-                    <div className="bg-white rounded-xl shadow-sm border p-2 mb-20">
+                    <div className="bg-white rounded-xl shadow-sm border p-2 mb-24">
                         {cartItems.map(item => (
                             <div key={item.ItemCode} className="flex justify-between items-center border-b last:border-0 p-3">
                                 <div className="w-2/3 pr-2">
                                     <h4 className="text-sm font-bold text-gray-800 leading-tight mb-1">{item.ProductName}</h4>
-                                    <div className="text-xs text-gray-500 font-medium">₹{item.DealerPrice} <span className="mx-1">×</span> <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold">{item.qty} Qty</span></div>
+                                    <div className="text-xs text-gray-500 font-medium">₹{item.DealerPrice} <span className="mx-1">×</span> <span className="bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded font-bold">{item.qty} Qty</span></div>
                                 </div>
-                                <div className="font-extrabold text-gray-900">₹{item.DealerPrice * item.qty}</div>
+                                <div className="font-extrabold text-gray-900 text-right">
+                                    ₹{item.DealerPrice * item.qty}
+                                    <div className="text-[10px] text-gray-400 font-normal mt-1 cursor-pointer hover:text-red-500" onClick={() => {
+                                        const updated = {...cart};
+                                        delete updated[item.ItemCode];
+                                        setCart(updated);
+                                    }}>Remove</div>
+                                </div>
                             </div>
                         ))}
                     </div>
                     
-                    {/* Fixed Checkout Bar */}
-                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 z-20">
+                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] p-4 z-20">
                         <div className="flex justify-between font-bold text-lg mb-3 text-gray-800">
                             <span>Total Value</span>
-                            <span className="text-green-600 text-xl">₹{totalAmount}</span>
+                            <span className="text-green-600 text-xl font-black">₹{totalAmount}</span>
                         </div>
                         <button onClick={handleCheckout} disabled={loading} className="w-full bg-green-600 text-white font-extrabold py-3.5 rounded-xl shadow-lg active:scale-95 flex justify-center items-center hover:bg-green-700 transition-colors">
-                            {loading ? <div className="border-2 border-white w-6 h-6 rounded-full spinner"></div> : "Place Order Now"}
+                            {loading ? <div className="border-2 border-white w-6 h-6 rounded-full spinner"></div> : "Confirm Order"}
                         </button>
                     </div>
                 </div>
