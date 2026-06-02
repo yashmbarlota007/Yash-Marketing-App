@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Yash Marketing</title>
-    
     <meta name="apple-mobile-web-app-title" content="Yash Marketing">
     <meta name="application-name" content="Yash Marketing">
     <link rel="icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&rounded=true&bold=true">
     <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=180&bold=true">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -20,7 +18,6 @@
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
@@ -28,7 +25,6 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-
         const API_URL = "https://script.google.com/macros/s/AKfycby8jvTFCTpt7q4lvMmdmwL7kiVTv6SPpgtqqZZLaiUiIdhGViEq8sLtqJjhIPT7403Uag/exec";
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
@@ -40,38 +36,33 @@
             const [loading, setLoading] = useState(false);
 
             const callAPI = async (payload) => {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
-                return await response.json();
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    });
+                    return await response.json();
+                } catch (e) {
+                    return { success: false, message: "Network Error: Check Internet or API" };
+                }
             };
 
             if (!user) return <LoginScreen onLogin={setUser} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
 
             return (
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
-                    {/* Branded Header */}
                     <div className="bg-blue-900 text-white p-4 sticky top-0 z-30 flex justify-between items-center shadow-md">
                         <div>
                             <h1 className="font-extrabold text-lg flex items-center gap-2">
-                                <img src={LOGO_URL} alt="Logo" className="w-7 h-7 rounded-full border border-blue-400" />
+                                <img src={LOGO_URL} className="w-7 h-7 rounded-full border border-blue-400" />
                                 Yash Marketing
                             </h1>
                             <p className="text-[10px] text-blue-200 font-bold uppercase mt-1">{user.shopName}</p>
                         </div>
-                        {view === "cart" && (
-                            <button onClick={() => setView("catalog")} className="text-white text-xs font-bold bg-blue-800 px-3 py-2 rounded-lg">
-                                ← BACK TO STORE
-                            </button>
-                        )}
+                        {view === "cart" && <button onClick={() => setView("catalog")} className="text-white text-xs font-bold bg-blue-800 px-3 py-2 rounded-lg">← BACK</button>}
                     </div>
-
-                    {view === "catalog" 
-                        ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} /> 
-                        : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} />
-                    }
+                    {view === "catalog" ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} />}
                 </div>
             );
         }
@@ -79,23 +70,22 @@
         function LoginScreen({ onLogin, callAPI, loading, setLoading }) {
             const [phone, setPhone] = useState("");
             const handleLogin = async () => {
-                if(phone.length < 10) return alert("Enter valid 10-digit number");
+                if(phone.length < 10) return alert("Enter 10-digit number");
                 setLoading(true);
                 const res = await callAPI({ action: "verifyDealer", phone: phone });
                 setLoading(false);
                 if (res.success) onLogin({ phone, shopName: res.shopName });
                 else alert(res.message);
             };
-
             return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center border-t-8 border-blue-900">
-                        <img src={LOGO_URL} className="w-24 h-24 mx-auto mb-4 drop-shadow-xl rounded-full border-4 border-gray-50" />
+                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center">
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-900">
+                        <img src={LOGO_URL} className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" />
                         <h2 className="text-3xl font-black mb-1">Yash Marketing</h2>
                         <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">Authorized Dealer Portal</p>
-                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none" placeholder="MOBILE NO." />
+                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" placeholder="MOBILE NO." />
                         <button onClick={handleLogin} disabled={loading} className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center">
-                            {loading ? <div className="border-4 border-white w-6 h-6 rounded-full spinner"></div> : "SECURE LOGIN"}
+                            {loading ? <div className="border-4 border-white border-t-transparent w-7 h-7 rounded-full spinner"></div> : "SECURE LOGIN"}
                         </button>
                     </div>
                 </div>
@@ -109,7 +99,8 @@
             useEffect(() => {
                 if (products.length === 0) {
                     callAPI({ action: "getProducts" }).then(res => {
-                        if (res.success) setProducts(res.data);
+                        if (res && res.success) setProducts(res.data);
+                        else alert("Data Error: Sheet check karein!");
                         setLoading(false);
                     });
                 }
@@ -117,13 +108,12 @@
 
             const updateQty = (product, change) => {
                 const updated = { ...cart };
+                const stockVal = parseInt(product.Stock) || 0;
                 const currentQty = updated[product.ItemCode] ? updated[product.ItemCode].qty : 0;
                 const newQty = currentQty + change;
-
-                if (newQty > parseInt(product.Stock)) return alert(`Only ${product.Stock} units available!`);
+                if (newQty > stockVal) return alert("Only " + stockVal + " units in stock!");
                 if (newQty <= 0) delete updated[product.ItemCode];
                 else updated[product.ItemCode] = { ...product, qty: newQty };
-                
                 setCart(updated);
             };
 
@@ -131,67 +121,71 @@
             const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
             const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
 
-            if (loading) return <div className="flex flex-col justify-center items-center h-[70vh]"><div className="border-4 border-blue-900 border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Live Inventory...</p></div>;
+            if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
             const inStockProducts = products.filter(p => p.Stock && parseInt(p.Stock) > 0);
 
-            return (
-                <div className="flex flex-col">
-                    {!selectedType ? (
-                        <div className="p-4 grid grid-cols-2 gap-4">
-                            {[...new Set(inStockProducts.map(p => p.Type).filter(Boolean))].map(type => {
+            if (!selectedType) {
+                const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))];
+                return (
+                    <div className="p-4">
+                        <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+                        <div className="grid grid-cols-2 gap-4">
+                            {types.map(type => {
                                 const cover = inStockProducts.find(p => p.Type === type && p.ImageURL)?.ImageURL;
                                 return (
                                     <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
                                         {cover ? <img src={cover} className="h-20 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
-                                        <h3 className="font-extrabold text-sm text-center">{type}</h3>
+                                        <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
                                     </div>
                                 );
                             })}
                         </div>
-                    ) : (
-                        <div>
-                            <div className="p-4 sticky top-[68px] glass-panel z-10 border-b flex justify-between items-center">
-                                <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg">← Back</button>
-                                <span className="font-black text-gray-800">{selectedType}</span>
-                            </div>
-                            <div className="p-4 grid grid-cols-2 gap-4">
-                                {inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => b.DealerPrice - a.DealerPrice).map(p => {
-                                    const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
-                                    return (
-                                        <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm relative flex flex-col justify-between">
-                                            <div className="absolute top-2 right-2 bg-green-100 text-green-700 text-[9px] font-black px-2 py-1 rounded-full">{p.Stock} LEFT</div>
-                                            <div>
-                                                {p.ImageURL ? <img src={p.ImageURL} className="h-24 w-full object-contain mb-2" /> : <div className="h-24 bg-gray-50 flex items-center justify-center text-xs mb-2">No Image</div>}
-                                                <h3 className="font-bold text-xs leading-snug line-clamp-2">{p.ProductName}</h3>
-                                            </div>
-                                            <div className="mt-2">
-                                                <div className="font-black text-lg text-blue-900 mb-2">₹{p.DealerPrice}</div>
-                                                {currentQty > 0 ? (
-                                                    <div className="flex justify-between items-center bg-blue-50 rounded-lg p-1 border border-blue-200">
-                                                        <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-bold w-8 h-8 rounded shadow-sm">-</button>
-                                                        <span className="font-black text-blue-900">{currentQty}</span>
-                                                        <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-bold w-8 h-8 rounded shadow-sm">+</button>
-                                                    </div>
-                                                ) : (
-                                                    <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-2.5 rounded-lg active:scale-95 shadow-sm">+ ADD</button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
+                    </div>
+                );
+            }
 
-                    {/* Floating Cart Popup */}
+            const filteredProducts = inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice));
+
+            return (
+                <div className="flex flex-col">
+                    <div className="p-4 sticky top-[68px] bg-white bg-opacity-95 backdrop-blur z-10 border-b flex justify-between items-center shadow-sm">
+                        <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Back</button>
+                        <span className="font-black text-gray-800">{selectedType}</span>
+                    </div>
+                    <div className="p-4 grid grid-cols-2 gap-4">
+                        {filteredProducts.map(p => {
+                            const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
+                            return (
+                                <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50">
+                                    <div className="text-[9px] font-black px-2 py-0.5 rounded-full bg-green-50 text-green-700 self-end mb-2">{p.Stock} LEFT</div>
+                                    <div>
+                                        {p.ImageURL ? <img src={p.ImageURL} className="h-24 w-full object-contain mb-2" /> : <div className="h-24 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
+                                        <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
+                                    </div>
+                                    <div className="mt-3">
+                                        <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
+                                        {currentQty > 0 ? (
+                                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                                <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                                <span className="font-black text-blue-900">{currentQty}</span>
+                                                <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                     {totalItems > 0 && (
-                        <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50 animate-bounce-short">
+                        <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
                             <div>
-                                <div className="text-xs font-medium text-green-100">{totalItems} Item{totalItems > 1 ? 's' : ''} Added</div>
-                                <div className="font-black text-lg">Total: ₹{totalAmount}</div>
+                                <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
+                                <div className="font-black text-lg leading-none">₹{totalAmount} Total</div>
                             </div>
-                            <button onClick={() => setView("cart")} className="bg-white text-green-700 font-extrabold px-5 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
+                            <button onClick={() => setView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
                         </div>
                     )}
                 </div>
@@ -200,145 +194,82 @@
 
         function Cart({ user, cart, setCart, setView, callAPI }) {
             const [loading, setLoading] = useState(false);
-            const [paymentMode, setPaymentMode] = useState(""); // 'COD', 'UPI', 'DAILY'
+            const [paymentMode, setPaymentMode] = useState(""); 
             const [screenshotUploaded, setScreenshotUploaded] = useState(false);
-
             const cartItems = Object.values(cart);
             const totalAmount = cartItems.reduce((acc, item) => acc + (item.DealerPrice * item.qty), 0);
-            
-            // Calculate 2% discount if UPI is selected
             const discountAmount = paymentMode === 'UPI' ? Math.round(totalAmount * 0.02) : 0;
             const finalAmount = totalAmount - discountAmount;
 
             const handleCheckout = async () => {
-                if (!paymentMode) return alert("Please select a Payment Mode!");
-                if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Please upload Payment Screenshot to claim 2% discount.");
-
+                if (!paymentMode) return alert("Please select Payment Mode!");
+                if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
                 setLoading(true);
-                const itemsStr = cartItems.map(i => `${i.ProductName} (${i.ItemCode}) x${i.qty}`).join(" | ");
-                const orderData = { 
-                    phone: user.phone, 
-                    shopName: user.shopName, 
-                    items: itemsStr, 
-                    totalAmount: totalAmount,
-                    finalAmount: finalAmount,
-                    paymentMode: paymentMode 
-                };
-                
-                const res = await callAPI({ action: "placeOrder", order: orderData });
+                const itemsStr = cartItems.map(i => i.ProductName + " x" + i.qty).join(" | ");
+                const res = await callAPI({ action: "placeOrder", order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount, finalAmount, paymentMode }});
                 setLoading(false);
-                
                 if (res.success) {
-                    // Custom Thank You Message
-                    alert(`✅ ORDER CONFIRMED!\n\nDear ${user.shopName},\nThank you for choosing Yash Marketing.\n\nOrder ID: ${res.orderId}\nPayment Mode: ${res.paymentMode}\nFinal Amount: ₹${finalAmount}\n\nOur dispatch team has received your order and will process it shortly. For any queries, contact our support.`);
-                    setCart({});
-                    setView("catalog");
-                } else {
-                    alert("Order failed. Please try again.");
-                }
+                    alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\nWe will dispatch it shortly.");
+                    setCart({}); setView("catalog");
+                } else alert("Order failed.");
             };
 
-            if (cartItems.length === 0) return <div className="text-center mt-20 text-gray-500 font-bold">Cart is empty</div>;
-
             return (
-                <div className="p-4 bg-gray-50 min-h-screen">
-                    <h2 className="font-black text-gray-800 text-xl mb-3">Order Summary</h2>
-                    <div className="bg-white rounded-2xl shadow-sm border p-3 mb-6">
+                <div className="p-4 bg-gray-50 min-h-screen pb-40">
+                    <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
                         {cartItems.map(item => (
-                            <div key={item.ItemCode} className="flex justify-between items-center border-b last:border-0 py-2">
+                            <div key={item.ItemCode} className="flex justify-between items-center border-b last:border-0 py-3">
                                 <div className="w-2/3 pr-2">
-                                    <h4 className="text-sm font-bold leading-tight mb-1">{item.ProductName}</h4>
-                                    <div className="text-xs text-gray-500">₹{item.DealerPrice} × <span className="font-black text-blue-900 bg-blue-50 px-1 rounded">{item.qty}</span></div>
+                                    <h4 className="text-xs font-bold leading-tight">{item.ProductName}</h4>
+                                    <div className="text-[10px] text-gray-500 mt-1 font-bold italic">₹{item.DealerPrice} × {item.qty} Qty</div>
                                 </div>
-                                <div className="font-extrabold text-gray-900 text-right">₹{item.DealerPrice * item.qty}</div>
+                                <div className="font-black text-gray-900 text-sm">₹{item.DealerPrice * item.qty}</div>
                             </div>
                         ))}
-                        <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed">
-                            <span className="font-bold text-gray-500">Subtotal</span>
-                            <span className="font-black text-lg">₹{totalAmount}</span>
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
+                            <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
+                            <span className="font-black text-xl text-gray-900">₹{totalAmount}</span>
                         </div>
                     </div>
 
-                    {/* PAYMENT GATEWAY SECTION */}
-                    <h2 className="font-black text-gray-800 text-xl mb-3">Select Payment Mode</h2>
-                    <div className="space-y-3 mb-32">
-                        
-                        {/* Option 1: Cash On Delivery */}
-                        <div onClick={() => setPaymentMode('COD')} className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`w-5 h-5 rounded-full border-2 flex justify-center items-center ${paymentMode === 'COD' ? 'border-blue-600' : 'border-gray-400'}`}>
-                                    {paymentMode === 'COD' && <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>}
-                                </div>
-                                <span className="font-black text-lg text-gray-800">Cash On Delivery (COD)</span>
-                            </div>
-                            {paymentMode === 'COD' && <p className="text-xs text-gray-600 mt-2 ml-8 font-medium">Standard processing. Hand over cash/cheque to delivery executive.</p>}
+                    <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
+                    <div className="space-y-3">
+                        <div onClick={() => setPaymentMode('COD')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+                            <div className="font-black text-gray-800">Cash On Delivery (COD)</div>
                         </div>
-
-                        {/* Option 2: UPI (2% Discount) */}
-                        <div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${paymentMode === 'UPI' ? 'border-green-500 bg-green-50 shadow-md' : 'border-gray-200 bg-white'}`}>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded-full border-2 flex justify-center items-center ${paymentMode === 'UPI' ? 'border-green-600' : 'border-gray-400'}`}>
-                                        {paymentMode === 'UPI' && <div className="w-2.5 h-2.5 bg-green-600 rounded-full"></div>}
-                                    </div>
-                                    <span className="font-black text-lg text-green-800">GPay / PhonePe</span>
-                                </div>
-                                <span className="bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded animate-pulse">2% CASH DISCOUNT</span>
+                        <div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+                            <div className="flex justify-between items-center">
+                                <div className="font-black text-green-800 tracking-tight">UPI (2% CASH DISCOUNT)</div>
+                                <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
                             </div>
-                            
                             {paymentMode === 'UPI' && (
-                                <div className="mt-4 ml-8 bg-white p-4 rounded-xl border border-green-200 shadow-sm">
-                                    <p className="text-sm font-bold text-gray-700 mb-2 text-center">Scan QR & Pay exactly: <span className="text-green-600 font-black text-xl">₹{finalAmount}</span></p>
-                                    
-                                    {/* REPLACE THIS IMAGE LINK WITH YOUR ACTUAL QR CODE LINK LATER */}
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="UPI QR Code" className="w-32 h-32 mx-auto mb-4 border p-1 rounded-lg" />
-                                    
-                                    <div className="text-xs font-bold text-center mb-2 text-red-500">* Mandatory: Upload Payment Screenshot</div>
-                                    <input type="file" accept="image/*" onChange={(e) => { if(e.target.files.length > 0) setScreenshotUploaded(true); }} className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-green-100 file:text-green-700 hover:file:bg-green-200" />
+                                <div className="mt-4 bg-white p-4 rounded-xl border border-green-100 text-center">
+                                    <p className="text-xs font-bold mb-3">Pay Exactly: <span className="text-green-600 text-xl font-black">₹{finalAmount}</span></p>
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" className="w-32 h-32 mx-auto mb-4 border p-1" />
+                                    <input type="file" accept="image/*" onChange={(e) => setScreenshotUploaded(true)} className="text-[10px]" />
                                 </div>
                             )}
                         </div>
-
-                        {/* Option 3: Daily Collection */}
-                        <div onClick={() => setPaymentMode('DAILY')} className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${paymentMode === 'DAILY' ? 'border-purple-500 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`w-5 h-5 rounded-full border-2 flex justify-center items-center ${paymentMode === 'DAILY' ? 'border-purple-600' : 'border-gray-400'}`}>
-                                    {paymentMode === 'DAILY' && <div className="w-2.5 h-2.5 bg-purple-600 rounded-full"></div>}
-                                </div>
-                                <span className="font-black text-lg text-purple-900">Daily Collection (Auto-Pay)</span>
-                            </div>
-                            
+                        <div onClick={() => setPaymentMode('DAILY')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+                            <div className="font-black text-purple-900">Daily Collection (Auto-Pay)</div>
                             {paymentMode === 'DAILY' && (
-                                <div className="mt-4 ml-8">
-                                    <p className="text-xs font-bold text-purple-800 mb-2">Grow your business without upfront capital. Set up a daily micro-payment via Razorpay Auto-Pay.</p>
-                                    
-                                    {/* REPLACE THIS YOUTUBE LINK WITH YOUR PERSONALIZED PITCH VIDEO */}
-                                    <div className="rounded-xl overflow-hidden shadow-md mb-2 border-2 border-purple-200">
-                                        <iframe width="100%" height="200" src="https://www.youtube.com/embed/tgbNymZ7vqY" title="Yash Marketing Daily Collection Pitch" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
-                                    </div>
-                                    <p className="text-[10px] text-gray-500 text-center font-medium">* 1 Mahine ki udhaari limit approved automatically.</p>
+                                <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-purple-100">
+                                    <iframe width="100%" height="180" src="https://www.youtube.com/embed/tgbNymZ7vqY" frameBorder="0" allowFullScreen></iframe>
                                 </div>
                             )}
                         </div>
                     </div>
-                    
-                    {/* Fixed Checkout Bar */}
-                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 z-20 rounded-t-3xl shadow-[0_-10px_30px_-5px_rgba(0,0,0,0.1)]">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="font-bold text-gray-500 text-sm">Total Value</span>
-                            <span className="text-gray-400 text-sm line-through">₹{totalAmount}</span>
+
+                    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl">
+                        <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
+                            <span>Subtotal</span>
+                            <span className="line-through">₹{totalAmount}</span>
                         </div>
-                        {paymentMode === 'UPI' && (
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="font-bold text-green-600 text-xs">UPI Cash Discount (2%)</span>
-                                <span className="text-green-600 text-xs font-black">- ₹{discountAmount}</span>
-                            </div>
-                        )}
                         <div className="flex justify-between items-center mb-4">
                             <span className="font-black text-gray-800 text-lg">Final Amount</span>
                             <span className="text-blue-900 text-2xl font-black">₹{finalAmount}</span>
                         </div>
-                        <button onClick={handleCheckout} disabled={loading} className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-xl active:scale-95 flex justify-center items-center transition-colors ${!paymentMode ? 'bg-gray-400' : 'bg-blue-900 hover:bg-blue-800'}`}>
+                        <button onClick={handleCheckout} disabled={loading} className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}>
                             {loading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "CONFIRM ORDER"}
                         </button>
                     </div>
