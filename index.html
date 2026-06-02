@@ -100,7 +100,7 @@
                 if (products.length === 0) {
                     callAPI({ action: "getProducts" }).then(res => {
                         if (res && res.success) setProducts(res.data);
-                        else alert("Data Error: Sheet check karein!");
+                        else alert("Data Error: Please check Sheet");
                         setLoading(false);
                     });
                 }
@@ -132,7 +132,10 @@
                         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
                         <div className="grid grid-cols-2 gap-4">
                             {types.map(type => {
-                                const cover = inStockProducts.find(p => p.Type === type && p.ImageURL)?.ImageURL;
+                                // FIXED LINE: Removed Optional Chaining to prevent browser crash
+                                const coverProduct = inStockProducts.find(p => p.Type === type && p.ImageURL);
+                                const cover = coverProduct ? coverProduct.ImageURL : null;
+                                
                                 return (
                                     <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
                                         {cover ? <img src={cover} className="h-20 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
@@ -211,7 +214,7 @@
                 if (res.success) {
                     alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\nWe will dispatch it shortly.");
                     setCart({}); setView("catalog");
-                } else alert("Order failed.");
+                } else alert("Order failed. Please check connection.");
             };
 
             return (
