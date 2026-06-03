@@ -48,13 +48,29 @@
             const [cart, setCart] = useState({});
             const [loading, setLoading] = useState(false);
 
-            // Persistent Login
+            // THE SILENT TRACKER FUNCTION
+            const logSpyData = (eventName, detailsStr = "") => {
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: "logEvent", 
+                        phone: user ? user.phone : "Unknown", 
+                        shopName: user ? user.shopName : "Unknown", 
+                        event: eventName, 
+                        details: detailsStr 
+                    }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                }).catch(e => console.log("Silent Log Failed"));
+            };
+
+            // Pass this function down
+            const globalProps = { logSpyData };
+
             useEffect(() => {
                 const savedUser = localStorage.getItem("yashDealerSession");
                 if (savedUser) setUser(JSON.parse(savedUser));
             }, []);
 
-            // Hardware Back Button Handler
             useEffect(() => {
                 window.history.pushState({ page: view }, "", "");
                 const handlePopState = () => {
@@ -70,6 +86,7 @@
 
             const handleLogout = () => {
                 if(window.confirm("Are you sure you want to logout?")) {
+                    logSpyData("Logout", "User closed session");
                     localStorage.removeItem("yashDealerSession");
                     setUser(null);
                     setCart({});
@@ -89,7 +106,7 @@
                 }
             };
 
-            if (!user) return <LoginScreen onLogin={setUser} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
+            if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
 
             return (
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
@@ -106,7 +123,7 @@
                             <button onClick={handleLogout} className="text-white text-xs font-bold bg-red-600 px-3 py-2 rounded-lg shadow-sm">LOGOUT</button>
                         </div>
                     </div>
-                    {view === "catalog" ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} />}
+                    {view === "catalog" ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />}
                 </div>
             );
         }
@@ -121,6 +138,14 @@
                 if (res.success) {
                     const dealerData = { phone, shopName: res.shopName };
                     localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+                    
+                    // Fire Silent Log manually on login
+                    fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "logEvent", phone: dealerData.phone, shopName: dealerData.shopName, event: "Login Success", details: "App Opened" }),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    }).catch(e => {});
+
                     onLogin(dealerData);
                 } else alert(res.message);
             };
@@ -139,10 +164,13 @@
             );
         }
 
-        function Catalog({ callAPI, cart, setCart, products, setProducts, setView }) {
+        function Catalog({ callAPI, cart, setCart, products, setProducts, setView, globalProps }) {
             const [loading, setLoading] = useState(products.length === 0);
             const [selectedType, setSelectedType] = useState(null);
             const [searchQuery, setSearchQuery] = useState("");
+            
+            // Search Debounce state for Analytics
+            const [typingTimer, setTypingTimer] = useState(null);
 
             useEffect(() => {
                 if (products.length === 0) {
@@ -179,7 +207,6 @@
                         const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
                         const smartImg = getSmartImage(p);
                         
-                        // AUTO-DISCOUNT CALCULATOR
                         const mrpVal = Number(p.MRP);
                         const dealerVal = Number(p.DealerPrice);
                         const hasDiscount = !isNaN(mrpVal) && mrpVal > dealerVal;
@@ -192,20 +219,16 @@
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
                                 </div>
                                 <div className="mt-3">
-                                    {/* MRP AND DISCOUNT BADGE SECTION */}
                                     {hasDiscount ? (
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{p.MRP}</span>
-                                            <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">
-                                                {discountPercent}% OFF
-                                            </span>
+                                            <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
                                         </div>
                                     ) : (
                                         p.MRP && p.MRP !== "" && (
                                             <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{p.MRP}</div>
                                         )
                                     )}
-                                    
                                     <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
                                     
                                     {currentQty > 0 ? (
@@ -224,17 +247,27 @@
                 </div>
             );
 
-            // SEARCH BAR UI
+            const handleSearchChange = (e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if(val !== "") setSelectedType(null);
+                
+                // Analytics: Only send log if they stop typing for 1.5 seconds (prevents spam)
+                clearTimeout(typingTimer);
+                if(val.length > 2) {
+                    setTypingTimer(setTimeout(() => {
+                        globalProps.logSpyData("Searched Item", val);
+                    }, 1500));
+                }
+            };
+
             const searchBarUI = (
                 <div className="p-3 bg-white sticky top-[68px] z-30 shadow-sm border-b flex items-center">
                     <input 
                         type="text" 
                         placeholder="Search products, brands..." 
                         value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            if(e.target.value !== "") setSelectedType(null); 
-                        }}
+                        onChange={handleSearchChange}
                         className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
                     />
                     {searchQuery && (
@@ -262,7 +295,10 @@
                                 const coverProduct = inStockProducts.find(p => p.Type === type);
                                 const cover = coverProduct ? getSmartImage(coverProduct) : null;
                                 return (
-                                    <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
+                                    <div key={type} onClick={() => {
+                                        setSelectedType(type);
+                                        globalProps.logSpyData("Viewed Category", type);
+                                    }} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
                                         {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
                                         <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
                                     </div>
@@ -288,7 +324,10 @@
                 <div className="flex flex-col">
                     {searchBarUI}
                     {mainContent}
-                    {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
+                    {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
+                        globalProps.logSpyData("Viewed Cart", `Items: ${totalItems}, Val: ₹${totalAmount}`);
+                        setView("cart");
+                    }} />}
                 </div>
             );
         }
@@ -300,12 +339,12 @@
                         <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
                         <div className="font-black text-lg leading-none">₹{totalAmount} Total</div>
                     </div>
-                    <button onClick={() => setView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
+                    <button onClick={setView} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
                 </div>
             );
         }
 
-        function Cart({ user, cart, setCart, setView, callAPI }) {
+        function Cart({ user, cart, setCart, setView, callAPI, globalProps }) {
             const [loading, setLoading] = useState(false);
             const [paymentMode, setPaymentMode] = useState(""); 
             const [screenshotUploaded, setScreenshotUploaded] = useState(false);
@@ -323,6 +362,7 @@
                 setLoading(false);
                 if (res.success) {
                     alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\nWe will dispatch it shortly.");
+                    globalProps.logSpyData("Order Placed", `ID: ${res.orderId}, Val: ₹${finalAmount}`);
                     setCart({}); setView("catalog");
                 } else alert("Order failed.");
             };
