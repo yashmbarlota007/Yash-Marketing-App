@@ -26,7 +26,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // AAPKA PERMANENT API LINK 
+        // MASTER VALIDATED API LINK 
         const API_URL = "https://script.google.com/macros/s/AKfycbywojqmTRE6CRvdsLmQXaMtz4UgDX-WjIRqhjEc5ZwHyvnhidj4WJwFd3EaG_vYdc5ABg/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
@@ -59,6 +59,8 @@
             const [products, setProducts] = useState([]);
             const [cart, setCart] = useState({});
             const [loading, setLoading] = useState(false);
+            // 🔥 CUSTOMER MODE STATE 🔥
+            const [customerMode, setCustomerMode] = useState(false);
 
             const logSpyData = (eventName, detailsStr = "") => {
                 fetch(API_URL, {
@@ -68,7 +70,7 @@
                 }).catch(e => console.log("Silent Log Failed"));
             };
 
-            const globalProps = { logSpyData };
+            const globalProps = { logSpyData, customerMode };
 
             useEffect(() => {
                 const savedUser = localStorage.getItem("yashDealerSession");
@@ -116,15 +118,23 @@
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
                     <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
                         <div>
-                            <h1 className="font-extrabold text-lg flex items-center gap-2">
-                                <img src={LOGO_URL} className="w-7 h-7 rounded-full border border-blue-400" />
+                            <h1 className="font-extrabold text-sm flex items-center gap-1.5">
+                                <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
                                 Yash Marketing
                             </h1>
-                            <p className="text-[10px] text-blue-200 font-bold uppercase mt-1">{user.shopName}</p>
+                            <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
                         </div>
-                        <div className="flex gap-2">
-                            {view === "cart" && <button onClick={() => setView("catalog")} className="text-white text-xs font-bold bg-blue-800 px-3 py-2 rounded-lg">← BACK</button>}
-                            <button onClick={handleLogout} className="text-white text-xs font-bold bg-red-600 px-3 py-2 rounded-lg shadow-sm">LOGOUT</button>
+                        <div className="flex gap-1.5 items-center">
+                            {/* 🔥 THE CUSTOMER MODE INTERFACE TOGGLE 🔥 */}
+                            <button onClick={() => {
+                                const m = !customerMode;
+                                setCustomerMode(m);
+                                logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
+                            }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
+                                {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
+                            </button>
+                            {view === "cart" && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
+                            <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
                         </div>
                     </div>
                     {view === "catalog" ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />}
@@ -184,6 +194,7 @@
             }, []);
 
             const updateQty = (product, change) => {
+                if(globalProps.customerMode) return; // Prevent order modification in customer mode
                 const updated = { ...cart };
                 const stockVal = parseInt(product.Stock) || 0;
                 const currentQty = updated[product.ItemCode] ? updated[product.ItemCode].qty : 0;
@@ -220,26 +231,44 @@
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
                                 </div>
                                 <div className="mt-3">
-                                    {hasDiscount ? (
-                                        <div className="flex items-center gap-1.5 mb-1">
-                                            <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{p.MRP}</span>
-                                            <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+                                    {/* 🔥 PRICING CONTROLS BASED ON AUTOMATED CUSTOMER MODE 🔥 */}
+                                    {!globalProps.customerMode ? (
+                                        <div>
+                                            {hasDiscount ? (
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{p.MRP}</span>
+                                                    <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+                                                </div>
+                                            ) : (
+                                                p.MRP && p.MRP !== "" && (
+                                                    <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{p.MRP}</div>
+                                                )
+                                            )}
+                                            <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
+                                            
+                                            {currentQty > 0 ? (
+                                                <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                                    <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                                    <span className="font-black text-blue-900">{currentQty}</span>
+                                                    <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                                                </div>
+                                            ) : (
+                                                <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                            )}
                                         </div>
                                     ) : (
-                                        p.MRP && p.MRP !== "" && (
-                                            <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{p.MRP}</div>
-                                        )
-                                    )}
-                                    <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
-                                    
-                                    {currentQty > 0 ? (
-                                        <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                            <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
-                                            <span className="font-black text-blue-900">{currentQty}</span>
-                                            <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                        /* 🔥 CUSTOMER VIEW: HIDES PRICING AND REPLACES WITH DIRECT SHARE ENGINE 🔥 */
+                                        <button onClick={() => {
+                                            const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${p.ProductName}\n⚡ *Brand:* ${p.Brand || 'Premium'}\n\nAsk for the best price today!`;
+                                            if (navigator.share) {
+                                                navigator.share({ title: p.ProductName, text: shareText, url: smartImg }).catch(() => {});
+                                            } else {
+                                                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
+                                            }
+                                            globalProps.logSpyData("Shared Product Image", p.ItemCode);
+                                        }} className="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-black py-3 rounded-xl shadow-sm flex items-center justify-center gap-1">
+                                            📲 SHARE PHOTO
+                                        </button>
                                     )}
                                 </div>
                             </div>
@@ -262,7 +291,7 @@
             };
 
             const searchBarUI = (
-                <div className="p-3 bg-white sticky top-[68px] z-30 shadow-sm border-b flex items-center">
+                <div className="p-3 bg-white sticky top-[62px] z-30 shadow-sm border-b flex items-center">
                     <input 
                         type="text" 
                         placeholder="Search products, brands..." 
@@ -287,7 +316,6 @@
                 mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
             } else if (!selectedType) {
                 
-                // 🔥 THE NEW STRATEGIC SORTING ENGINE 🔥
                 const priorityOrder = [
                     "SMART WATCH", "AIRPODS", "NECKBAND", "POWERBANK", 
                     "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
@@ -297,10 +325,10 @@
                     const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
                     const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
                     
-                    if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Agar dono list mein hain, toh list ke rank hisaab se lagao
-                    if (indexA !== -1) return -1; // Sirf A list mein hai, toh A ko upar bhejo
-                    if (indexB !== -1) return 1;  // Sirf B list mein hai, toh B ko upar bhejo
-                    return a.localeCompare(b);    // Dono list mein nahi hain, toh A to Z laga do
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB; 
+                    if (indexA !== -1) return -1; 
+                    if (indexB !== -1) return 1;  
+                    return a.localeCompare(b);    
                 });
 
                 mainContent = (
@@ -340,7 +368,8 @@
                 <div className="flex flex-col">
                     {searchBarUI}
                     {mainContent}
-                    {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
+                    {/* Hides the floating cart completely if customer view is active */}
+                    {totalItems > 0 && !globalProps.customerMode && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
                         globalProps.logSpyData("Viewed Cart", `Items: ${totalItems}, Val: ₹${totalAmount}`);
                         setView("cart");
                     }} />}
