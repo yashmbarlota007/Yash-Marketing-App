@@ -30,22 +30,18 @@
         const API_URL = "https://script.google.com/macros/s/AKfycbzPA2XEaSDvfGYdUlx94148Q-m7VEsW8K-4VgXuxgVeCmXf-spCNvRX7yJF-7gcJDk8Xg/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
-        // THE UPGRADED SMART IMAGE ENGINE
         function getSmartImage(product) {
             if (product.ImageURL && product.ImageURL.trim() !== "") {
                 let url = product.ImageURL.trim();
-                
-                // Google Drive Link Auto-Converter
                 if (url.includes("drive.google.com")) {
                     let fileId = "";
                     const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
                     const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
                     if (dMatch) fileId = dMatch[1];
                     else if (idMatch) fileId = idMatch[1];
-                    
                     if (fileId) return "https://drive.google.com/uc?export=view&id=" + fileId;
                 }
-                return url; // Agar normal link hai toh waisa hi jane do
+                return url; 
             }
             
             var brand = (product.Brand || "").toUpperCase();
@@ -64,17 +60,10 @@
             const [cart, setCart] = useState({});
             const [loading, setLoading] = useState(false);
 
-            // THE SILENT TRACKER FUNCTION
             const logSpyData = (eventName, detailsStr = "") => {
                 fetch(API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ 
-                        action: "logEvent", 
-                        phone: user ? user.phone : "Unknown", 
-                        shopName: user ? user.shopName : "Unknown", 
-                        event: eventName, 
-                        details: detailsStr 
-                    }),
+                    body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: eventName, details: detailsStr }),
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 }).catch(e => console.log("Silent Log Failed"));
             };
@@ -297,7 +286,23 @@
                 );
                 mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
             } else if (!selectedType) {
-                const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))];
+                
+                // 🔥 THE NEW STRATEGIC SORTING ENGINE 🔥
+                const priorityOrder = [
+                    "SMART WATCH", "AIRPODS", "NECKBAND", "POWERBANK", 
+                    "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
+                ];
+
+                const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))].sort((a, b) => {
+                    const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
+                    const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
+                    
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Agar dono list mein hain, toh list ke rank hisaab se lagao
+                    if (indexA !== -1) return -1; // Sirf A list mein hai, toh A ko upar bhejo
+                    if (indexB !== -1) return 1;  // Sirf B list mein hai, toh B ko upar bhejo
+                    return a.localeCompare(b);    // Dono list mein nahi hain, toh A to Z laga do
+                });
+
                 mainContent = (
                     <div className="p-4">
                         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
