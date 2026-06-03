@@ -13,7 +13,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <style>
-        body { -webkit-tap-highlight-color: transparent; }
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
         .spinner { border-top-color: #3498db; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -26,9 +26,8 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // 🔥 YASH SIR, APNA NAYA GOOGLE SCRIPT LINK IN DO QUOTES KE BEECH PASTE KAREIN 🔥
+        // 🔥 YASH SIR, APNA API LINK NICHE WALE QUOTES MEIN PASTE KAREIN 🔥
         const API_URL = "https://script.google.com/macros/s/AKfycbzPA2XEaSDvfGYdUlx94148Q-m7VEsW8K-4VgXuxgVeCmXf-spCNvRX7yJF-7gcJDk8Xg/exec"; 
-        
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
@@ -48,6 +47,35 @@
             const [products, setProducts] = useState([]);
             const [cart, setCart] = useState({});
             const [loading, setLoading] = useState(false);
+
+            // Persistent Login
+            useEffect(() => {
+                const savedUser = localStorage.getItem("yashDealerSession");
+                if (savedUser) setUser(JSON.parse(savedUser));
+            }, []);
+
+            // Hardware Back Button Handler
+            useEffect(() => {
+                window.history.pushState({ page: view }, "", "");
+                const handlePopState = () => {
+                    if (view === "cart") {
+                        setView("catalog");
+                    } else if (view === "catalog") {
+                        // User trying to exit the app
+                        window.history.go(-1);
+                    }
+                };
+                window.addEventListener("popstate", handlePopState);
+                return () => window.removeEventListener("popstate", handlePopState);
+            }, [view]);
+
+            const handleLogout = () => {
+                if(window.confirm("Are you sure you want to logout?")) {
+                    localStorage.removeItem("yashDealerSession");
+                    setUser(null);
+                    setCart({});
+                }
+            };
 
             const callAPI = async (payload) => {
                 try {
@@ -74,7 +102,10 @@
                             </h1>
                             <p className="text-[10px] text-blue-200 font-bold uppercase mt-1">{user.shopName}</p>
                         </div>
-                        {view === "cart" && <button onClick={() => setView("catalog")} className="text-white text-xs font-bold bg-blue-800 px-3 py-2 rounded-lg">← BACK</button>}
+                        <div className="flex gap-2">
+                            {view === "cart" && <button onClick={() => setView("catalog")} className="text-white text-xs font-bold bg-blue-800 px-3 py-2 rounded-lg">← BACK</button>}
+                            <button onClick={handleLogout} className="text-white text-xs font-bold bg-red-600 px-3 py-2 rounded-lg shadow-sm">LOGOUT</button>
+                        </div>
                     </div>
                     {view === "catalog" ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} />}
                 </div>
@@ -88,8 +119,11 @@
                 setLoading(true);
                 const res = await callAPI({ action: "verifyDealer", phone: phone });
                 setLoading(false);
-                if (res.success) onLogin({ phone, shopName: res.shopName });
-                else alert(res.message);
+                if (res.success) {
+                    const dealerData = { phone, shopName: res.shopName };
+                    localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+                    onLogin(dealerData);
+                } else alert(res.message);
             };
             return (
                 <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center">
@@ -140,42 +174,26 @@
 
             const inStockProducts = products.filter(p => p.Stock && parseInt(p.Stock) > 0);
 
-            // SEARCH BAR UI
-            const SearchUI = () => (
-                <div className="p-3 bg-white sticky top-[68px] z-30 shadow-sm border-b flex items-center">
-                    <input 
-                        type="text" 
-                        placeholder="Search products, brands..." 
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            if(e.target.value !== "") setSelectedType(null); 
-                        }}
-                        className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
-                    />
-                    {searchQuery && (
-                        <button onClick={() => setSearchQuery("")} className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl">✕</button>
-                    )}
-                </div>
-            );
-
-            // PRODUCT CARD RENDERER
+            // Inline components removed to fix keyboard bug
             const renderProducts = (productList) => (
                 <div className="p-4 grid grid-cols-2 gap-4">
                     {productList.map(p => {
                         const currentQty = cart[p.ItemCode] ? cart[p.ItemCode].qty : 0;
                         const smartImg = getSmartImage(p);
                         return (
-                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
-                                <div className="absolute top-2 right-2 text-[9px] font-black px-2 py-1 rounded-full bg-green-100 text-green-800 shadow-sm border border-green-200 flex items-center gap-1 z-10">
-                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> IN STOCK
-                                </div>
-                                <div className="mt-4">
-                                    {smartImg ? <img src={smartImg} className="h-20 w-full object-contain mb-2 p-1" /> : <div className="h-20 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
+                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50">
+                                <div className="mt-1">
+                                    {/* PHOTO SIZE INCREASED TO h-32 */}
+                                    {smartImg ? <img src={smartImg} className="h-32 w-full object-contain mb-2 p-1" /> : <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
                                 </div>
                                 <div className="mt-3">
+                                    {/* ONLINE PRICE (MRP) FEATURE */}
+                                    {p.MRP && p.MRP !== "" && (
+                                        <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight">Online: ₹{p.MRP}</div>
+                                    )}
                                     <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{p.DealerPrice}</div>
+                                    
                                     {currentQty > 0 ? (
                                         <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                                             <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
@@ -192,55 +210,61 @@
                 </div>
             );
 
-            if (searchQuery.trim() !== "") {
-                const searchResults = inStockProducts.filter(p => 
-                    p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                    (p.Brand && p.Brand.toLowerCase().includes(searchQuery.toLowerCase()))
-                );
-                return (
-                    <div className="flex flex-col">
-                        <SearchUI />
-                        {searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>}
-                        {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
-                    </div>
-                );
-            }
-
-            if (!selectedType) {
-                const types = [...new Set(inStockProducts.map(p => p.Type).filter(Boolean))];
-                return (
-                    <div className="flex flex-col">
-                        <SearchUI />
-                        <div className="p-4">
-                            <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
-                            <div className="grid grid-cols-2 gap-4">
-                                {types.map(type => {
-                                    const coverProduct = inStockProducts.find(p => p.Type === type);
-                                    const cover = coverProduct ? getSmartImage(coverProduct) : null;
-                                    return (
-                                        <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
-                                            {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
-                                            <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
-                    </div>
-                );
-            }
-
-            const filteredProducts = inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice));
-            
+            // SEARCH BAR RENDERED DIRECTLY (Fixes Keyboard drop issue)
             return (
                 <div className="flex flex-col">
-                    <SearchUI />
-                    <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
-                        <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
-                        <span className="font-black text-gray-800">{selectedType}</span>
+                    <div className="p-3 bg-white sticky top-[68px] z-30 shadow-sm border-b flex items-center">
+                        <input 
+                            type="text" 
+                            placeholder="Search products, brands..." 
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                if(e.target.value !== "") setSelectedType(null); 
+                            }}
+                            className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
+                        />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl">✕</button>
+                        )}
                     </div>
-                    {renderProducts(filteredProducts)}
+
+                    {/* SEARCH RESULTS VIEW */}
+                    {searchQuery.trim() !== "" ? (
+                        <>
+                            {inStockProducts.filter(p => p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) || (p.Brand && p.Brand.toLowerCase().includes(searchQuery.toLowerCase()))).length > 0 ? 
+                                renderProducts(inStockProducts.filter(p => p.ProductName.toLowerCase().includes(searchQuery.toLowerCase()) || (p.Brand && p.Brand.toLowerCase().includes(searchQuery.toLowerCase())))) 
+                                : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>
+                            }
+                        </>
+                    ) : (
+                        /* CATEGORY OR PRODUCT VIEW */
+                        !selectedType ? (
+                            <div className="p-4">
+                                <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {[...new Set(inStockProducts.map(p => p.Type).filter(Boolean))].map(type => {
+                                        const coverProduct = inStockProducts.find(p => p.Type === type);
+                                        const cover = coverProduct ? getSmartImage(coverProduct) : null;
+                                        return (
+                                            <div key={type} onClick={() => setSelectedType(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
+                                                {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
+                                                <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
+                                    <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
+                                    <span className="font-black text-gray-800">{selectedType}</span>
+                                </div>
+                                {renderProducts(inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice)))}
+                            </>
+                        )
+                    )}
                     {totalItems > 0 && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={setView} />}
                 </div>
             );
