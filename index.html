@@ -489,7 +489,7 @@
                     if (res && res.success) {
                         setLedgerData(res.data);
                     } else {
-                        alert(res.message || "Ledger statement aane me dikkat hui.");
+                        alert(res.message || "Ledger statement aane me dukan ki info match nahi hui.");
                     }
                     setLoading(false);
                 });
@@ -574,7 +574,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(App());
+        root.render(<App />);
     </script>
 </body>
 </html>
