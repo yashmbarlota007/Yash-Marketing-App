@@ -137,7 +137,7 @@
                             <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
                         </div>
                     </div>
-                    {view === "catalog" ? <Catalog callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />}
+                    {view === "catalog" ? <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />}
                 </div>
             );
         }
@@ -177,7 +177,7 @@
             );
         }
 
-        function Catalog({ callAPI, cart, setCart, products, setProducts, setView, globalProps }) {
+        function Catalog({ user, callAPI, cart, setCart, products, setProducts, setView, globalProps }) {
             const [loading, setLoading] = useState(products.length === 0);
             const [selectedType, setSelectedType] = useState(null);
             const [searchQuery, setSearchQuery] = useState("");
@@ -259,7 +259,7 @@
                                     ) : (
                                         /* 🔥 CUSTOMER VIEW: HIDES PRICING AND REPLACES WITH DIRECT SHARE ENGINE 🔥 */
                                         <button onClick={() => {
-                                            const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${p.ProductName}\n⚡ *Brand:* ${p.Brand || 'Premium'}\n\nAsk for the best price today!`;
+                                            const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${p.ProductName}\n⚡ *Brand:* ${p.Brand || 'Premium'}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
                                             if (navigator.share) {
                                                 navigator.share({ title: p.ProductName, text: shareText, url: smartImg }).catch(() => {});
                                             } else {
