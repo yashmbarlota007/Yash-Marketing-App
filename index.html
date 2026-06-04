@@ -59,7 +59,6 @@
             const [products, setProducts] = useState([]);
             const [cart, setCart] = useState({});
             const [loading, setLoading] = useState(false);
-            // 🔥 CUSTOMER MODE STATE 🔥
             const [customerMode, setCustomerMode] = useState(false);
 
             const logSpyData = (eventName, detailsStr = "") => {
@@ -80,7 +79,7 @@
             useEffect(() => {
                 window.history.pushState({ page: view }, "", "");
                 const handlePopState = () => {
-                    if (view === "cart") {
+                    if (view === "cart" || view === "ledger") {
                         setView("catalog");
                     } else if (view === "catalog") {
                         window.history.go(-1);
@@ -125,19 +124,28 @@
                             <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
                         </div>
                         <div className="flex gap-1.5 items-center">
-                            {/* 🔥 THE CUSTOMER MODE INTERFACE TOGGLE 🔥 */}
+                            {!customerMode && view === "catalog" && (
+                                <button onClick={() => setView("ledger")} className="text-white text-[10px] font-bold bg-amber-600 px-2.5 py-2 rounded-lg shadow-sm">📖 LEDGER</button>
+                            )}
                             <button onClick={() => {
                                 const m = !customerMode;
                                 setCustomerMode(m);
+                                if (m && view === "ledger") setView("catalog");
                                 logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
                             }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
                                 {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
                             </button>
-                            {view === "cart" && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
+                            {(view === "cart" || view === "ledger") && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
                             <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
                         </div>
                     </div>
-                    {view === "catalog" ? <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} /> : <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />}
+                    {view === "catalog" ? (
+                        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} />
+                    ) : view === "cart" ? (
+                        <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />
+                    ) : (
+                        <LedgerView user={user} callAPI={callAPI} />
+                    )}
                 </div>
             );
         }
@@ -194,7 +202,7 @@
             }, []);
 
             const updateQty = (product, change) => {
-                if(globalProps.customerMode) return; // Prevent order modification in customer mode
+                if(globalProps.customerMode) return; 
                 const updated = { ...cart };
                 const stockVal = parseInt(product.Stock) || 0;
                 const currentQty = updated[product.ItemCode] ? updated[product.ItemCode].qty : 0;
@@ -231,7 +239,6 @@
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
                                 </div>
                                 <div className="mt-3">
-                                    {/* 🔥 PRICING CONTROLS BASED ON AUTOMATED CUSTOMER MODE 🔥 */}
                                     {!globalProps.customerMode ? (
                                         <div>
                                             {hasDiscount ? (
@@ -257,7 +264,6 @@
                                             )}
                                         </div>
                                     ) : (
-                                        /* 🔥 CUSTOMER VIEW: HIDES PRICING AND REPLACES WITH DIRECT SHARE ENGINE 🔥 */
                                         <button onClick={() => {
                                             const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${p.ProductName}\n⚡ *Brand:* ${p.Brand || 'Premium'}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
                                             if (navigator.share) {
@@ -368,7 +374,6 @@
                 <div className="flex flex-col">
                     {searchBarUI}
                     {mainContent}
-                    {/* Hides the floating cart completely if customer view is active */}
                     {totalItems > 0 && !globalProps.customerMode && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
                         globalProps.logSpyData("Viewed Cart", `Items: ${totalItems}, Val: ₹${totalAmount}`);
                         setView("cart");
@@ -475,8 +480,101 @@
             );
         }
 
+        function LedgerView({ user, callAPI }) {
+            const [ledgerData, setLedgerData] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                callAPI({ action: "getLedger", phone: user.phone }).then(res => {
+                    if (res && res.success) {
+                        setLedgerData(res.data);
+                    } else {
+                        alert(res.message || "Ledger statement aane me dikkat hui.");
+                    }
+                    setLoading(false);
+                });
+            }, []);
+
+            if (loading) return (
+                <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+                    <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+                    <p className="font-bold">Generating Ledger Statement...</p>
+                </div>
+            );
+
+            let totalDebit = 0;
+            let totalCredit = 0;
+            ledgerData.forEach(item => {
+                totalDebit += item.debit || 0;
+                totalCredit += item.credit || 0;
+            });
+            const netBalance = totalDebit - totalCredit;
+
+            return (
+                <div className="p-4 bg-gray-50 min-h-screen pb-24">
+                    <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
+                        <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
+                        <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
+                        
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-red-50 p-3 rounded-xl border border-red-100">
+                                <div className="text-[9px] text-red-600 font-bold uppercase">Total Bills</div>
+                                <div className="font-black text-red-900 text-sm mt-1">₹{totalDebit}</div>
+                            </div>
+                            <div className="bg-green-50 p-3 rounded-xl border border-green-100">
+                                <div className="text-[9px] text-green-600 font-bold uppercase">Total Paid</div>
+                                <div className="font-black text-green-900 text-sm mt-1">₹{totalCredit}</div>
+                            </div>
+                            <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                                <div className="text-[9px] text-blue-600 font-bold uppercase">Outstanding</div>
+                                <div className="font-black text-blue-900 text-sm mt-1">₹{netBalance}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 className="font-black text-gray-800 text-md mb-3 px-1">Ledger Entries</h3>
+                    <div className="space-y-3">
+                        {ledgerData.length === 0 ? (
+                            <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">Koi ledger record nahi mila.</div>
+                        ) : (
+                            ledgerData.map((item, index) => {
+                                const isDebit = item.debit > 0;
+                                return (
+                                    <div key={index} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-start">
+                                        <div className="w-2/3">
+                                            <div className="text-[10px] text-gray-400 font-bold">{item.date}</div>
+                                            <h4 className="text-xs font-black text-gray-800 mt-1 leading-snug">{item.particulars}</h4>
+                                            {item.vchType && (
+                                                <div className="flex gap-1.5 mt-1.5">
+                                                    <span className="bg-gray-100 text-gray-600 font-bold text-[8px] px-1.5 py-0.5 rounded uppercase">{item.vchType}</span>
+                                                    {item.vchNo && <span className="bg-blue-50 text-blue-600 font-bold text-[8px] px-1.5 py-0.5 rounded">No: {item.vchNo}</span>}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="text-right">
+                                            {isDebit ? (
+                                                <div>
+                                                    <div className="text-xs text-red-500 font-bold">DR (Debited)</div>
+                                                    <div className="font-black text-red-600 text-base mt-0.5">₹{item.debit}</div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <div className="text-xs text-green-500 font-bold">CR (Credited)</div>
+                                                    <div className="font-black text-green-600 text-base mt-0.5">₹{item.credit}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(App());
     </script>
 </body>
 </html>
