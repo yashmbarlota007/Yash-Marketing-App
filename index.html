@@ -33,7 +33,7 @@
         const { useState, useEffect } = React;
         
         // MASTER VALIDATED API LINK 
-        const API_URL = "https://script.google.com/macros/s/AKfycbwXB8B7WVDT2QSBRlaXw8SYeIlPQKxyW6D5M8AdsZZ4lR6SHiEQlYp6R7lDtG6OV_ORmg/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
@@ -126,7 +126,7 @@
 
             return (
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
-                    <div className="bg-blue-950 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
+                    <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
                         <div>
                             <h1 className="font-extrabold text-sm flex items-center gap-1.5">
                                 <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
@@ -604,11 +604,11 @@
             const [imagesList, setImagesList] = useState([]);
             const currentQty = cart[product.ItemCode] ? cart[product.ItemCode].qty : 0;
             
-            // Failsafe & Carousel loader
             useEffect(() => {
                 const list = [];
                 const mainImg = getSmartImage(product);
-                // Check if the main image is accidentally a webpage link instead of an actual image file
+                
+                // Pure Image detection: Webpage URLs are skipped instantly to avoid broken frames
                 const isWebpage = mainImg && (mainImg.includes("/products/") || mainImg.includes("/pages/") || mainImg.includes("boat-lifestyle.com/products") || mainImg.includes("portronics.com/products"));
                 
                 if (mainImg && !isWebpage) {
@@ -622,7 +622,7 @@
                     });
                 }
 
-                // Ultimate fallback placeholder if all fields are empty or invalid
+                // Placeholder fallback
                 if (list.length === 0) {
                     list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
                 }
@@ -667,13 +667,12 @@
                                     src={imagesList[currentImgIndex]} 
                                     className="h-56 max-w-full object-contain" 
                                     onError={(e) => {
-                                        // Self-healing: if an image URL fails to load, remove it from the array dynamically
+                                        // Self-healing check: Removes bad image immediately without showing a broken frame
                                         if (imagesList.length > 1) {
                                             const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
                                             setImagesList(updatedList);
                                             setCurrentImgIndex(0);
                                         } else {
-                                            // Fallback to avatar if it's the only image
                                             e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
                                         }
                                     }}
