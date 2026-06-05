@@ -18,6 +18,12 @@
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
@@ -26,8 +32,8 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // MASTER VALIDATED API LINK (PRE-INJECTED)
-        const API_URL = "https://script.google.com/macros/s/AKfycbyNAEgbes4X2GQiUkzU23bgv6ForkSl1dq00GoQ73Qxmqc8qZbfMfqcama99oC8lWpC9w/exec"; 
+        // MASTER VALIDATED API LINK 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
@@ -190,6 +196,7 @@
             const [selectedType, setSelectedType] = useState(null);
             const [searchQuery, setSearchQuery] = useState("");
             const [typingTimer, setTypingTimer] = useState(null);
+            const [selectedProduct, setSelectedProduct] = useState(null);
 
             useEffect(() => {
                 if (products.length === 0) {
@@ -234,7 +241,7 @@
 
                         return (
                             <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
-                                <div className="mt-1">
+                                <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
                                     {smartImg ? <img src={smartImg} className="h-32 w-full object-contain mb-2 p-1" /> : <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
                                 </div>
@@ -255,16 +262,17 @@
                                             
                                             {currentQty > 0 ? (
                                                 <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                                    <button onClick={() => updateQty(p, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); updateQty(p, -1); }} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
                                                     <span className="font-black text-blue-900">{currentQty}</span>
-                                                    <button onClick={() => updateQty(p, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
                                                 </div>
                                             ) : (
-                                                <button onClick={() => updateQty(p, 1)} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
                                             )}
                                         </div>
                                     ) : (
-                                        <button onClick={() => {
+                                        <button onClick={(e) => {
+                                            e.stopPropagation();
                                             const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${p.ProductName}\n⚡ *Brand:* ${p.Brand || 'Premium'}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
                                             if (navigator.share) {
                                                 navigator.share({ title: p.ProductName, text: shareText, url: smartImg }).catch(() => {});
@@ -374,6 +382,16 @@
                 <div className="flex flex-col">
                     {searchBarUI}
                     {mainContent}
+                    {selectedProduct && (
+                        <ProductDetailModal 
+                            product={selectedProduct} 
+                            onClose={() => setSelectedProduct(null)} 
+                            cart={cart}
+                            updateQty={updateQty}
+                            user={user}
+                            globalProps={globalProps}
+                        />
+                    )}
                     {totalItems > 0 && !globalProps.customerMode && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
                         globalProps.logSpyData("Viewed Cart", `Items: ${totalItems}, Val: ₹${totalAmount}`);
                         setView("cart");
@@ -519,15 +537,15 @@
                         <div className="grid grid-cols-3 gap-2 text-center">
                             <div className="bg-red-50 p-3 rounded-xl border border-red-100">
                                 <div className="text-[9px] text-red-600 font-bold uppercase">Total Bills</div>
-                                <div className="font-black text-red-900 text-sm mt-1">₹{totalDebit}</div>
+                                <div className="font-black text-red-900 text-sm mt-1">₹{Math.round(totalDebit).toLocaleString('en-IN')}</div>
                             </div>
                             <div className="bg-green-50 p-3 rounded-xl border border-green-100">
                                 <div className="text-[9px] text-green-600 font-bold uppercase">Total Paid</div>
-                                <div className="font-black text-green-900 text-sm mt-1">₹{totalCredit}</div>
+                                <div className="font-black text-green-900 text-sm mt-1">₹{Math.round(totalCredit).toLocaleString('en-IN')}</div>
                             </div>
                             <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
                                 <div className="text-[9px] text-blue-600 font-bold uppercase">Outstanding</div>
-                                <div className="font-black text-blue-900 text-sm mt-1">₹{netBalance}</div>
+                                <div className="font-black text-blue-900 text-sm mt-1">₹{Math.round(netBalance).toLocaleString('en-IN')}</div>
                             </div>
                         </div>
                     </div>
@@ -555,12 +573,12 @@
                                             {isDebit ? (
                                                 <div>
                                                     <div className="text-xs text-red-500 font-bold">DR (Debited)</div>
-                                                    <div className="font-black text-red-600 text-base mt-0.5">₹{item.debit}</div>
+                                                    <div className="font-black text-red-600 text-base mt-0.5">₹{Math.round(item.debit).toLocaleString('en-IN')}</div>
                                                 </div>
                                             ) : (
                                                 <div>
                                                     <div className="text-xs text-green-500 font-bold">CR (Credited)</div>
-                                                    <div className="font-black text-green-600 text-base mt-0.5">₹{item.credit}</div>
+                                                    <div className="font-black text-green-600 text-base mt-0.5">₹{Math.round(item.credit).toLocaleString('en-IN')}</div>
                                                 </div>
                                             )}
                                         </div>
@@ -568,6 +586,153 @@
                                 );
                             })
                         )}
+                    </div>
+                </div>
+            );
+        }
+
+        // =====================================================================
+        // NEW FEATURE COMPONENT: PRODUCT DETAIL MODAL (SLIDE-UP OVERLAY)
+        // =====================================================================
+        function ProductDetailModal({ product, onClose, cart, updateQty, user, globalProps }) {
+            const [currentImgIndex, setCurrentImgIndex] = useState(0);
+            const currentQty = cart[product.ItemCode] ? cart[product.ItemCode].qty : 0;
+            
+            const imagesList = [getSmartImage(product)];
+            if (product.MoreImages && product.MoreImages.trim() !== "") {
+                const extraImages = product.MoreImages.split(" | ").map(img => img.trim());
+                extraImages.forEach(img => {
+                    if (img !== "") imagesList.push(img);
+                });
+            }
+
+            const featuresList = [];
+            if (product.Features && product.Features.trim() !== "") {
+                const parsed = product.Features.split(" | ").map(f => f.trim());
+                parsed.forEach(f => {
+                    if (f !== "") featuresList.push(f);
+                });
+            }
+
+            const mrpVal = Number(product.MRP);
+            const dealerVal = Number(product.DealerPrice);
+            const hasDiscount = !isNaN(mrpVal) && mrpVal > dealerVal;
+            const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
+
+            const handleNextImage = () => {
+                setCurrentImgIndex((prev) => (prev + 1) % imagesList.length);
+            };
+
+            const handlePrevImage = () => {
+                setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center">
+                    <div className="absolute inset-0" onClick={onClose}></div>
+                    <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10">
+                        
+                        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3 cursor-pointer" onClick={onClose}></div>
+                        
+                        <button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
+                        
+                        <div className="overflow-y-auto no-scrollbar pb-32">
+                            <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-64 select-none">
+                                <img src={imagesList[currentImgIndex]} className="h-56 max-w-full object-contain" />
+                                
+                                {imagesList.length > 1 && (
+                                    <React.Fragment>
+                                        <button onClick={handlePrevImage} className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">←</button>
+                                        <button onClick={handleNextImage} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
+                                        
+                                        <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
+                                            {imagesList.map((_, idx) => (
+                                                <div key={idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
+                                            ))}
+                                        </div>
+                                    </React.Fragment>
+                                )}
+                            </div>
+
+                            <div className="p-5">
+                                <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">{product.Brand || 'Premium Brand'}</span>
+                                <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">{product.ProductName}</h2>
+                                <p className="text-xs text-gray-400 font-bold mt-1 uppercase">Category: {product.Type || 'Accessories'}</p>
+
+                                {!globalProps.customerMode ? (
+                                    <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                        <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Dealer Price</div>
+                                        <div className="flex items-baseline gap-2.5 mt-1">
+                                            <span className="text-3xl font-black text-blue-950">₹{product.DealerPrice}</span>
+                                            {hasDiscount && (
+                                                <React.Fragment>
+                                                    <span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{product.MRP}</span>
+                                                    <span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+                                                </React.Fragment>
+                                            )}
+                                        </div>
+                                        <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
+                                            <span>📦</span> In Stock Status: {product.Stock || 'Available'} units
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
+                                        <div className="text-xs text-green-800 font-black uppercase tracking-wider">Offer MRP</div>
+                                        <div className="text-3xl font-black text-green-950 mt-1">₹{product.MRP || 'Contact store'}</div>
+                                    </div>
+                                )}
+
+                                <div className="mt-6">
+                                    <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">Product Key Highlights</h3>
+                                    {featuresList.length === 0 ? (
+                                        <p className="text-xs text-gray-500 font-bold italic leading-relaxed">High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.</p>
+                                    ) : (
+                                        <ul className="space-y-2.5">
+                                            {featuresList.map((f, i) => (
+                                                <li key={i} className="text-xs text-gray-700 font-bold flex items-start gap-2 leading-snug">
+                                                    <span className="text-green-600 text-sm leading-none mt-0.5">⚡</span>
+                                                    <span>{f}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-30 shadow-inner">
+                            {!globalProps.customerMode ? (
+                                <React.Fragment>
+                                    <div>
+                                        <div className="text-[9px] uppercase font-black text-gray-400">Total Selection</div>
+                                        <div className="font-black text-lg text-gray-900 leading-none mt-0.5">₹{product.DealerPrice * (currentQty || 1)}</div>
+                                    </div>
+                                    
+                                    <div className="w-1/2">
+                                        {currentQty > 0 ? (
+                                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                                <button onClick={() => updateQty(product, -1)} className="bg-white text-blue-900 font-black w-10 h-10 rounded-lg shadow-sm">-</button>
+                                                <span className="font-black text-blue-900 text-lg">{currentQty}</span>
+                                                <button onClick={() => updateQty(product, 1)} className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm">+</button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => updateQty(product, 1)} className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95">Add To Order</button>
+                                        )}
+                                    </div>
+                                </React.Fragment>
+                            ) : (
+                                <button onClick={() => {
+                                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${product.ProductName}\n⚡ *Brand:* ${product.Brand || 'Premium'}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
+                                    if (navigator.share) {
+                                        navigator.share({ title: product.ProductName, text: shareText, url: imagesList[0] }).catch(() => {});
+                                    } else {
+                                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + imagesList[0])}`, '_blank');
+                                    }
+                                }} className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
+                                    📲 SHARE PHOTO WITH DEALER
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             );
