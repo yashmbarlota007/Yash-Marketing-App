@@ -33,14 +33,13 @@
         const { useState, useEffect } = React;
         
         // MASTER VALIDATED API LINK 
-        const API_URL = "https://script.google.com/macros/s/AKfycbwXB8B7WVDT2QSBRlaXw8SYeIlPQKxyW6D5M8AdsZZ4lR6SHiEQlYp6R7lDtG6OV_ORmg/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
             if (product.ImageURL && product.ImageURL.trim() !== "") {
                 let url = product.ImageURL.trim();
                 
-                // Smart Fix: Agar image URL // se shuru hota hai toh automatic https: joḍein
                 if (url.indexOf("//") === 0) {
                     url = "https:" + url;
                 }
@@ -127,7 +126,7 @@
 
             return (
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
-                    <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
+                    <div className="bg-blue-950 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
                         <div>
                             <h1 className="font-extrabold text-sm flex items-center gap-1.5">
                                 <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
@@ -602,15 +601,33 @@
         // =====================================================================
         function ProductDetailModal({ product, onClose, cart, updateQty, user, globalProps }) {
             const [currentImgIndex, setCurrentImgIndex] = useState(0);
+            const [imagesList, setImagesList] = useState([]);
             const currentQty = cart[product.ItemCode] ? cart[product.ItemCode].qty : 0;
             
-            const imagesList = [getSmartImage(product)];
-            if (product.MoreImages && product.MoreImages.trim() !== "") {
-                const extraImages = product.MoreImages.split(" | ").map(img => img.trim());
-                extraImages.forEach(img => {
-                    if (img !== "") imagesList.push(img);
-                });
-            }
+            // Failsafe & Carousel loader
+            useEffect(() => {
+                const list = [];
+                const mainImg = getSmartImage(product);
+                // Check if the main image is accidentally a webpage link instead of an actual image file
+                const isWebpage = mainImg && (mainImg.includes("/products/") || mainImg.includes("/pages/") || mainImg.includes("boat-lifestyle.com/products") || mainImg.includes("portronics.com/products"));
+                
+                if (mainImg && !isWebpage) {
+                    list.push(mainImg);
+                }
+                
+                if (product.MoreImages && product.MoreImages.trim() !== "") {
+                    const extraImages = product.MoreImages.split(" | ").map(img => img.trim());
+                    extraImages.forEach(img => {
+                        if (img !== "") list.push(img);
+                    });
+                }
+
+                // Ultimate fallback placeholder if all fields are empty or invalid
+                if (list.length === 0) {
+                    list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
+                }
+                setImagesList(list);
+            }, [product]);
 
             const featuresList = [];
             if (product.Features && product.Features.trim() !== "") {
@@ -633,6 +650,8 @@
                 setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
             };
 
+            if (imagesList.length === 0) return null;
+
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center">
                     <div className="absolute inset-0" onClick={onClose}></div>
@@ -644,7 +663,21 @@
                         
                         <div className="overflow-y-auto no-scrollbar pb-32">
                             <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-64 select-none">
-                                <img src={imagesList[currentImgIndex]} className="h-56 max-w-full object-contain" />
+                                <img 
+                                    src={imagesList[currentImgIndex]} 
+                                    className="h-56 max-w-full object-contain" 
+                                    onError={(e) => {
+                                        // Self-healing: if an image URL fails to load, remove it from the array dynamically
+                                        if (imagesList.length > 1) {
+                                            const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
+                                            setImagesList(updatedList);
+                                            setCurrentImgIndex(0);
+                                        } else {
+                                            // Fallback to avatar if it's the only image
+                                            e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
+                                        }
+                                    }}
+                                />
                                 
                                 {imagesList.length > 1 && (
                                     <React.Fragment>
