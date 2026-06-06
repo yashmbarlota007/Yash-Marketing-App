@@ -24,6 +24,14 @@
             to { transform: translateY(0); }
         }
         .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        /* Clean Black and White PDF Styles */
+        @media print {
+            body { background: white !important; color: black !important; }
+            nav, button, .sticky, header, .z-50, .fixed, .shadow-2xl, .bg-blue-900 { display: none !important; }
+            .max-w-md { max-width: 100% !important; box-shadow: none !important; }
+            .bg-white { border: none !important; box-shadow: none !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
@@ -33,7 +41,7 @@
         const { useState, useEffect } = React;
         
         // MASTER VALIDATED API LINK 
-        const API_URL = "https://script.google.com/macros/s/AKfycbz13ob1YvN2s7A0lx8ebSH3XiOaY5bKOQzeW6SSnlqi9MMAVrF7b35i4L2hewtLAd2C7g/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
@@ -309,6 +317,23 @@
                 }
             };
 
+            const handleShareCategory = () => {
+                const categoryProducts = inStockProducts.filter(p => p.Type === selectedType);
+                let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
+                
+                categoryProducts.slice(0, 15).forEach((p, idx) => {
+                    shareText += `${idx + 1}. *${p.ProductName}*\n💰 Dealer Price: ₹${p.DealerPrice} (MRP: ₹${p.MRP})\n\n`;
+                });
+                shareText += `Ask for the best bulk deals today!`;
+                
+                if (navigator.share) {
+                    navigator.share({ title: `${selectedType} Catalog`, text: shareText }).catch(() => {});
+                } else {
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+                }
+                globalProps.logSpyData("Shared Category", selectedType);
+            };
+
             const searchBarUI = (
                 <div className="p-3 bg-white sticky top-[62px] z-30 shadow-sm border-b flex items-center">
                     <input 
@@ -377,6 +402,9 @@
                         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
                             <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
                             <span className="font-black text-gray-800">{selectedType}</span>
+                            
+                            {/* NEW FEATURE: SHARE CATEGORY BUTTON */}
+                            <button onClick={handleShareCategory} className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md active:scale-95 flex items-center gap-1">📲 SHARE LIST</button>
                         </div>
                         {renderProducts(filteredProducts)}
                     </div>
@@ -556,7 +584,7 @@
                     </div>
 
                     <h3 className="font-black text-gray-800 text-md mb-3 px-1">Ledger Entries</h3>
-                    <div className="space-y-3">
+                    <div className="space-y-3 font-mono">
                         {ledgerData.length === 0 ? (
                             <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">Koi ledger record nahi mila.</div>
                         ) : (
@@ -592,6 +620,11 @@
                             })
                         )}
                     </div>
+                    
+                    {/* NEW FEATURE: DOWNLOAD LEDGER PDF */}
+                    <button onClick={() => window.print()} className="w-full bg-blue-900 text-white font-black py-4 rounded-2xl shadow-lg mt-6 flex items-center justify-center gap-1.5 active:scale-95">
+                        📥 DOWNLOAD LEDGER PDF
+                    </button>
                 </div>
             );
         }
@@ -607,8 +640,6 @@
             useEffect(() => {
                 const list = [];
                 const mainImg = getSmartImage(product);
-                
-                // Pure Image detection: Webpage URLs are skipped instantly to avoid broken frames
                 const isWebpage = mainImg && (mainImg.includes("/products/") || mainImg.includes("/pages/") || mainImg.includes("boat-lifestyle.com/products") || mainImg.includes("portronics.com/products"));
                 
                 if (mainImg && !isWebpage) {
@@ -622,7 +653,6 @@
                     });
                 }
 
-                // Placeholder fallback
                 if (list.length === 0) {
                     list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
                 }
@@ -667,7 +697,6 @@
                                     src={imagesList[currentImgIndex]} 
                                     className="h-56 max-w-full object-contain" 
                                     onError={(e) => {
-                                        // Self-healing check: Removes bad image immediately without showing a broken frame
                                         if (imagesList.length > 1) {
                                             const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
                                             setImagesList(updatedList);
