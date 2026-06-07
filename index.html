@@ -13,6 +13,9 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
+    <!-- Celebration / Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <!-- ==========================================
       ONESIGNAL FREE PUSH NOTIFICATION SDK (CLEAN INITIALIZATION)
     ========================================== -->
@@ -38,6 +41,12 @@
             to { transform: translateY(0); }
         }
         .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
         
         /* Clean Black and White PDF Styles */
         @media print {
@@ -86,7 +95,7 @@
             return null; 
         }
 
-        // NEW: Progress Bar Component for Bulk Discounts
+        // Progress Bar Component
         function ProgressBar({ totalAmount, discounts }) {
             const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
             const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
@@ -106,7 +115,7 @@
             }
 
             return (
-                <div className="bg-white p-3 border-b shadow-sm sticky top-[62px] z-30">
+                <div className="bg-white p-3 border-b shadow-sm">
                     <div className="flex justify-between text-[10px] font-black text-gray-600 mb-1 uppercase tracking-tight">
                         <span>Bulk Discount Progress</span>
                         <span className="text-blue-900">₹{totalAmount.toLocaleString('en-IN')}</span>
@@ -149,6 +158,7 @@
                 }
             }, []);
 
+            // Announcement Fetch with multi-format check
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -158,11 +168,22 @@
                     })
                     .then(r => r.json())
                     .then(res => {
-                        if (res && res.success && res.data.length > 0) {
-                            setAnnouncements(res.data);
+                        let parsedData = [];
+                        if (Array.isArray(res)) {
+                            parsedData = res;
+                        } else if (res && Array.isArray(res.data)) {
+                            parsedData = res.data;
+                        } else if (res && res.success && Array.isArray(res.data)) {
+                            parsedData = res.data;
+                        }
+
+                        if (parsedData.length > 0) {
+                            setAnnouncements(parsedData);
                             setShowNotice(true); 
                         }
-                    }).catch(() => {});
+                    }).catch((e) => {
+                        console.log("Announcement fetch error", e);
+                    });
                 }
             }, [user]);
 
@@ -201,7 +222,6 @@
                 }
             };
 
-            // NEW: Logout functionality defined here
             const handleLogout = () => {
                 localStorage.removeItem("yashDealerSession");
                 setUser(null);
@@ -263,7 +283,7 @@
                     )}
 
                     {user && showNotice && announcements.length > 0 && (
-                        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6">
+                        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
                             <div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center animate-slide-up">
                                 <span className="text-4xl">🔔</span>
                                 <h2 className="text-xl font-black text-gray-900 mt-3">{announcements[0].title}</h2>
@@ -317,6 +337,7 @@
             const [searchQuery, setSearchQuery] = useState("");
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+            const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
 
             useEffect(() => {
                 if (products.length === 0) {
@@ -334,7 +355,34 @@
                 }).catch(() => {});
             }, []);
 
-            // NEW: Search input handler defined here
+            const cartItems = Object.values(cart);
+            const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+            const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
+
+            // Confetti effect on Tier Unlock
+            useEffect(() => {
+                const tier1Min = discounts[0]?.minAmount || 10000;
+                const tier2Min = discounts[1]?.minAmount || 20000;
+
+                if (totalAmount >= tier2Min && !celebratedTiers.tier2) {
+                    if (window.confetti) {
+                        window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                    }
+                    setCelebratedTiers(prev => ({ ...prev, tier2: true }));
+                } else if (totalAmount >= tier1Min && totalAmount < tier2Min && !celebratedTiers.tier1) {
+                    if (window.confetti) {
+                        window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    }
+                    setCelebratedTiers(prev => ({ ...prev, tier1: true }));
+                } else if (totalAmount < tier1Min) {
+                    if (celebratedTiers.tier1 || celebratedTiers.tier2) {
+                        setCelebratedTiers({ tier1: false, tier2: false });
+                    }
+                } else if (totalAmount >= tier1Min && totalAmount < tier2Min && celebratedTiers.tier2) {
+                    setCelebratedTiers(prev => ({ ...prev, tier2: false }));
+                }
+            }, [totalAmount, discounts, celebratedTiers]);
+
             const handleSearchChange = (e) => {
                 setSearchQuery(e.target.value);
             };
@@ -350,10 +398,6 @@
                 else updated[product.ItemCode] = { ...product, qty: newQty };
                 setCart(updated);
             };
-
-            const cartItems = Object.values(cart);
-            const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
-            const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
 
             if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
@@ -447,7 +491,7 @@
             };
 
             const searchBarUI = (
-                <div className="p-3 bg-white sticky top-[62px] z-30 shadow-sm border-b flex items-center">
+                <div className="p-3 bg-white flex items-center border-b">
                     <input 
                         type="text" 
                         placeholder="Search products, brands..." 
@@ -524,10 +568,13 @@
 
             return (
                 <div className="flex flex-col">
-                    {totalItems > 0 && !globalProps.customerMode && (
-                        <ProgressBar totalAmount={totalAmount} discounts={discounts} />
-                    )}
-                    {searchBarUI}
+                    {/* Sticky container for Progress bar and Search bar */}
+                    <div className="sticky z-30 bg-white shadow-sm" style={{ top: '53px' }}>
+                        {totalItems > 0 && !globalProps.customerMode && (
+                            <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+                        )}
+                        {searchBarUI}
+                    </div>
                     {mainContent}
                     {selectedProduct && (
                         <ProductDetailModal 
@@ -832,7 +879,7 @@
             if (imagesList.length === 0) return null;
 
             return (
-                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center">
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
                     <div className="absolute inset-0" onClick={onClose}></div>
                     <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10 font-sans">
                         
