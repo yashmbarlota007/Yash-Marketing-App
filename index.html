@@ -158,7 +158,7 @@
                 }
             }, []);
 
-            // Announcement Fetch with multi-format check
+            // Robust Announcement Fetch
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -359,29 +359,40 @@
             const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
             const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
 
-            // Confetti effect on Tier Unlock
+            // Robust Celebration logic compatible with old parsers (No ?. operators)
             useEffect(() => {
-                const tier1Min = discounts[0]?.minAmount || 10000;
-                const tier2Min = discounts[1]?.minAmount || 20000;
+                var tier1Min = (discounts[0] && discounts[0].minAmount) ? discounts[0].minAmount : 10000;
+                var tier2Min = (discounts[1] && discounts[1].minAmount) ? discounts[1].minAmount : 20000;
 
-                if (totalAmount >= tier2Min && !celebratedTiers.tier2) {
-                    if (window.confetti) {
-                        window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                if (totalAmount >= tier2Min) {
+                    if (!celebratedTiers.tier2) {
+                        if (window.confetti) {
+                            window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                        }
+                        setCelebratedTiers(function(prev) {
+                            return Object.assign({}, prev, { tier2: true });
+                        });
                     }
-                    setCelebratedTiers(prev => ({ ...prev, tier2: true }));
-                } else if (totalAmount >= tier1Min && totalAmount < tier2Min && !celebratedTiers.tier1) {
-                    if (window.confetti) {
-                        window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                } else if (totalAmount >= tier1Min) {
+                    if (!celebratedTiers.tier1) {
+                        if (window.confetti) {
+                            window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                        }
+                        setCelebratedTiers(function(prev) {
+                            return Object.assign({}, prev, { tier1: true });
+                        });
                     }
-                    setCelebratedTiers(prev => ({ ...prev, tier1: true }));
-                } else if (totalAmount < tier1Min) {
+                    if (celebratedTiers.tier2) {
+                        setCelebratedTiers(function(prev) {
+                            return Object.assign({}, prev, { tier2: false });
+                        });
+                    }
+                } else {
                     if (celebratedTiers.tier1 || celebratedTiers.tier2) {
                         setCelebratedTiers({ tier1: false, tier2: false });
                     }
-                } else if (totalAmount >= tier1Min && totalAmount < tier2Min && celebratedTiers.tier2) {
-                    setCelebratedTiers(prev => ({ ...prev, tier2: false }));
                 }
-            }, [totalAmount, discounts, celebratedTiers]);
+            }, [totalAmount, discounts]);
 
             const handleSearchChange = (e) => {
                 setSearchQuery(e.target.value);
@@ -568,7 +579,7 @@
 
             return (
                 <div className="flex flex-col">
-                    {/* Sticky container for Progress bar and Search bar */}
+                    {/* Sticky wrapper for header alignment without overlap */}
                     <div className="sticky z-30 bg-white shadow-sm" style={{ top: '53px' }}>
                         {totalItems > 0 && !globalProps.customerMode && (
                             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
