@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
     <!-- ==========================================
-      ONESIGNAL FREE PUSH NOTIFICATION SDK (CLEAN INITIALIZATION)
+      ONESIGNAL FREE PUSH NOTIFICATION SDK (PRE-INJECTED)
     ========================================== -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -87,7 +87,15 @@
         }
 
         function App() {
-            const [user, setUser] = useState(null);
+            // Standard Synchronous state initialization directly from local storage
+            const [user, setUser] = useState(() => {
+                try {
+                    const saved = localStorage.getItem("yashDealerSession");
+                    return saved ? JSON.parse(saved) : null;
+                } catch (e) {
+                    return null;
+                }
+            });
             const [view, setView] = useState("catalog"); 
             const [products, setProducts] = useState([]);
             const [cart, setCart] = useState({});
@@ -107,16 +115,6 @@
 
             const globalProps = { logSpyData, customerMode };
 
-            // FIRST-LOAD TRIGGER: App session check directly on mount state to bypass asynchronous delay
-            const [initialUser, setInitialUser] = useState(() => {
-                try {
-                    const saved = localStorage.getItem("yashDealerSession");
-                    return saved ? JSON.parse(saved) : null;
-                } catch (e) {
-                    return null;
-                }
-            });
-
             // Native Browser Push Permission checking
             useEffect(() => {
                 if (window.Notification) {
@@ -125,12 +123,6 @@
                     }
                 }
             }, []);
-
-            useEffect(() => {
-                if (initialUser) {
-                    setUser(initialUser);
-                }
-            }, [initialUser]);
 
             // FETCH ANNOUNCEMENTS: Triggers on mount and immediately after every page refresh/login
             useEffect(() => {
@@ -188,11 +180,6 @@
                     Notification.requestPermission().then(permission => {
                         if (permission === 'granted') {
                             setIsNotificationGranted(true);
-                            if (window.OneSignalDeferred) {
-                                OneSignalDeferred.push(async function(OneSignal) {
-                                    await OneSignal.User.PushSubscription.optIn();
-                                });
-                            }
                         } else {
                             alert("App use karne ke liye Permission allow karna compulsory hai!");
                         }
@@ -205,7 +192,7 @@
             // COMPULSORY PUSH NOTIFICATION LOCK SYSTEM (Hides and locks the app completely until permission is allowed)
             if (!isNotificationGranted) {
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-950 text-white p-6 text-center select-none font-sans">
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-955 text-white p-6 text-center select-none font-sans bg-slate-900">
                         <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
                             <span className="text-5xl animate-bounce inline-block">🔔</span>
                             <h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
@@ -312,7 +299,6 @@
             let msg = "";
             let color = "bg-orange-500";
             
-            // Check dynamic tiers from spreadsheet config (or default fallback)
             const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
             const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
 
@@ -362,7 +348,6 @@
                     });
                 }
                 
-                // Fetch dynamic bulk discount configuration zaroor karein
                 callAPI({ action: "getDiscounts" }).then(res => {
                     if (res && res.success && res.data.length > 0) {
                         setDiscounts(res.data);
@@ -402,7 +387,7 @@
                         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
                         return (
-                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative">
+                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
                                 <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
                                     {smartImg ? <img src={smartImg} className="h-32 w-full object-contain mb-2 p-1" /> : <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
@@ -429,7 +414,7 @@
                                                     <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
                                                 </div>
                                             ) : (
-                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
                                             )}
                                         </div>
                                     ) : (
