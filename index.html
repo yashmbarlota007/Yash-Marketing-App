@@ -14,26 +14,14 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
     <!-- ==========================================
-      ONESIGNAL FREE PUSH NOTIFICATION SDK
+      ONESIGNAL FREE PUSH NOTIFICATION SDK (PRE-INJECTED)
     ========================================== -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
-      window.OneSignal = window.OneSignal || [];
-      OneSignal.push(function() {
-        OneSignal.init({
-          appId: "<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
-    });
-  });
-</script>", // <-- PASTE YOUR ONESIGNAL APP ID HERE
-          safari_web_id: "web.onesignal.auto.onesignal",
-          notifyButton: {
-            enable: true, // Floating bell icon automatic subscribe karne ke liye dikhega
-          },
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
         });
       });
     </script>
@@ -118,7 +106,7 @@
 
             const globalProps = { logSpyData, customerMode };
 
-            // FIRST-LOAD TRIGGER: App session check directly on mount state
+            // FIRST-LOAD TRIGGER: App session check directly on mount state to bypass asynchronous delay
             const [initialUser, setInitialUser] = useState(() => {
                 try {
                     const saved = localStorage.getItem("yashDealerSession");
