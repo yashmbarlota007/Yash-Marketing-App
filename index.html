@@ -95,7 +95,7 @@
             return null; 
         }
 
-        // Progress Bar Component
+        // Highlighted & Larger Progress Bar Component
         function ProgressBar(props) {
             var totalAmount = props.totalAmount;
             var discounts = props.discounts;
@@ -118,15 +118,18 @@
             }
 
             return (
-                <div className="bg-white p-3 border-b shadow-sm">
-                    <div className="flex justify-between text-[10px] font-black text-gray-600 mb-1 uppercase tracking-tight">
-                        <span>Bulk Discount Progress</span>
-                        <span className="text-blue-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+                <div className="bg-amber-50 p-4 border-b-2 border-amber-200 shadow-sm">
+                    <div className="flex justify-between text-xs font-black text-amber-900 mb-1.5 uppercase tracking-wider">
+                        <span>Bulk Discount Tracker</span>
+                        <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden border">
+                    {/* Bigger Progress Bar (h-4) */}
+                    <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
                         <div className="bg-green-600 h-full transition-all duration-300" style={{ width: Math.min(progress, 100) + '%' }}></div>
                     </div>
-                    <p className="text-[9px] text-green-700 font-black mt-1 uppercase tracking-wide">{message}</p>
+                    <p className="text-[10px] text-green-800 font-black mt-2 uppercase tracking-wide flex items-center gap-1">
+                        <span>💡</span> {message}
+                    </p>
                 </div>
             );
         }
@@ -161,6 +164,7 @@
                 }
             }, []);
 
+            // Announcement Fetch with guaranteed Fallback message
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -182,9 +186,24 @@
                         if (parsedData.length > 0) {
                             setAnnouncements(parsedData);
                             setShowNotice(true); 
+                        } else {
+                            // Local fallback if sheet data is empty
+                            var defaultMsg = [{
+                                title: "Yash Marketing Portal Live!",
+                                message: "Naye price drops, bulk discounts aur live offers check karne ke liye catalog scroll karein."
+                            }];
+                            setAnnouncements(defaultMsg);
+                            setShowNotice(true);
                         }
                     }).catch((e) => {
                         console.log("Announcement fetch error", e);
+                        // Local fallback if API fails
+                        var defaultMsg = [{
+                            title: "Welcome to Yash Marketing",
+                            message: "Naye schemes aur bulk order discount live hain. Kisi bhi inquiry ke liye direct WhatsApp par contact karein."
+                        }];
+                        setAnnouncements(defaultMsg);
+                        setShowNotice(true);
                     });
                 }
             }, [user]);
@@ -200,7 +219,6 @@
 
             const globalProps = { logSpyData, customerMode };
 
-            // Promise-based safe API call (No async/await)
             const callAPI = function(payload) {
                 return fetch(API_URL, {
                     method: 'POST',
@@ -309,7 +327,6 @@
 
             const [phone, setPhone] = useState("");
 
-            // Safe Promise Login (No async/await)
             const handleLogin = function() {
                 if (phone.length < 10) return alert("Enter 10-digit number");
                 setLoading(true);
@@ -384,7 +401,7 @@
             const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
             const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
 
-            // Confetti effect tracker logic
+            // Confetti check
             useEffect(() => {
                 var tier1Min = (discounts[0] && discounts[0].minAmount) ? discounts[0].minAmount : 10000;
                 var tier2Min = (discounts[1] && discounts[1].minAmount) ? discounts[1].minAmount : 20000;
@@ -604,8 +621,8 @@
 
             return (
                 <div className="flex flex-col">
-                    {/* Sticky wrapper for header alignment without overlap */}
-                    <div className="sticky z-30 bg-white shadow-sm" style={{ top: '53px' }}>
+                    {/* Fixed top alignment to 58px prevents clipping with the main header */}
+                    <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
                         {totalItems > 0 && !globalProps.customerMode && (
                             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
                         )}
@@ -686,7 +703,6 @@
             const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
             const finalAmount = afterBulkTotal - upiDiscountAmount;
 
-            // Safe Promise Checkout (No async/await)
             const handleCheckout = function() {
                 if (!paymentMode) return alert("Please select Payment Mode!");
                 if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
