@@ -14,12 +14,12 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
     <!-- ==========================================
-      ONESIGNAL FREE PUSH NOTIFICATION SDK (PRE-INJECTED)
+      ONESIGNAL FREE PUSH NOTIFICATION SDK (CLEAN INITIALIZATION)
     ========================================== -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
+      window.OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
         });
@@ -87,15 +87,7 @@
         }
 
         function App() {
-            // Standard Synchronous state initialization directly from local storage
-            const [user, setUser] = useState(() => {
-                try {
-                    const saved = localStorage.getItem("yashDealerSession");
-                    return saved ? JSON.parse(saved) : null;
-                } catch (e) {
-                    return null;
-                }
-            });
+            const [user, setUser] = useState(null);
             const [view, setView] = useState("catalog"); 
             const [products, setProducts] = useState([]);
             const [cart, setCart] = useState({});
@@ -114,6 +106,14 @@
             };
 
             const globalProps = { logSpyData, customerMode };
+
+            // FIRST-LOAD TRIGGER: Standard initialization
+            useEffect(() => {
+                const savedUser = localStorage.getItem("yashDealerSession");
+                if (savedUser) {
+                    setUser(JSON.parse(savedUser));
+                }
+            }, []);
 
             // Native Browser Push Permission checking
             useEffect(() => {
@@ -138,7 +138,7 @@
                         setShowNotice(true); 
                     }
                 }).catch(() => {});
-            }, []);
+            }, [user]); // Fires when user state gets loaded
 
             useEffect(() => {
                 window.history.pushState({ page: view }, "", "");
@@ -189,10 +189,10 @@
 
             if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
 
-            // COMPULSORY PUSH NOTIFICATION LOCK SYSTEM (Hides and locks the app completely until permission is allowed)
+            // COMPULSORY PUSH NOTIFICATION LOCK SYSTEM
             if (!isNotificationGranted) {
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-955 text-white p-6 text-center select-none font-sans bg-slate-900">
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
                         <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
                             <span className="text-5xl animate-bounce inline-block">🔔</span>
                             <h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
@@ -291,46 +291,6 @@
             );
         }
 
-        // =====================================================================
-        // NEW FEATURE: PROGRESSIVE LOYALTY DISCOUNT PROGRESS BAR
-        // =====================================================================
-        function ProgressBar({ totalAmount, discounts }) {
-            let pct = 0;
-            let msg = "";
-            let color = "bg-orange-500";
-            
-            const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
-            const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
-
-            if (totalAmount < tier1.minAmount) {
-                pct = (totalAmount / tier1.minAmount) * 100;
-                msg = `Shop for ₹${(tier1.minAmount - totalAmount).toLocaleString('en-IN')} more to unlock ${tier1.percent}% EXTRA Discount!`;
-            } else if (totalAmount >= tier1.minAmount && totalAmount < tier2.minAmount) {
-                pct = ((totalAmount - tier1.minAmount) / (tier2.minAmount - tier1.minAmount)) * 100;
-                msg = `🎉 ${tier1.percent}% Unlocked! Shop for ₹${(tier2.minAmount - totalAmount).toLocaleString('en-IN')} more to unlock ${tier2.percent}% EXTRA Discount!`;
-                color = "bg-green-600";
-            } else {
-                pct = 100;
-                msg = `🔥 MAXIMUM ${tier2.percent}% EXTRA DISCOUNT UNLOCKED! You saved ₹${Math.round(totalAmount * (tier2.percent / 100)).toLocaleString('en-IN')}!`;
-                color = "bg-emerald-600";
-            }
-
-            return (
-                <div className="bg-white p-3 border-b shadow-sm font-sans animate-fade-in">
-                    <div className="flex justify-between items-center text-[10px] font-black text-gray-500 mb-1 uppercase tracking-wide">
-                        <span>Progressive Bulk Discount</span>
-                        <span className="text-blue-900">Current Cart: ₹{totalAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden relative border">
-                        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }}></div>
-                    </div>
-                    <p className="text-[10px] font-bold text-gray-700 mt-1.5 flex items-center gap-1">
-                        <span>🚀</span> {msg}
-                    </p>
-                </div>
-            );
-        }
-
         function Catalog({ user, callAPI, cart, setCart, products, setProducts, setView, globalProps }) {
             const [loading, setLoading] = useState(products.length === 0);
             const [selectedType, setSelectedType] = useState(null);
@@ -414,7 +374,7 @@
                                                     <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
                                                 </div>
                                             ) : (
-                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
                                             )}
                                         </div>
                                     ) : (
@@ -589,7 +549,6 @@
             const totalAmount = cartItems.reduce((acc, item) => acc + (item.DealerPrice * item.qty), 0);
 
             useEffect(() => {
-                // Fetch discount rules on checkout zaroor karein
                 callAPI({ action: "getDiscounts" }).then(res => {
                     if (res && res.success && res.data.length > 0) {
                         setDiscounts(res.data);
@@ -642,7 +601,7 @@
                         ))}
                         
                         <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
-                            <span className="font-bold text-gray-400 uppercase text-[10px]">Net Value</span>
+                            <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
                             <span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
                         </div>
 
@@ -717,7 +676,7 @@
                     } else {
                         alert(res.message || "Ledger statement aane me dukan ki info match nahi hui.");
                     }
-                    setLoading(false);
+                    setLedgerData(res.data);
                 });
             }, []);
 
