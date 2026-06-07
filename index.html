@@ -86,8 +86,40 @@
             return null; 
         }
 
+        // NEW: Progress Bar Component for Bulk Discounts
+        function ProgressBar({ totalAmount, discounts }) {
+            const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
+            const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
+            
+            let progress = 0;
+            let message = "";
+            
+            if (totalAmount < tier1.minAmount) {
+                progress = (totalAmount / tier1.minAmount) * 50;
+                message = `Add ₹${(tier1.minAmount - totalAmount).toLocaleString('en-IN')} more to unlock ${tier1.percent}% discount`;
+            } else if (totalAmount < tier2.minAmount) {
+                progress = 50 + ((totalAmount - tier1.minAmount) / (tier2.minAmount - tier1.minAmount)) * 50;
+                message = `🎉 Tier 1 Unlocked! Add ₹${(tier2.minAmount - totalAmount).toLocaleString('en-IN')} more to unlock ${tier2.percent}% discount`;
+            } else {
+                progress = 100;
+                message = `🎉 Maximum ${tier2.percent}% Bulk Discount Unlocked!`;
+            }
+
+            return (
+                <div className="bg-white p-3 border-b shadow-sm sticky top-[62px] z-30">
+                    <div className="flex justify-between text-[10px] font-black text-gray-600 mb-1 uppercase tracking-tight">
+                        <span>Bulk Discount Progress</span>
+                        <span className="text-blue-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden border">
+                        <div className="bg-green-600 h-full transition-all duration-300" style={{ width: `${Math.min(progress, 100)}%` }}></div>
+                    </div>
+                    <p className="text-[9px] text-green-700 font-black mt-1 uppercase tracking-wide">{message}</p>
+                </div>
+            );
+        }
+
         function App() {
-            // STRICT TOP-LEVEL HOOKS (Ensures no compile crashes)
             const [user, setUser] = useState(null);
             const [view, setView] = useState("catalog"); 
             const [products, setProducts] = useState([]);
@@ -98,7 +130,6 @@
             const [showNotice, setShowNotice] = useState(false);
             const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
-            // 1. Standard mount effect: Loads session instantly on boot!
             useEffect(() => {
                 try {
                     const savedUser = localStorage.getItem("yashDealerSession");
@@ -110,7 +141,6 @@
                 }
             }, []);
 
-            // 2. Browser Notification Permission check on boot
             useEffect(() => {
                 if (window.Notification) {
                     if (Notification.permission !== "granted") {
@@ -119,7 +149,6 @@
                 }
             }, []);
 
-            // 3. Fetch announcements on mount AND whenever user state loads
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -140,7 +169,7 @@
             const logSpyData = (eventName, detailsStr = "") => {
                 fetch(API_URL, {
                     method: 'POST',
-                    body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: "Login Success", details: detailsStr }),
+                    body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: eventName, details: detailsStr }),
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 }).catch(e => console.log("Silent Log Failed"));
             };
@@ -172,9 +201,16 @@
                 }
             };
 
+            // NEW: Logout functionality defined here
+            const handleLogout = () => {
+                localStorage.removeItem("yashDealerSession");
+                setUser(null);
+                setCart({});
+                setView("catalog");
+            };
+
             if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
 
-            // COMPULSORY PUSH NOTIFICATION LOCK SYSTEM (Hides and locks the app completely until permission is allowed)
             if (!isNotificationGranted) {
                 return (
                     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
@@ -226,9 +262,8 @@
                         <LedgerView user={user} callAPI={callAPI} />
                     )}
 
-                    {/* NEW FEATURE MODAL: NOTICE BOARD / OFFER BROADCASTER */}
                     {user && showNotice && announcements.length > 0 && (
-                        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
+                        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6">
                             <div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center animate-slide-up">
                                 <span className="text-4xl">🔔</span>
                                 <h2 className="text-xl font-black text-gray-900 mt-3">{announcements[0].title}</h2>
@@ -280,7 +315,6 @@
             const [loading, setLoading] = useState(products.length === 0);
             const [selectedType, setSelectedType] = useState(null);
             const [searchQuery, setSearchQuery] = useState("");
-            const [typingTimer, setTypingTimer] = useState(null);
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
 
@@ -299,6 +333,11 @@
                     }
                 }).catch(() => {});
             }, []);
+
+            // NEW: Search input handler defined here
+            const handleSearchChange = (e) => {
+                setSearchQuery(e.target.value);
+            };
 
             const updateQty = (product, change) => {
                 if(globalProps.customerMode) return; 
@@ -383,7 +422,6 @@
                 </div>
             );
 
-            // DYNAMIC & CUSTOMER SENSITIVE CATEGORY SHARER (EXCLUDES DEALER PRICE ON CUSTOMER MODE)
             const handleShareCategory = () => {
                 const categoryProducts = inStockProducts.filter(p => p.Type === selectedType);
                 let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
@@ -393,10 +431,8 @@
                     const featuresExcerpt = (p.Features && p.Features !== "") ? `\n⚡ *Specs:* ${p.Features.split(" | ").slice(0,2).join(", ")}` : "";
                     
                     if (globalProps.customerMode) {
-                        // Customer mode: Hides Dealer Price (DP) strictly, shows only MRP and Photos
                         shareText += `${idx + 1}. *${p.ProductName}*\n💰 Offer Price: ₹${p.MRP}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
                     } else {
-                        // Dealer mode: Shows both DP, MRP and Photos
                         shareText += `${idx + 1}. *${p.ProductName}*\n💰 Dealer Price: ₹${p.DealerPrice} (MRP: ₹${p.MRP})${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
                     }
                 });
@@ -488,7 +524,6 @@
 
             return (
                 <div className="flex flex-col">
-                    {/* DYNAMIC PROGRESS BAR ACCORDING TO SELECTED ITEMS */}
                     {totalItems > 0 && !globalProps.customerMode && (
                         <ProgressBar totalAmount={totalAmount} discounts={discounts} />
                     )}
@@ -541,7 +576,6 @@
                 }).catch(() => {});
             }, []);
 
-            // Dynamic Unlocked Discount Calculation
             const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
             const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
             
