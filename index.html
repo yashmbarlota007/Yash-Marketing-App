@@ -41,7 +41,7 @@
         const { useState, useEffect } = React;
         
         // MASTER VALIDATED API LINK 
-        const API_URL = "https://script.google.com/macros/s/AKfycbyzkbIZZxrPbN3z3OU1KNt619miB9_cBYddJA6t-xOIFTVGCL9QrD87zqVtgXCxpsAvUw/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 
         function getSmartImage(product) {
@@ -92,26 +92,27 @@
 
             const globalProps = { logSpyData, customerMode };
 
+            // FIRST-LOAD TRIGGER: App load/refresh hote hi announcements aur user session check karega
             useEffect(() => {
                 const savedUser = localStorage.getItem("yashDealerSession");
                 if (savedUser) {
                     const parsedUser = JSON.parse(savedUser);
                     setUser(parsedUser);
-                    
-                    // Announcements fetch zaroor karein
-                    fetch(API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: "getAnnouncements" }),
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                    })
-                    .then(r => r.json())
-                    .then(res => {
-                        if (res && res.success && res.data.length > 0) {
-                            setAnnouncements(res.data);
-                            setShowNotice(true); // Popup Modal open karega
-                        }
-                    }).catch(() => {});
                 }
+
+                // Active schemes instantly background me fetch karein
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "getAnnouncements" }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                })
+                .then(r => r.json())
+                .then(res => {
+                    if (res && res.success && res.data.length > 0) {
+                        setAnnouncements(res.data);
+                        setShowNotice(true); // Popup model trigger karega
+                    }
+                }).catch(() => {});
             }, []);
 
             useEffect(() => {
@@ -186,9 +187,9 @@
                     )}
 
                     {/* NEW FEATURE MODAL: NOTICE BOARD / OFFER BROADCASTER */}
-                    {showNotice && announcements.length > 0 && (
+                    {user && showNotice && announcements.length > 0 && (
                         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6">
-                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center">
+                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center animate-slide-up">
                                 <span className="text-4xl">🔔</span>
                                 <h2 className="text-xl font-black text-gray-900 mt-3">{announcements[0].title}</h2>
                                 <p className="text-sm font-semibold text-gray-600 mt-4 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">{announcements[0].message}</p>
