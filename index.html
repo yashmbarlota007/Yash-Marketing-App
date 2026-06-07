@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     
     <!-- ==========================================
-      ONESIGNAL FREE PUSH NOTIFICATION SDK (PRE-INJECTED)
+      ONESIGNAL FREE PUSH NOTIFICATION SDK (CLEAN INITIALIZATION)
     ========================================== -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -188,9 +188,9 @@
                     Notification.requestPermission().then(permission => {
                         if (permission === 'granted') {
                             setIsNotificationGranted(true);
-                            if (window.OneSignal) {
-                                OneSignal.push(function() {
-                                    OneSignal.User.PushSubscription.optIn();
+                            if (window.OneSignalDeferred) {
+                                OneSignalDeferred.push(async function(OneSignal) {
+                                    await OneSignal.User.PushSubscription.optIn();
                                 });
                             }
                         } else {
@@ -205,7 +205,7 @@
             // COMPULSORY PUSH NOTIFICATION LOCK SYSTEM (Hides and locks the app completely until permission is allowed)
             if (!isNotificationGranted) {
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-950 text-white p-6 text-center select-none">
+                    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-950 text-white p-6 text-center select-none font-sans">
                         <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
                             <span className="text-5xl animate-bounce inline-block">🔔</span>
                             <h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
@@ -290,10 +290,10 @@
                 } else alert(res.message);
             };
             return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center">
+                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center font-sans">
                     <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-900">
                         <img src={LOGO_URL} className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" />
-                        <h2 className="text-3xl font-black mb-1">Yash Marketing</h2>
+                        <h2 className="text-3xl font-black mb-1 text-gray-900">Yash Marketing</h2>
                         <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">Authorized Dealer Portal</p>
                         <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" placeholder="MOBILE NO." />
                         <button onClick={handleLogin} disabled={loading} className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center">
@@ -304,12 +304,54 @@
             );
         }
 
+        // =====================================================================
+        // NEW FEATURE: PROGRESSIVE LOYALTY DISCOUNT PROGRESS BAR
+        // =====================================================================
+        function ProgressBar({ totalAmount, discounts }) {
+            let pct = 0;
+            let msg = "";
+            let color = "bg-orange-500";
+            
+            // Check dynamic tiers from spreadsheet config (or default fallback)
+            const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
+            const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
+
+            if (totalAmount < tier1.minAmount) {
+                pct = (totalAmount / tier1.minAmount) * 100;
+                msg = `Shop for ₹${(tier1.minAmount - totalAmount).toLocaleString('en-IN')} more to unlock ${tier1.percent}% EXTRA Discount!`;
+            } else if (totalAmount >= tier1.minAmount && totalAmount < tier2.minAmount) {
+                pct = ((totalAmount - tier1.minAmount) / (tier2.minAmount - tier1.minAmount)) * 100;
+                msg = `🎉 ${tier1.percent}% Unlocked! Shop for ₹${(tier2.minAmount - totalAmount).toLocaleString('en-IN')} more to unlock ${tier2.percent}% EXTRA Discount!`;
+                color = "bg-green-600";
+            } else {
+                pct = 100;
+                msg = `🔥 MAXIMUM ${tier2.percent}% EXTRA DISCOUNT UNLOCKED! You saved ₹${Math.round(totalAmount * (tier2.percent / 100)).toLocaleString('en-IN')}!`;
+                color = "bg-emerald-600";
+            }
+
+            return (
+                <div className="bg-white p-3 border-b shadow-sm font-sans animate-fade-in">
+                    <div className="flex justify-between items-center text-[10px] font-black text-gray-500 mb-1 uppercase tracking-wide">
+                        <span>Progressive Bulk Discount</span>
+                        <span className="text-blue-900">Current Cart: ₹{totalAmount.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden relative border">
+                        <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${pct}%` }}></div>
+                    </div>
+                    <p className="text-[10px] font-bold text-gray-700 mt-1.5 flex items-center gap-1">
+                        <span>🚀</span> {msg}
+                    </p>
+                </div>
+            );
+        }
+
         function Catalog({ user, callAPI, cart, setCart, products, setProducts, setView, globalProps }) {
             const [loading, setLoading] = useState(products.length === 0);
             const [selectedType, setSelectedType] = useState(null);
             const [searchQuery, setSearchQuery] = useState("");
             const [typingTimer, setTypingTimer] = useState(null);
             const [selectedProduct, setSelectedProduct] = useState(null);
+            const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
 
             useEffect(() => {
                 if (products.length === 0) {
@@ -319,6 +361,13 @@
                         setLoading(false);
                     });
                 }
+                
+                // Fetch dynamic bulk discount configuration zaroor karein
+                callAPI({ action: "getDiscounts" }).then(res => {
+                    if (res && res.success && res.data.length > 0) {
+                        setDiscounts(res.data);
+                    }
+                }).catch(() => {});
             }, []);
 
             const updateQty = (product, change) => {
@@ -353,7 +402,7 @@
                         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
                         return (
-                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
+                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative">
                                 <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
                                     {smartImg ? <img src={smartImg} className="h-32 w-full object-contain mb-2 p-1" /> : <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
@@ -403,19 +452,6 @@
                     })}
                 </div>
             );
-
-            const handleSearchChange = (e) => {
-                const val = e.target.value;
-                setSearchQuery(val);
-                if(val !== "") setSelectedType(null);
-                
-                clearTimeout(typingTimer);
-                if(val.length > 2) {
-                    setTypingTimer(setTimeout(() => {
-                        globalProps.logSpyData("Searched Item", val);
-                    }, 1500));
-                }
-            };
 
             // DYNAMIC & CUSTOMER SENSITIVE CATEGORY SHARER (EXCLUDES DEALER PRICE ON CUSTOMER MODE)
             const handleShareCategory = () => {
@@ -522,6 +558,10 @@
 
             return (
                 <div className="flex flex-col">
+                    {/* DYNAMIC PROGRESS BAR ACCORDING TO SELECTED ITEMS */}
+                    {totalItems > 0 && !globalProps.customerMode && (
+                        <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+                    )}
                     {searchBarUI}
                     {mainContent}
                     {selectedProduct && (
@@ -558,17 +598,43 @@
             const [loading, setLoading] = useState(false);
             const [paymentMode, setPaymentMode] = useState(""); 
             const [screenshotUploaded, setScreenshotUploaded] = useState(false);
+            const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+            
             const cartItems = Object.values(cart);
             const totalAmount = cartItems.reduce((acc, item) => acc + (item.DealerPrice * item.qty), 0);
-            const discountAmount = paymentMode === 'UPI' ? Math.round(totalAmount * 0.02) : 0;
-            const finalAmount = totalAmount - discountAmount;
+
+            useEffect(() => {
+                // Fetch discount rules on checkout zaroor karein
+                callAPI({ action: "getDiscounts" }).then(res => {
+                    if (res && res.success && res.data.length > 0) {
+                        setDiscounts(res.data);
+                    }
+                }).catch(() => {});
+            }, []);
+
+            // Dynamic Unlocked Discount Calculation
+            const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
+            const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
+            
+            let bulkPercent = 0;
+            if (totalAmount >= tier2.minAmount) {
+                bulkPercent = tier2.percent;
+            } else if (totalAmount >= tier1.minAmount) {
+                bulkPercent = tier1.percent;
+            }
+
+            const bulkDiscountAmount = Math.round(totalAmount * (bulkPercent / 100));
+            const afterBulkTotal = totalAmount - bulkDiscountAmount;
+
+            const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
+            const finalAmount = afterBulkTotal - upiDiscountAmount;
 
             const handleCheckout = async () => {
                 if (!paymentMode) return alert("Please select Payment Mode!");
                 if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
                 setLoading(true);
                 const itemsStr = cartItems.map(i => i.ProductName + " x" + i.qty).join(" | ");
-                const res = await callAPI({ action: "placeOrder", order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount, finalAmount, paymentMode }});
+                const res = await callAPI({ action: "placeOrder", order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount, finalAmount: finalAmount, paymentMode }});
                 setLoading(false);
                 if (res.success) {
                     alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\n We will dispatch it shortly.");
@@ -578,7 +644,7 @@
             };
 
             return (
-                <div className="p-4 bg-gray-50 min-h-screen pb-40">
+                <div className="p-4 bg-gray-50 min-h-screen pb-40 font-sans">
                     <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
                         {cartItems.map(item => (
                             <div key={item.ItemCode} className="flex justify-between items-center border-b last:border-0 py-3">
@@ -589,10 +655,25 @@
                                 <div className="font-black text-gray-900 text-sm">₹{item.DealerPrice * item.qty}</div>
                             </div>
                         ))}
+                        
                         <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
-                            <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
-                            <span className="font-black text-xl text-gray-900">₹{totalAmount}</span>
+                            <span className="font-bold text-gray-400 uppercase text-[10px]">Net Value</span>
+                            <span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
                         </div>
+
+                        {bulkPercent > 0 && (
+                            <div className="flex justify-between items-center mt-2 text-green-700">
+                                <span className="font-bold uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
+                                <span className="font-black text-sm">-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
+
+                        {paymentMode === 'UPI' && (
+                            <div className="flex justify-between items-center mt-2 text-green-700">
+                                <span className="font-bold uppercase text-[10px]">UPI Discount (2%)</span>
+                                <span className="font-black text-sm">-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
+                            </div>
+                        )}
                     </div>
 
                     <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
@@ -626,7 +707,7 @@
                     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-50">
                         <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
                             <span>Subtotal</span>
-                            <span className="line-through">₹{totalAmount}</span>
+                            <span className="line-through font-mono">₹{totalAmount}</span>
                         </div>
                         <div className="flex justify-between items-center mb-4">
                             <span className="font-black text-gray-800 text-lg">Final Amount</span>
@@ -671,7 +752,7 @@
             const netBalance = totalDebit - totalCredit;
 
             return (
-                <div className="p-4 bg-gray-50 min-h-screen pb-24">
+                <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
                     <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
                         <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
                         <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
@@ -705,7 +786,7 @@
                                             <div className="text-[10px] text-gray-400 font-bold">{item.date}</div>
                                             <h4 className="text-xs font-black text-gray-800 mt-1 leading-snug">{item.particulars}</h4>
                                             {item.vchType && (
-                                                <div className="flex gap-1.5 mt-1.5">
+                                                <div className="flex gap-1.5 mt-1.5 font-sans">
                                                     <span className="bg-gray-100 text-gray-600 font-bold text-[8px] px-1.5 py-0.5 rounded uppercase">{item.vchType}</span>
                                                     {item.vchNo && <span className="bg-blue-50 text-blue-600 font-bold text-[8px] px-1.5 py-0.5 rounded">No: {item.vchNo}</span>}
                                                 </div>
@@ -790,7 +871,7 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center">
                     <div className="absolute inset-0" onClick={onClose}></div>
-                    <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10">
+                    <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10 font-sans">
                         
                         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3 cursor-pointer" onClick={onClose}></div>
                         
