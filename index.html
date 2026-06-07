@@ -63,9 +63,12 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // MASTER VALIDATED API LINK 
-        const API_URL = "https://script.google.com/macros/s/AKfycbyoJZyzkrTz35bV2t1BX0FlYKVGRFqTzAWP1ylhNyAL0WFgRwa-B0NYQG-UIufU7CxrYA/exec"; 
+        // MASTER CONFIGURATIONS
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
+        
+        // YOUR INTEGRATED PHONEPE QR CODE URL (Direct view format from Drive)
+        const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
 
         function getSmartImage(product) {
             if (product.ImageURL && product.ImageURL.trim() !== "") {
@@ -123,7 +126,6 @@
                         <span>Bulk Discount Tracker</span>
                         <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
                     </div>
-                    {/* Bigger Progress Bar (h-4) */}
                     <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
                         <div className="bg-green-600 h-full transition-all duration-300" style={{ width: Math.min(progress, 100) + '%' }}></div>
                     </div>
@@ -145,16 +147,28 @@
             const [showNotice, setShowNotice] = useState(false);
             const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
+            // Load Session and Cart from localStorage on boot
             useEffect(() => {
                 try {
                     const savedUser = localStorage.getItem("yashDealerSession");
                     if (savedUser) {
                         setUser(JSON.parse(savedUser));
                     }
+                    const savedCart = localStorage.getItem("yashDealerCart");
+                    if (savedCart) {
+                        setCart(JSON.parse(savedCart));
+                    }
                 } catch (e) {
                     console.error(e);
                 }
             }, []);
+
+            // Save Cart state to localStorage on any change
+            useEffect(() => {
+                if (user) {
+                    localStorage.setItem("yashDealerCart", JSON.stringify(cart));
+                }
+            }, [cart, user]);
 
             useEffect(() => {
                 if (window.Notification) {
@@ -164,7 +178,7 @@
                 }
             }, []);
 
-            // Announcement Fetch with guaranteed Fallback message
+            // Announcement Fetch with safe parsing and fallbacks
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -175,19 +189,18 @@
                     .then(r => r.json())
                     .then(res => {
                         let parsedData = [];
-                        if (Array.isArray(res)) {
-                            parsedData = res;
+                        if (res && res.success && Array.isArray(res.data)) {
+                            parsedData = res.data;
                         } else if (res && Array.isArray(res.data)) {
                             parsedData = res.data;
-                        } else if (res && res.success && Array.isArray(res.data)) {
-                            parsedData = res.data;
+                        } else if (Array.isArray(res)) {
+                            parsedData = res;
                         }
 
                         if (parsedData.length > 0) {
                             setAnnouncements(parsedData);
                             setShowNotice(true); 
                         } else {
-                            // Local fallback if sheet data is empty
                             var defaultMsg = [{
                                 title: "Yash Marketing Portal Live!",
                                 message: "Naye price drops, bulk discounts aur live offers check karne ke liye catalog scroll karein."
@@ -197,7 +210,6 @@
                         }
                     }).catch((e) => {
                         console.log("Announcement fetch error", e);
-                        // Local fallback if API fails
                         var defaultMsg = [{
                             title: "Welcome to Yash Marketing",
                             message: "Naye schemes aur bulk order discount live hain. Kisi bhi inquiry ke liye direct WhatsApp par contact karein."
@@ -247,6 +259,7 @@
 
             const handleLogout = () => {
                 localStorage.removeItem("yashDealerSession");
+                localStorage.removeItem("yashDealerCart");
                 setUser(null);
                 setCart({});
                 setView("catalog");
@@ -621,7 +634,6 @@
 
             return (
                 <div className="flex flex-col">
-                    {/* Fixed top alignment to 58px prevents clipping with the main header */}
                     <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
                         {totalItems > 0 && !globalProps.customerMode && (
                             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
@@ -762,16 +774,26 @@
                         <div onClick={() => setPaymentMode('COD')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
                             <div className="font-black text-gray-800">Cash On Delivery (COD)</div>
                         </div>
-                        <div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+                        
+                        <div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
                             <div className="flex justify-between items-center">
-                                <div className="font-black text-green-800 tracking-tight">UPI (2% CASH DISCOUNT)</div>
+                                <div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight">
+                                    <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">PhonePe</span>
+                                    UPI (2% CASH DISCOUNT)
+                                </div>
                                 <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
                             </div>
                             {paymentMode === 'UPI' && (
-                                <div className="mt-4 bg-white p-4 rounded-xl border border-green-100 text-center">
-                                    <p className="text-xs font-bold mb-3">Pay Exactly: <span className="text-green-600 text-xl font-black">₹{finalAmount}</span></p>
-                                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" className="w-32 h-32 mx-auto mb-4 border p-1" />
-                                    <input type="file" accept="image/*" onChange={(e) => setScreenshotUploaded(true)} className="text-[10px]" />
+                                <div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in">
+                                    <p className="text-xs font-bold mb-3">Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span></p>
+                                    
+                                    <div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-4">
+                                        <img src={PHONEPE_QR_URL} className="w-48 h-48 object-contain mx-auto" alt="PhonePe UPI Barcode" />
+                                        <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">PhonePe QR</div>
+                                    </div>
+
+                                    <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
+                                    <input type="file" accept="image/*" onChange={(e) => setScreenshotUploaded(true)} className="text-[10px] block mx-auto text-purple-900 font-black" />
                                 </div>
                             )}
                         </div>
