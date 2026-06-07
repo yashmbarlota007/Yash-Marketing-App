@@ -126,6 +126,7 @@
                         <span>Bulk Discount Tracker</span>
                         <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
                     </div>
+                    {/* Bigger Progress Bar (h-4) */}
                     <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
                         <div className="bg-green-600 h-full transition-all duration-300" style={{ width: Math.min(progress, 100) + '%' }}></div>
                     </div>
@@ -634,6 +635,7 @@
 
             return (
                 <div className="flex flex-col">
+                    {/* Fixed top alignment to 58px prevents clipping with the main header */}
                     <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
                         {totalItems > 0 && !globalProps.customerMode && (
                             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
