@@ -87,6 +87,7 @@
         }
 
         function App() {
+            // STRICT TOP-LEVEL HOOKS (Ensures no compile crashes)
             const [user, setUser] = useState(null);
             const [view, setView] = useState("catalog"); 
             const [products, setProducts] = useState([]);
@@ -97,25 +98,19 @@
             const [showNotice, setShowNotice] = useState(false);
             const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
-            const logSpyData = (eventName, detailsStr = "") => {
-                fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: "Login Success", details: detailsStr }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                }).catch(e => console.log("Silent Log Failed"));
-            };
-
-            const globalProps = { logSpyData, customerMode };
-
-            // FIRST-LOAD TRIGGER: Standard Session Initializer
+            // 1. Standard mount effect: Loads session instantly on boot!
             useEffect(() => {
-                const savedUser = localStorage.getItem("yashDealerSession");
-                if (savedUser) {
-                    setUser(JSON.parse(savedUser));
+                try {
+                    const savedUser = localStorage.getItem("yashDealerSession");
+                    if (savedUser) {
+                        setUser(JSON.parse(savedUser));
+                    }
+                } catch (e) {
+                    console.error(e);
                 }
             }, []);
 
-            // Native Browser Push Permission checking
+            // 2. Browser Notification Permission check on boot
             useEffect(() => {
                 if (window.Notification) {
                     if (Notification.permission !== "granted") {
@@ -124,7 +119,7 @@
                 }
             }, []);
 
-            // FETCH ANNOUNCEMENTS: Triggers on mount and immediately after every page refresh/login
+            // 3. Fetch announcements on mount AND whenever user state loads
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -140,29 +135,17 @@
                         }
                     }).catch(() => {});
                 }
-            }, [user]); // Fires when user state gets loaded
+            }, [user]);
 
-            useEffect(() => {
-                window.history.pushState({ page: view }, "", "");
-                const handlePopState = () => {
-                    if (view === "cart" || view === "ledger") {
-                        setView("catalog");
-                    } else if (view === "catalog") {
-                        window.history.go(-1);
-                    }
-                };
-                window.addEventListener("popstate", handlePopState);
-                return () => window.removeEventListener("popstate", handlePopState);
-            }, [view]);
-
-            const handleLogout = () => {
-                if(window.confirm("Are you sure you want to logout?")) {
-                    logSpyData("Logout", "User closed session");
-                    localStorage.removeItem("yashDealerSession");
-                    setUser(null);
-                    setCart({});
-                }
+            const logSpyData = (eventName, detailsStr = "") => {
+                fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: "Login Success", details: detailsStr }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                }).catch(e => console.log("Silent Log Failed"));
             };
+
+            const globalProps = { logSpyData, customerMode };
 
             const callAPI = async (payload) => {
                 try {
@@ -376,7 +359,7 @@
                                                     <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
                                                 </div>
                                             ) : (
-                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-900 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                                <button onClick={(e) => { e.stopPropagation(); updateQty(p, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
                                             )}
                                         </div>
                                     ) : (
