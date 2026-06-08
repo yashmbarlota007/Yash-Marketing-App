@@ -64,7 +64,7 @@
         const { useState, useEffect } = React;
         
         // MASTER CONFIGURATIONS
-        const API_URL = "https://script.google.com/macros/s/AKfycbyFCzaPMyPte4HmTem94KODnyecnlKSCz4tf851N2i7xqCgp5tVkhDQh1CDrZyKmwRkxg/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
         
         // YOUR INTEGRATED PHONEPE QR CODE URL (Direct view format from Drive)
@@ -98,33 +98,57 @@
             return null; 
         }
 
-        // Highlighted & Larger Progress Bar Component
+        // 100% Dynamic Multi-Tier Progress Bar (Supports unlimited sheet slabs)
         function ProgressBar(props) {
             var totalAmount = props.totalAmount;
             var discounts = props.discounts;
             
-            var tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
-            var tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
-            
+            var sortedDiscounts = [...discounts]
+                .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+                .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+                .sort((a, b) => a.minAmount - b.minAmount);
+
+            if (sortedDiscounts.length === 0) return null;
+
+            var activeTier = null;
+            var nextTier = null;
+
+            for (var i = 0; i < sortedDiscounts.length; i++) {
+                if (totalAmount >= sortedDiscounts[i].minAmount) {
+                    activeTier = sortedDiscounts[i];
+                } else {
+                    nextTier = sortedDiscounts[i];
+                    break;
+                }
+            }
+
             var progress = 0;
             var message = "";
-            
-            if (totalAmount < tier1.minAmount) {
-                progress = (totalAmount / tier1.minAmount) * 50;
-                message = "Add ₹" + (tier1.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + tier1.percent + "% discount";
-            } else if (totalAmount < tier2.minAmount) {
-                progress = 50 + ((totalAmount - tier1.minAmount) / (tier2.minAmount - tier1.minAmount)) * 50;
-                message = "🎉 Tier 1 Unlocked! Add ₹" + (tier2.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + tier2.percent + "% discount";
+
+            if (!activeTier) {
+                // Below first tier
+                var first = sortedDiscounts[0];
+                progress = (totalAmount / first.minAmount) * 100;
+                message = "Add ₹" + (first.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + first.percent + "% discount";
+            } else if (nextTier) {
+                // Between activeTier and nextTier
+                var range = nextTier.minAmount - activeTier.minAmount;
+                var currentInRange = totalAmount - activeTier.minAmount;
+                progress = (currentInRange / range) * 100;
+                message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + (nextTier.minAmount - totalAmount).toLocaleString('en-IN') + " more to get " + nextTier.percent + "% discount";
             } else {
+                // Max tier reached
                 progress = 100;
-                message = "🎉 Maximum " + tier2.percent + "% Bulk Discount Unlocked!";
+                message = "🎉 Maximum " + activeTier.percent + "% Bulk Discount Unlocked!";
             }
 
             return (
                 <div className="bg-amber-50 p-4 border-b-2 border-amber-200 shadow-sm">
                     <div className="flex justify-between text-xs font-black text-amber-900 mb-1.5 uppercase tracking-wider">
                         <span>Bulk Discount Tracker</span>
-                        <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">Total: ₹{totalAmount.toLocaleString('en-IN')}</span>
+                        <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">
+                            {activeTier ? activeTier.percent + "% Active" : "No Discount"} (₹{totalAmount.toLocaleString('en-IN')})
+                        </span>
                     </div>
                     {/* Bigger Progress Bar (h-4) */}
                     <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
@@ -179,7 +203,7 @@
                 }
             }, []);
 
-            // Announcement Fetch with safe parsing and fallbacks
+            // Announcement Fetch with safe parsing and fallback triggers
             useEffect(() => {
                 if (user) {
                     fetch(API_URL, {
@@ -202,12 +226,8 @@
                             setAnnouncements(parsedData);
                             setShowNotice(true); 
                         } else {
-                            var defaultMsg = [{
-                                title: "Yash Marketing Portal Live!",
-                                message: "Naye price drops, bulk discounts aur live offers check karne ke liye catalog scroll karein."
-                            }];
-                            setAnnouncements(defaultMsg);
-                            setShowNotice(true);
+                            // If sheet announcements are empty/inactive, keep popup closed
+                            setShowNotice(false);
                         }
                     }).catch((e) => {
                         console.log("Announcement fetch error", e);
@@ -415,10 +435,15 @@
             const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
             const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
 
-            // Confetti check
+            // Confetti check with dynamic target scanning
             useEffect(() => {
-                var tier1Min = (discounts[0] && discounts[0].minAmount) ? discounts[0].minAmount : 10000;
-                var tier2Min = (discounts[1] && discounts[1].minAmount) ? discounts[1].minAmount : 20000;
+                var sortedDiscounts = [...discounts]
+                    .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+                    .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+                    .sort((a, b) => a.minAmount - b.minAmount);
+                    
+                var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
+                var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
 
                 if (totalAmount >= tier2Min) {
                     if (!celebratedTiers.tier2) {
@@ -701,14 +726,18 @@
                 }).catch(() => {});
             }, []);
 
-            const tier1 = discounts[0] || { minAmount: 10000, percent: 1 };
-            const tier2 = discounts[1] || { minAmount: 20000, percent: 1.5 };
-            
+            // Dynamic and error-proof discount computation logic based on dynamically sorted sheet slabs
+            var sortedDiscountsDesc = [...discounts]
+                .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+                .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+                .sort((a, b) => b.minAmount - a.minAmount);
+
             let bulkPercent = 0;
-            if (totalAmount >= tier2.minAmount) {
-                bulkPercent = tier2.percent;
-            } else if (totalAmount >= tier1.minAmount) {
-                bulkPercent = tier1.percent;
+            for (var i = 0; i < sortedDiscountsDesc.length; i++) {
+                if (totalAmount >= sortedDiscountsDesc[i].minAmount) {
+                    bulkPercent = sortedDiscountsDesc[i].percent;
+                    break;
+                }
             }
 
             const bulkDiscountAmount = Math.round(totalAmount * (bulkPercent / 100));
@@ -1044,7 +1073,7 @@
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
+                                    <div className="mt-4 bg-green-50 p-4 rounded-2xl border-green-100">
                                         <div className="text-xs text-green-800 font-black uppercase tracking-wider">Offer MRP</div>
                                         <div className="text-3xl font-black text-green-950 mt-1">₹{product.MRP || 'Contact store'}</div>
                                     </div>
