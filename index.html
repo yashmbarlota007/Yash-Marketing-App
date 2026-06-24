@@ -63,8 +63,9 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // MASTER CONFIGURATIONS
-        const API_URL = "https://script.google.com/macros/s/AKfycbzRMpk7vIWw6iSCm5LZIBkDOW2QXOw3KBzfdVEZMB1MxeNS1tMwOEDjHBZCfwpvv3fdZQ/exec"; 
+        // MASTER CONFIGURATIONS (Query params used for automatic cache bypass)
+        var cacheBypass = "?v=" + new Date().getTime();
+        const API_URL = "https://script.google.com/macros/s/AKfycbyYs53sjhNu2R5c2E1puT2Yke33iCM8U5LIgi0S2cJaBCa_7Ybt6WLZx2V5LQa25cdxJA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
         
         // YOUR INTEGRATED PHONEPE QR CODE URL (Direct view format from Drive)
@@ -265,7 +266,7 @@
             // Announcement Fetch with safe parsing and fallback triggers
             useEffect(() => {
                 if (user) {
-                    fetch(API_URL, {
+                    fetch(API_URL + cacheBypass, {
                         method: 'POST',
                         body: JSON.stringify({ action: "getAnnouncements" }),
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' }
@@ -285,7 +286,6 @@
                             setAnnouncements(parsedData);
                             setShowNotice(true); 
                         } else {
-                            // If sheet announcements are empty/inactive, keep popup closed
                             setShowNotice(false);
                         }
                     }).catch((e) => {
@@ -376,17 +376,20 @@
                         </div>
                         <div className="flex gap-1.5 items-center">
                             {!customerMode && view === "catalog" && (
-                                <button onClick={() => setView("ledger")} className="text-white text-[10px] font-bold bg-amber-600 px-2.5 py-2 rounded-lg shadow-sm">📖 LEDGER</button>
+                                <React.Fragment>
+                                    <button onClick={() => setView("orders")} className="text-white text-[10px] font-bold bg-green-700 px-2.5 py-2 rounded-lg shadow-sm">📦 ORDERS</button>
+                                    <button onClick={() => setView("ledger")} className="text-white text-[10px] font-bold bg-amber-600 px-2.5 py-2 rounded-lg shadow-sm">📖 LEDGER</button>
+                                </React.Fragment>
                             )}
                             <button onClick={() => {
                                 const m = !customerMode;
                                 setCustomerMode(m);
-                                if (m && view === "ledger") setView("catalog");
+                                if (m && (view === "ledger" || view === "orders")) setView("catalog");
                                 logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
                             }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
                                 {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
                             </button>
-                            {(view === "cart" || view === "ledger") && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
+                            {(view === "cart" || view === "ledger" || view === "orders") && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
                             <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
                         </div>
                     </div>
@@ -394,8 +397,10 @@
                         <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} />
                     ) : view === "cart" ? (
                         <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />
-                    ) : (
+                    ) : view === "ledger" ? (
                         <LedgerView user={user} callAPI={callAPI} />
+                    ) : (
+                        <OrdersHistoryView user={user} callAPI={callAPI} />
                     )}
 
                     {user && showNotice && announcements.length > 0 && (
@@ -616,7 +621,7 @@
                                                     <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{activeVariant.MRP}</div>
                                                 )
                                             )}
-                                            <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
+                                            <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
                                             
                                             {currentQty > 0 ? (
                                                 <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
@@ -823,7 +828,7 @@
             var sortedDiscountsDesc = [...discounts]
                 .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
                 .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-                .sort((a, b) => b.minAmount - a.minAmount);
+                .sort((a, b) => a.minAmount - b.minAmount);
 
             let bulkPercent = 0;
             for (var i = 0; i < sortedDiscountsDesc.length; i++) {
@@ -1094,6 +1099,87 @@
             );
         }
 
+        // New Order History Timeline View for Dealers
+        function OrdersHistoryView(props) {
+            var user = props.user;
+            var callAPI = props.callAPI;
+            const [orders, setOrders] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                callAPI({ action: "getDealerOrders", phone: user.phone }).then(res => {
+                    if (res && res.success) {
+                        setOrders(res.data);
+                    } else {
+                        alert(res.message || "Orders history fetch failed.");
+                    }
+                    setLoading(false);
+                });
+            }, []);
+
+            if (loading) return (
+                <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+                    <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+                    <p className="font-bold">Generating Order History...</p>
+                </div>
+            );
+
+            return (
+                <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
+                    <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
+                    {orders.length === 0 ? (
+                        <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
+                    ) : (
+                        <div className="space-y-4">
+                            {orders.map((ord, idx) => {
+                                // Safe crash-proof item list splitter
+                                var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
+                                return (
+                                    <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
+                                        <div className="flex justify-between items-start border-b border-gray-50 pb-2">
+                                            <div>
+                                                <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
+                                                <div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
+                                            </div>
+                                            <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                                                ord.status === "Delivered" ? "bg-green-100 text-green-700" :
+                                                ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
+                                                "bg-amber-100 text-amber-700"
+                                            }`}>
+                                                {ord.status || "Pending"}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="py-3 border-b border-dashed border-gray-100">
+                                            <div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items Ordered</div>
+                                            <div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
+                                                {itemsList.map((it, i) => (
+                                                    <div key={i} className="flex justify-between items-center py-0.5">
+                                                        <span>• {it.trim()}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2">
+                                            <div>
+                                                <div className="text-[9px] text-gray-400 font-black uppercase">Payment</div>
+                                                <div className="text-xs font-black text-gray-600">{ord.paymentMode}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
+                                                <div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount).toLocaleString('en-IN')}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
         function ProductDetailModal(props) {
             var product = props.product;
             var onClose = props.onClose;
@@ -1110,6 +1196,11 @@
 
             const [currentImgIndex, setCurrentImgIndex] = useState(0);
             const [imagesList, setImagesList] = useState([]);
+            
+            // Modern Double-Tap / Interactive Scaling zoom support
+            const [isZoomed, setIsZoomed] = useState(false);
+            const [zoomScale, setZoomScale] = useState(1.25);
+
             const currentQty = cart[activeVariant.ItemCode] ? cart[activeVariant.ItemCode].qty : 0;
             
             useEffect(() => {
@@ -1167,7 +1258,8 @@
                         <button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
                         
                         <div className="overflow-y-auto no-scrollbar pb-32">
-                            <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-64 select-none">
+                            {/* Clickable Image Area triggers Larger Zoom Overlay */}
+                            <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-64 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
                                 <img 
                                     src={imagesList[currentImgIndex]} 
                                     className="h-56 max-w-full object-contain" 
@@ -1184,8 +1276,8 @@
                                 
                                 {imagesList.length > 1 && (
                                     <React.Fragment>
-                                        <button onClick={handlePrevImage} className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">←</button>
-                                        <button onClick={handleNextImage} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
+                                        <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">←</button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
                                         
                                         <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
                                             {imagesList.map((_, idx) => (
@@ -1298,6 +1390,26 @@
                             )}
                         </div>
                     </div>
+
+                    {/* NEW DETAIL FEATURE: Immersive Fullscreen Zoom View Overlay (With tap-to-scale touch support) */}
+                    {isZoomed && (
+                        <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
+                            <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
+                            <img 
+                                src={imagesList[currentImgIndex]} 
+                                className="max-h-[85vh] max-w-full object-contain transition-transform duration-300 ease-out" 
+                                style={{ transform: 'scale(' + zoomScale + ')' }}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevents modal from closing
+                                    setZoomScale(zoomScale === 1.25 ? 2.5 : 1.25); // Tap to double scale
+                                }}
+                                alt="Zoomed Product"
+                            />
+                            <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
+                                Tap image to Zoom In / Out. Click anywhere outside to close.
+                            </p>
+                        </div>
+                    )}
                 </div>
             );
         }
