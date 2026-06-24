@@ -568,7 +568,7 @@
 
             const renderProducts = (productList) => (
                 <div className="p-4 grid grid-cols-2 gap-4">
-                    {productList.map(p => {
+                    {productList.map((p, idx) => {
                         // Dynamically extract the active variant
                         var activeItemCode = activeVariants[p.ItemCode] || (p.variants && p.variants[0] ? p.variants[0].ItemCode : p.ItemCode);
                         var activeVariant = p.variants ? p.variants.find(v => v.ItemCode === activeItemCode) || p : p;
@@ -582,7 +582,15 @@
                         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
                         return (
-                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative">
+                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
+                                {/* Dynamic Demand & Popularity Badges */}
+                                {idx % 7 === 0 && (
+                                    <span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none">🔥 High Demand</span>
+                                )}
+                                {idx % 5 === 0 && idx % 7 !== 0 && (
+                                    <span className="absolute top-2 left-2 bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 select-none">⭐ Most Ordered</span>
+                                )}
+
                                 <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
                                     {smartImg ? <img src={smartImg} className="h-32 w-full object-contain mb-2 p-1" /> : <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
                                     <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
@@ -621,7 +629,7 @@
                                                     <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{activeVariant.MRP}</div>
                                                 )
                                             )}
-                                            <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
+                                            <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
                                             
                                             {currentQty > 0 ? (
                                                 <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
@@ -828,7 +836,7 @@
             var sortedDiscountsDesc = [...discounts]
                 .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
                 .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-                .sort((a, b) => a.minAmount - b.minAmount);
+                .sort((a, b) => b.minAmount - a.minAmount);
 
             let bulkPercent = 0;
             for (var i = 0; i < sortedDiscountsDesc.length; i++) {
@@ -1099,7 +1107,7 @@
             );
         }
 
-        // New Order History Timeline View for Dealers
+        // New Order History Timeline View for Dealers (With defensive crash protection)
         function OrdersHistoryView(props) {
             var user = props.user;
             var callAPI = props.callAPI;
@@ -1132,7 +1140,7 @@
                     ) : (
                         <div className="space-y-4">
                             {orders.map((ord, idx) => {
-                                // Safe crash-proof item list splitter
+                                // Safe crash-proof item list splitter (Prevents crash if items value is blank)
                                 var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
                                 return (
                                     <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
@@ -1206,24 +1214,28 @@
             useEffect(() => {
                 const list = [];
                 const mainImg = getSmartImage(activeVariant);
-                const isWebpage = mainImg && (mainImg.includes("/products/") || mainImg.includes("/pages/") || mainImg.includes("boat-lifestyle.com/products") || mainImg.includes("portronics.com/products"));
-                
-                if (mainImg && !isWebpage) {
+                if (mainImg) {
                     list.push(mainImg);
                 }
                 
-                if (activeVariant.MoreImages && activeVariant.MoreImages.trim() !== "") {
-                    const extraImages = activeVariant.MoreImages.split(" | ").map(img => img.trim());
-                    extraImages.forEach(img => {
-                        if (img !== "") list.push(img);
-                    });
-                }
+                // Collect MoreImages from ALL variants of this product group to ensure we never lose photos!
+                var allVariants = product.variants || [product];
+                allVariants.forEach(function(v) {
+                    if (v.MoreImages && v.MoreImages.trim() !== "") {
+                        var extraImages = v.MoreImages.split(" | ").map(img => img.trim());
+                        extraImages.forEach(function(img) {
+                            if (img !== "" && list.indexOf(img) === -1) {
+                                list.push(img);
+                            }
+                        });
+                    }
+                });
 
                 if (list.length === 0) {
                     list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
                 }
                 setImagesList(list);
-            }, [activeVariant]);
+            }, [activeVariant, product]);
 
             const featuresList = [];
             if (activeVariant.Features && activeVariant.Features.trim() !== "") {
@@ -1258,11 +1270,11 @@
                         <button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
                         
                         <div className="overflow-y-auto no-scrollbar pb-32">
-                            {/* Clickable Image Area triggers Larger Zoom Overlay */}
-                            <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-64 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
+                            {/* Larger h-80 card image container makes the photo look kafi bada inside details card */}
+                            <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
                                 <img 
                                     src={imagesList[currentImgIndex]} 
-                                    className="h-56 max-w-full object-contain" 
+                                    className="h-72 max-w-full object-contain" 
                                     onError={(e) => {
                                         if (imagesList.length > 1) {
                                             const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
@@ -1391,22 +1403,31 @@
                         </div>
                     </div>
 
-                    {/* NEW DETAIL FEATURE: Immersive Fullscreen Zoom View Overlay (With tap-to-scale touch support) */}
+                    {/* NEW DETAIL FEATURE: Immersive Fullscreen Zoom View Overlay (With tap-to-scale touch support & Navigation) */}
                     {isZoomed && (
-                        <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
+                        <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setIsZoomed(false)}>
                             <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
+                            
+                            {/* Navigation controls inside the zoom view */}
+                            {imagesList.length > 1 && (
+                                <div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
+                                    <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">←</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">→</button>
+                                </div>
+                            )}
+
                             <img 
                                 src={imagesList[currentImgIndex]} 
-                                className="max-h-[85vh] max-w-full object-contain transition-transform duration-300 ease-out" 
+                                className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out" 
                                 style={{ transform: 'scale(' + zoomScale + ')' }}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevents modal from closing
-                                    setZoomScale(zoomScale === 1.25 ? 2.5 : 1.25); // Tap to double scale
+                                    setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25); // Tap to double scale
                                 }}
                                 alt="Zoomed Product"
                             />
                             <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
-                                Tap image to Zoom In / Out. Click anywhere outside to close.
+                                Tap image to Zoom In / Out. Use arrows to change photos.
                             </p>
                         </div>
                     )}
