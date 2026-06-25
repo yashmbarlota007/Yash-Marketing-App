@@ -286,6 +286,7 @@
                             setAnnouncements(parsedData);
                             setShowNotice(true); 
                         } else {
+                            // If sheet announcements are empty/inactive, keep popup closed
                             setShowNotice(false);
                         }
                     }).catch((e) => {
@@ -368,9 +369,10 @@
                 <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
                     <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
                         <div>
-                            <h1 className="font-extrabold text-sm flex items-center gap-1.5">
+                            {/* Version 2.4 tag added directly in header */}
+                            <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
                                 <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-                                Yash Marketing
+                                Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.4</span>
                             </h1>
                             <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
                         </div>
@@ -629,7 +631,7 @@
                                                     <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{activeVariant.MRP}</div>
                                                 )
                                             )}
-                                            <div className="font-black text-lg text-blue-900 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
+                                            <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
                                             
                                             {currentQty > 0 ? (
                                                 <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
@@ -1107,7 +1109,7 @@
             );
         }
 
-        // New Order History Timeline View for Dealers (With defensive crash protection)
+        // New Order History Timeline View for Dealers
         function OrdersHistoryView(props) {
             var user = props.user;
             var callAPI = props.callAPI;
@@ -1140,7 +1142,7 @@
                     ) : (
                         <div className="space-y-4">
                             {orders.map((ord, idx) => {
-                                // Safe crash-proof item list splitter (Prevents crash if items value is blank)
+                                // Safe crash-proof item list splitter
                                 var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
                                 return (
                                     <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
@@ -1211,6 +1213,7 @@
 
             const currentQty = cart[activeVariant.ItemCode] ? cart[activeVariant.ItemCode].qty : 0;
             
+            // Re-fetch all unique variant images so the user never sees only 2 images
             useEffect(() => {
                 const list = [];
                 const mainImg = getSmartImage(activeVariant);
@@ -1218,7 +1221,7 @@
                     list.push(mainImg);
                 }
                 
-                // Collect MoreImages from ALL variants of this product group to ensure we never lose photos!
+                // Merge all variant images of this model group dynamically
                 var allVariants = product.variants || [product];
                 allVariants.forEach(function(v) {
                     if (v.MoreImages && v.MoreImages.trim() !== "") {
@@ -1403,7 +1406,7 @@
                         </div>
                     </div>
 
-                    {/* NEW DETAIL FEATURE: Immersive Fullscreen Zoom View Overlay (With tap-to-scale touch support & Navigation) */}
+                    {/* NEW DETAIL FEATURE: Immersive Fullscreen Zoom View Overlay (With dynamic swipe navigation) */}
                     {isZoomed && (
                         <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setIsZoomed(false)}>
                             <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
