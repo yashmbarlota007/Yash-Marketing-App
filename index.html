@@ -17,7 +17,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <!-- ==========================================
-      ONESIGNAL FREE PUSH NOTIFICATION SDK (CLEAN INITIALIZATION)
+      ONESIGNAL FREE PUSH NOTIFICATION SDK
     ========================================== -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
@@ -63,24 +63,21 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         
-        // MASTER CONFIGURATIONS (Query params used for automatic cache bypass)
+        // MASTER CONFIGURATIONS
         var cacheBypass = "?v=" + new Date().getTime();
         
-        // YOUR UPDATED GOOGLE APPS SCRIPT WEB APP URL
         const API_URL = "https://script.google.com/macros/s/AKfycbwXY9RxnKMrSxAwIs69zn9LJCOJDGY12ufXalvIZEbbp_07rg04LbE5qoDTN_UHd4IoZA/exec"; 
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
-        
-        // YOUR INTEGRATED PHONEPE QR CODE URL (Direct view format from Drive)
         const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
 
         function getSmartImage(product) {
-            if (product.ImageURL && product.ImageURL.trim() !== "") {
-                let url = product.ImageURL.trim();
-                
+            if (!product) return null;
+            var imageUrl = product.ImageURL || product.imageurl || product["Image URL"] || "";
+            if (imageUrl && imageUrl.trim() !== "") {
+                let url = imageUrl.trim();
                 if (url.indexOf("//") === 0) {
                     url = "https:" + url;
                 }
-                
                 if (url.includes("drive.google.com")) {
                     let fileId = "";
                     const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -92,7 +89,7 @@
                 return url; 
             }
             
-            var brand = (product.Brand || "").toUpperCase();
+            var brand = (product.Brand || product.brand || "").toUpperCase();
             if (brand.indexOf("BOAT") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Boat_Logo.webp/512px-Boat_Logo.webp.png";
             if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
             if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
@@ -101,7 +98,6 @@
             return null; 
         }
 
-        // 100% Dynamic Multi-Tier Progress Bar (Supports unlimited sheet slabs)
         function ProgressBar(props) {
             var totalAmount = props.totalAmount;
             var discounts = props.discounts;
@@ -129,18 +125,15 @@
             var message = "";
 
             if (!activeTier) {
-                // Below first tier
                 var first = sortedDiscounts[0];
                 progress = (totalAmount / first.minAmount) * 100;
                 message = "Add ₹" + (first.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + first.percent + "% discount";
             } else if (nextTier) {
-                // Between activeTier and nextTier
                 var range = nextTier.minAmount - activeTier.minAmount;
                 var currentInRange = totalAmount - activeTier.minAmount;
                 progress = (currentInRange / range) * 100;
                 message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + (nextTier.minAmount - totalAmount).toLocaleString('en-IN') + " more to get " + nextTier.percent + "% discount";
             } else {
-                // Max tier reached
                 progress = 100;
                 message = "🎉 Maximum " + activeTier.percent + "% Bulk Discount Unlocked!";
             }
@@ -153,7 +146,6 @@
                             {activeTier ? activeTier.percent + "% Active" : "No Discount"} (₹{totalAmount.toLocaleString('en-IN')})
                         </span>
                     </div>
-                    {/* Bigger Progress Bar (h-4) */}
                     <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
                         <div className="bg-green-600 h-full transition-all duration-300" style={{ width: Math.min(progress, 100) + '%' }}></div>
                     </div>
@@ -164,16 +156,19 @@
             );
         }
 
-        // Smart programmatic variants grouper (No overwrites)
         function groupProductsByVariant(flatList) {
             var grouped = {};
-            var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB)\b/i;
+            var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
 
             flatList.forEach(function(p) {
-                var name = p.ProductName || "";
-                var brand = p.Brand || "";
-                var type = p.Type || "";
+                var name = p.ProductName || p.productname || p["Product Name"] || p["product Name"] || "";
+                var brand = p.Brand || p.brand || "";
+                var type = p.Type || p.type || "";
                 
+                if (!name) {
+                    name = "Product " + (p.ItemCode || Math.random().toString(36).substr(2, 5));
+                }
+
                 var match = name.match(capacityRegex);
                 var capacity = match ? match[1].toUpperCase().replace(/\s/g, "") : "";
                 
@@ -183,31 +178,34 @@
                     baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
                 }
 
-                // Group key maps similar brand + clean model name
-                var groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase();
+                var groupKey = capacity 
+                    ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
+                    : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + (p.ItemCode || ""));
 
                 if (!grouped[groupKey]) {
                     grouped[groupKey] = {
                         key: groupKey,
                         baseName: baseName,
-                        Brand: p.Brand,
-                        Type: p.Type,
-                        Features: p.Features,
-                        ImageURL: p.ImageURL,
-                        MoreImages: p.MoreImages,
+                        Brand: brand,
+                        Type: type,
+                        Features: p.Features || p.features || "",
+                        ImageURL: p.ImageURL || p.imageurl || p["Image URL"] || "",
+                        MoreImages: p.MoreImages || p.moreimages || "",
                         variants: []
                     };
                 }
 
                 grouped[groupKey].variants.push(
-                    Object.assign({}, p, { capacity: capacity || "Standard" })
+                    Object.assign({}, p, { 
+                        ProductName: name,
+                        capacity: capacity || "Standard" 
+                    })
                 );
             });
 
             return Object.keys(grouped).map(function(k) {
                 var group = grouped[k];
                 
-                // Sort capacities numerically
                 group.variants.sort(function(a, b) {
                     var numA = parseInt(a.capacity) || 0;
                     var numB = parseInt(b.capacity) || 0;
@@ -216,7 +214,7 @@
                 
                 var primary = group.variants[0];
                 return Object.assign({}, primary, {
-                    ProductName: group.baseName,
+                    ProductName: group.variants.length > 1 ? group.baseName : primary.ProductName,
                     isGrouped: group.variants.length > 1,
                     variants: group.variants
                 });
@@ -234,7 +232,6 @@
             const [showNotice, setShowNotice] = useState(false);
             const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
-            // Load Session and Cart from localStorage on boot
             useEffect(() => {
                 try {
                     const savedUser = localStorage.getItem("yashDealerSession");
@@ -250,7 +247,6 @@
                 }
             }, []);
 
-            // Save Cart state to localStorage on any change
             useEffect(() => {
                 if (user) {
                     localStorage.setItem("yashDealerCart", JSON.stringify(cart));
@@ -265,7 +261,6 @@
                 }
             }, []);
 
-            // Announcement Fetch with safe parsing and fallback triggers
             useEffect(() => {
                 if (user) {
                     fetch(API_URL + cacheBypass, {
@@ -288,7 +283,6 @@
                             setAnnouncements(parsedData);
                             setShowNotice(true); 
                         } else {
-                            // If sheet announcements are empty/inactive, keep popup closed
                             setShowNotice(false);
                         }
                     }).catch((e) => {
@@ -324,8 +318,7 @@
                     return response.json();
                 })
                 .catch(function(e) {
-                    // CRITICAL ERROR DETECTOR: Yeh bheed popup aapko sateek error dikhayega
-                    alert("🚨 API CONNECT ERROR:\n" + e.toString() + "\n\nTarget URL: " + API_URL + "\n\nIs URL ko apne Sheet Web App se verify karein!");
+                    alert("🚨 API CONNECT ERROR:\n" + e.toString() + "\n\nTarget URL: " + API_URL);
                     return { success: false, message: "Network Error: Check Internet" };
                 });
             };
@@ -483,8 +476,6 @@
             const [selectedProduct, setSelectedProduct] = useState(null);
             const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
             const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
-            
-            // Variants tracking state dictionary
             const [activeVariants, setActiveVariants] = useState({});
 
             useEffect(() => {
@@ -505,9 +496,11 @@
 
             const cartItems = Object.values(cart);
             const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
-            const totalAmount = cartItems.reduce((a, b) => a + (b.DealerPrice * b.qty), 0);
+            const totalAmount = cartItems.reduce((a, b) => {
+                const itemPrice = b.DealerPrice || b.dealerprice || b["Dealer Price"] || 0;
+                return a + (itemPrice * b.qty);
+            }, 0);
 
-            // Confetti check with dynamic target scanning
             useEffect(() => {
                 var sortedDiscounts = [...discounts]
                     .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
@@ -522,23 +515,17 @@
                         if (window.confetti) {
                             window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
                         }
-                        setCelebratedTiers(function(prev) {
-                            return Object.assign({}, prev, { tier2: true });
-                        });
+                        setCelebratedTiers(prev => Object.assign({}, prev, { tier2: true }));
                     }
                 } else if (totalAmount >= tier1Min) {
                     if (!celebratedTiers.tier1) {
                         if (window.confetti) {
                             window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                         }
-                        setCelebratedTiers(function(prev) {
-                            return Object.assign({}, prev, { tier1: true });
-                        });
+                        setCelebratedTiers(prev => Object.assign({}, prev, { tier1: true }));
                     }
                     if (celebratedTiers.tier2) {
-                        setCelebratedTiers(function(prev) {
-                            return Object.assign({}, prev, { tier2: false });
-                        });
+                        setCelebratedTiers(prev => Object.assign({}, prev, { tier2: false }));
                     }
                 } else {
                     if (celebratedTiers.tier1 || celebratedTiers.tier2) {
@@ -552,43 +539,53 @@
             };
 
             const updateQty = (product, change) => {
-                if(globalProps.customerMode) return; 
+                if (globalProps.customerMode) return; 
                 const updated = Object.assign({}, cart);
-                const stockVal = parseInt(product.Stock) || 0;
-                const currentQty = updated[product.ItemCode] ? updated[product.ItemCode].qty : 0;
+                const itemCode = product.ItemCode || product.itemcode || product["Item Code"] || "";
+                if (!itemCode) return;
+                
+                const stockVal = parseInt(product.Stock || product.stock || 0) || 0;
+                const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
                 const newQty = currentQty + change;
-                if (newQty > stockVal) return alert("Maximum stock limit reached!");
-                if (newQty <= 0) delete updated[product.ItemCode];
-                else updated[product.ItemCode] = Object.assign({}, product, { qty: newQty });
+                if (newQty > stockVal && stockVal > 0) return alert("Maximum stock limit reached!");
+                if (newQty <= 0) delete updated[itemCode];
+                else updated[itemCode] = Object.assign({}, product, { qty: newQty });
                 setCart(updated);
             };
 
             if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
-            // First filter flat products that are actually in stock
-            const inStockFlat = products.filter(p => p.Stock && parseInt(p.Stock) > 0);
+            const inStockFlat = products.filter(p => {
+                const stockVal = p.Stock || p.stock || p["Stock"] || 0;
+                return stockVal && parseInt(stockVal) > 0;
+            });
             
-            // Programmatically group them by base models
             const inStockProducts = groupProductsByVariant(inStockFlat);
 
             const renderProducts = (productList) => (
                 <div className="p-4 grid grid-cols-2 gap-4">
                     {productList.map((p, idx) => {
-                        // Dynamically extract the active variant
+                        var name = p.ProductName || p.productname || p["Product Name"] || p["product Name"] || "Premium Item";
+                        var brand = p.Brand || p.brand || "Premium";
+                        var type = p.Type || p.type || "Accessories";
+
                         var activeItemCode = activeVariants[p.ItemCode] || (p.variants && p.variants[0] ? p.variants[0].ItemCode : p.ItemCode);
                         var activeVariant = p.variants ? p.variants.find(v => v.ItemCode === activeItemCode) || p : p;
 
-                        const currentQty = cart[activeVariant.ItemCode] ? cart[activeVariant.ItemCode].qty : 0;
+                        const itemCode = activeVariant.ItemCode || activeVariant.itemcode || "";
+                        const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
                         const smartImg = getSmartImage(activeVariant);
                         
-                        const mrpVal = Number(activeVariant.MRP);
-                        const dealerVal = Number(activeVariant.DealerPrice);
-                        const hasDiscount = !isNaN(mrpVal) && mrpVal > dealerVal;
+                        const mrpVal = Number(activeVariant.MRP || activeVariant.mrp || 0);
+                        const dealerVal = Number(activeVariant.DealerPrice || activeVariant.dealerprice || activeVariant["Dealer Price"] || 0);
+                        const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
                         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
+                        const isValidPrice = !isNaN(dealerVal) && dealerVal > 0;
+                        const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
+
                         return (
-                            <div key={p.ItemCode} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
-                                {/* Dynamic Demand & Popularity Badges */}
+                            <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
                                 {idx % 7 === 0 && (
                                     <span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none">🔥 High Demand</span>
                                 )}
@@ -597,11 +594,21 @@
                                 )}
 
                                 <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
-                                    {smartImg ? <img src={smartImg} className="h-32 w-full object-contain mb-2 p-1" /> : <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>}
-                                    <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{p.ProductName}</h3>
+                                    {smartImg ? (
+                                        <img 
+                                            src={smartImg} 
+                                            className="h-32 w-full object-contain mb-2 p-1" 
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
+                                            }}
+                                        />
+                                    ) : (
+                                        <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
+                                    )}
+                                    <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{name}</h3>
                                 </div>
                                 
-                                {/* Dynamic capacity variant pills */}
                                 {p.isGrouped && (
                                     <div className="flex flex-wrap gap-1 mt-1 mb-2">
                                         {p.variants.map(v => (
@@ -624,34 +631,36 @@
                                 <div className="mt-1">
                                     {!globalProps.customerMode ? (
                                         <div>
-                                            {hasDiscount ? (
+                                            {hasDiscount && isValidPrice ? (
                                                 <div className="flex items-center gap-1.5 mb-1">
-                                                    <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{activeVariant.MRP}</span>
+                                                    <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{activeVariant.MRP || activeVariant.mrp}</span>
                                                     <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
                                                 </div>
                                             ) : (
-                                                activeVariant.MRP && activeVariant.MRP !== "" && (
-                                                    <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{activeVariant.MRP}</div>
+                                                (activeVariant.MRP || activeVariant.mrp) && (
+                                                    <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{activeVariant.MRP || activeVariant.mrp}</div>
                                                 )
                                             )}
-                                            <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">₹{activeVariant.DealerPrice}</div>
+                                            <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">{displayPrice}</div>
                                             
-                                            {currentQty > 0 ? (
-                                                <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                                    <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
-                                                    <span className="font-black text-blue-900">{currentQty}</span>
-                                                    <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
-                                                </div>
-                                            ) : (
-                                                <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                            {isValidPrice && (
+                                                currentQty > 0 ? (
+                                                    <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                                        <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                                        <span className="font-black text-blue-900">{currentQty}</span>
+                                                        <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                                                )
                                             )}
                                         </div>
                                     ) : (
                                         <button onClick={(e) => {
                                             e.stopPropagation();
-                                            const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeVariant.ProductName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeVariant.Brand || 'Premium'}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
+                                            const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${brand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
                                             if (navigator.share) {
-                                                navigator.share({ title: activeVariant.ProductName, text: shareText, url: smartImg }).catch(() => {});
+                                                navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
                                             } else {
                                                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
                                             }
@@ -668,17 +677,24 @@
             );
 
             const handleShareCategory = () => {
-                const categoryProducts = inStockProducts.filter(p => p.Type === selectedType);
+                const categoryProducts = inStockProducts.filter(p => {
+                    const pType = p.Type || p.type || "";
+                    return pType === selectedType;
+                });
                 let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
                 
                 categoryProducts.slice(0, 15).forEach((p, idx) => {
                     const cleanPhotoUrl = getSmartImage(p);
-                    const featuresExcerpt = (p.Features && p.Features !== "") ? `\n⚡ *Specs:* ${p.Features.split(" | ").slice(0,2).join(", ")}` : "";
-                    
+                    const features = p.Features || p.features || "";
+                    const featuresExcerpt = (features && features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
+                    const name = p.ProductName || p.productname || "";
+                    const mrp = p.MRP || p.mrp || 0;
+                    const dealerPrice = p.DealerPrice || p.dealerprice || 0;
+
                     if (globalProps.customerMode) {
-                        shareText += `${idx + 1}. *${p.ProductName}*\n💰 Offer Price: ₹${p.MRP}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
+                        shareText += `${idx + 1}. *${name}*\n💰 Offer Price: ₹${mrp}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
                     } else {
-                        shareText += `${idx + 1}. *${p.ProductName}*\n💰 Dealer Price: ₹${p.DealerPrice} (MRP: ₹${p.MRP})${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
+                        shareText += `${idx + 1}. *${name}*\n💰 Dealer Price: ₹${dealerPrice} (MRP: ₹${mrp})${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
                     }
                 });
                 shareText += `Ask for the best bulk deals today!`;
@@ -710,19 +726,19 @@
 
             if (searchQuery.trim() !== "") {
                 const safeQuery = searchQuery.toLowerCase();
-                const searchResults = inStockProducts.filter(p => 
-                    (p.ProductName || "").toLowerCase().includes(safeQuery) || 
-                    (p.Brand || "").toLowerCase().includes(safeQuery)
-                );
+                const searchResults = inStockProducts.filter(p => {
+                    const pName = (p.ProductName || p.productname || "").toLowerCase();
+                    const pBrand = (p.Brand || p.brand || "").toLowerCase();
+                    return pName.includes(safeQuery) || pBrand.includes(safeQuery);
+                });
                 mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
             } else if (!selectedType) {
-                
                 const priorityOrder = [
                     "SMART WATCH", "AIRPODS", "NECKBAND", "POWERBANK", 
                     "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
                 ];
 
-                const types = [...new Set(inStockFlat.map(p => p.Type).filter(Boolean))].sort((a, b) => {
+                const types = [...new Set(inStockFlat.map(p => p.Type || p.type).filter(Boolean))].sort((a, b) => {
                     const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
                     const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
                     
@@ -737,7 +753,7 @@
                         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
                         <div className="grid grid-cols-2 gap-4">
                             {types.map(type => {
-                                const coverProduct = inStockFlat.find(p => p.Type === type);
+                                const coverProduct = inStockFlat.find(p => (p.Type || p.type) === type);
                                 const cover = coverProduct ? getSmartImage(coverProduct) : null;
                                 return (
                                     <div key={type} onClick={() => {
@@ -753,7 +769,11 @@
                     </div>
                 );
             } else {
-                const filteredProducts = inStockProducts.filter(p => p.Type === selectedType).sort((a, b) => Number(b.DealerPrice) - Number(a.DealerPrice));
+                const filteredProducts = inStockProducts.filter(p => (p.Type || p.type) === selectedType).sort((a, b) => {
+                    const priceA = Number(a.DealerPrice || a.dealerprice || 0);
+                    const priceB = Number(b.DealerPrice || b.dealerprice || 0);
+                    return priceB - priceA;
+                });
                 mainContent = (
                     <div>
                         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
@@ -769,7 +789,6 @@
 
             return (
                 <div className="flex flex-col">
-                    {/* Fixed top alignment to 58px prevents clipping with the main header */}
                     <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
                         {totalItems > 0 && !globalProps.customerMode && (
                             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
@@ -806,7 +825,7 @@
                 <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
                     <div>
                         <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
-                        <div className="font-black text-lg leading-none">₹{totalAmount} Total</div>
+                        <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')} Total</div>
                     </div>
                     <button onClick={setView} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
                 </div>
@@ -827,7 +846,10 @@
             const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
             
             const cartItems = Object.values(cart);
-            const totalAmount = cartItems.reduce((acc, item) => acc + (item.DealerPrice * item.qty), 0);
+            const totalAmount = cartItems.reduce((acc, item) => {
+                const itemPrice = Number(item.DealerPrice || item.dealerprice || item["Dealer Price"] || 0);
+                return acc + (itemPrice * item.qty);
+            }, 0);
 
             useEffect(() => {
                 callAPI({ action: "getDiscounts" }).then(res => {
@@ -837,7 +859,6 @@
                 }).catch(() => {});
             }, []);
 
-            // Dynamic and error-proof discount computation logic based on dynamically sorted sheet slabs
             var sortedDiscountsDesc = [...discounts]
                 .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
                 .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
@@ -859,12 +880,15 @@
 
             const updateQty = (product, change) => {
                 const updated = Object.assign({}, cart);
-                const stockVal = parseInt(product.Stock) || 9999;
-                const currentQty = updated[product.ItemCode] ? updated[product.ItemCode].qty : 0;
+                const itemCode = product.ItemCode || product.itemcode || "";
+                if (!itemCode) return;
+                
+                const stockVal = parseInt(product.Stock || product.stock || 9999);
+                const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
                 const newQty = currentQty + change;
                 if (newQty > stockVal) return alert("Maximum stock limit reached!");
-                if (newQty <= 0) delete updated[product.ItemCode];
-                else updated[product.ItemCode] = Object.assign({}, product, { qty: newQty });
+                if (newQty <= 0) delete updated[itemCode];
+                else updated[itemCode] = Object.assign({}, product, { qty: newQty });
                 setCart(updated);
             };
 
@@ -872,7 +896,10 @@
                 if (!paymentMode) return alert("Please select Payment Mode!");
                 if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
                 setLoading(true);
-                var itemsStr = cartItems.map(function(i) { return i.ProductName + " x" + i.qty; }).join(" | ");
+                var itemsStr = cartItems.map(function(i) {
+                    const itemName = i.ProductName || i.productname || "Premium Item";
+                    return itemName + " x" + i.qty;
+                }).join(" | ");
                 callAPI({ 
                     action: "placeOrder", 
                     order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount: totalAmount, finalAmount: finalAmount, paymentMode: paymentMode }
@@ -901,28 +928,26 @@
                         ) : (
                             cartItems.map(item => {
                                 var smartImg = getSmartImage(item);
+                                var itemName = item.ProductName || item.productname || "Premium Item";
+                                var dealerPrice = Number(item.DealerPrice || item.dealerprice || 0);
                                 return (
                                     <div key={item.ItemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white">
-                                        {/* Dynamic Product Thumbnail Image */}
                                         {smartImg ? (
                                             <img src={smartImg} className="w-12 h-12 object-contain rounded-lg border bg-white p-1 flex-shrink-0" />
                                         ) : (
                                             <div className="w-12 h-12 bg-gray-50 rounded-lg border flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">No Img</div>
                                         )}
                                         
-                                        {/* Name and Direct Quantity Editors */}
                                         <div className="flex-grow">
-                                            <h4 className="text-xs font-bold leading-tight line-clamp-2">{item.ProductName}</h4>
+                                            <h4 className="text-xs font-bold leading-tight line-clamp-2">{itemName}</h4>
                                             <div className="flex items-center justify-between mt-2">
-                                                {/* Qty Adjustment Pills */}
                                                 <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
                                                     <button onClick={() => updateQty(item, -1)} className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">-</button>
                                                     <span className="font-black text-blue-900 text-xs px-2 min-w-[20px] text-center">{item.qty}</span>
                                                     <button onClick={() => updateQty(item, 1)} className="bg-blue-900 text-white font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">+</button>
                                                 </div>
-                                                {/* Subtotal for this line item */}
                                                 <div className="font-black text-gray-900 text-xs text-right">
-                                                    ₹{(item.DealerPrice * item.qty).toLocaleString('en-IN')}
+                                                    ₹{(dealerPrice * item.qty).toLocaleString('en-IN')}
                                                 </div>
                                             </div>
                                         </div>
@@ -979,7 +1004,7 @@
                                             </div>
 
                                             <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
-                                            <input type="file" accept="image/*" onChange={(e) => setScreenshotUploaded(true)} className="text-[10px] block mx-auto text-purple-900 font-black" />
+                                            <input type="file" accept="image/*" onChange={() => setScreenshotUploaded(true)} className="text-[10px] block mx-auto text-purple-900 font-black" />
                                         </div>
                                     )}
                                 </div>
@@ -996,11 +1021,11 @@
                             <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-50">
                                 <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
                                     <span>Subtotal</span>
-                                    <span className="line-through font-mono">₹{totalAmount}</span>
+                                    <span className="line-through font-mono">₹{totalAmount.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="flex justify-between items-center mb-4">
                                     <span className="font-black text-gray-800 text-lg">Final Amount</span>
-                                    <span className="text-blue-900 text-2xl font-black">₹{finalAmount}</span>
+                                    <span className="text-blue-900 text-2xl font-black">₹{finalAmount.toLocaleString('en-IN')}</span>
                                 </div>
                                 <button onClick={handleCheckout} disabled={loading} className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}>
                                     {loading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "CONFIRM ORDER"}
@@ -1024,7 +1049,7 @@
                     if (res && res.success) {
                         setLedgerData(res.data);
                     } else {
-                        alert(res.message || "Ledger statement aane me dukan ki info match nahi hui.");
+                        alert(res.message || "Ledger statement sync issue.");
                     }
                     setLoading(false);
                 });
@@ -1046,7 +1071,7 @@
             const netBalance = totalDebit - totalCredit;
 
             return (
-                <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans font-sans">
+                <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
                     <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
                         <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
                         <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
@@ -1112,7 +1137,6 @@
             );
         }
 
-        // New Order History Timeline View for Dealers (With defensive crash protection)
         function OrdersHistoryView(props) {
             var user = props.user;
             var callAPI = props.callAPI;
@@ -1145,7 +1169,6 @@
                     ) : (
                         <div className="space-y-4">
                             {orders.map((ord, idx) => {
-                                // Safe crash-proof item list splitter (Prevents crash if items value is blank)
                                 var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
                                 return (
                                     <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
@@ -1181,7 +1204,7 @@
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
-                                                <div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount).toLocaleString('en-IN')}</div>
+                                                <div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1203,20 +1226,17 @@
             var activeVariants = props.activeVariants;
             var setActiveVariants = props.setActiveVariants;
 
-            // Extract selected variant inside detail view too
             var activeItemCode = activeVariants[product.ItemCode] || (product.variants && product.variants[0] ? product.variants[0].ItemCode : product.ItemCode);
             var activeVariant = product.variants ? product.variants.find(v => v.ItemCode === activeItemCode) || product : product;
 
             const [currentImgIndex, setCurrentImgIndex] = useState(0);
             const [imagesList, setImagesList] = useState([]);
-            
-            // Modern Double-Tap / Interactive Scaling zoom support
             const [isZoomed, setIsZoomed] = useState(false);
             const [zoomScale, setZoomScale] = useState(1.25);
 
-            const currentQty = cart[activeVariant.ItemCode] ? cart[activeVariant.ItemCode].qty : 0;
+            const activeVariantCode = activeVariant.ItemCode || activeVariant.itemcode || "";
+            const currentQty = cart[activeVariantCode] ? cart[activeVariantCode].qty : 0;
             
-            // Re-fetch all unique variant images so the user never sees only 2 images
             useEffect(() => {
                 const list = [];
                 const mainImg = getSmartImage(activeVariant);
@@ -1224,11 +1244,11 @@
                     list.push(mainImg);
                 }
                 
-                // Merge all variant images of this model group dynamically
                 var allVariants = product.variants || [product];
                 allVariants.forEach(function(v) {
-                    if (v.MoreImages && v.MoreImages.trim() !== "") {
-                        var extraImages = v.MoreImages.split(" | ").map(img => img.trim());
+                    var vMoreImages = v.MoreImages || v.moreimages || "";
+                    if (vMoreImages && vMoreImages.trim() !== "") {
+                        var extraImages = vMoreImages.split(" | ").map(img => img.trim());
                         extraImages.forEach(function(img) {
                             if (img !== "" && list.indexOf(img) === -1) {
                                 list.push(img);
@@ -1244,16 +1264,17 @@
             }, [activeVariant, product]);
 
             const featuresList = [];
-            if (activeVariant.Features && activeVariant.Features.trim() !== "") {
-                const parsed = activeVariant.Features.split(" | ").map(f => f.trim());
+            var activeFeatures = activeVariant.Features || activeVariant.features || "";
+            if (activeFeatures && activeFeatures.trim() !== "") {
+                const parsed = activeFeatures.split(" | ").map(f => f.trim());
                 parsed.forEach(f => {
                     if (f !== "") featuresList.push(f);
                 });
             }
 
-            const mrpVal = Number(activeVariant.MRP);
-            const dealerVal = Number(activeVariant.DealerPrice);
-            const hasDiscount = !isNaN(mrpVal) && mrpVal > dealerVal;
+            const mrpVal = Number(activeVariant.MRP || activeVariant.mrp || 0);
+            const dealerVal = Number(activeVariant.DealerPrice || activeVariant.dealerprice || activeVariant["Dealer Price"] || 0);
+            const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
             const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
             const handleNextImage = () => {
@@ -1266,6 +1287,11 @@
 
             if (imagesList.length === 0) return null;
 
+            var activeName = product.ProductName || product.productname || "Premium Item";
+            var activeBrand = activeVariant.Brand || activeVariant.brand || "Premium";
+            var activeType = activeVariant.Type || activeVariant.type || "Accessories";
+            var activeStock = activeVariant.Stock || activeVariant.stock || "Available";
+
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
                     <div className="absolute inset-0" onClick={onClose}></div>
@@ -1276,7 +1302,6 @@
                         <button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
                         
                         <div className="overflow-y-auto no-scrollbar pb-32">
-                            {/* Larger h-80 card image container makes the photo look kafi bada inside details card */}
                             <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
                                 <img 
                                     src={imagesList[currentImgIndex]} 
@@ -1307,11 +1332,10 @@
                             </div>
 
                             <div className="p-5">
-                                <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">{activeVariant.Brand || 'Premium Brand'}</span>
-                                <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">{product.ProductName}</h2>
-                                <p className="text-xs text-gray-400 font-bold mt-1 uppercase">Category: {activeVariant.Type || 'Accessories'}</p>
+                                <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">{activeBrand}</span>
+                                <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">{activeName}</h2>
+                                <p className="text-xs text-gray-400 font-bold mt-1 uppercase">Category: {activeType}</p>
 
-                                {/* Selectable pills inside details view too */}
                                 {product.isGrouped && (
                                     <div className="mt-4">
                                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Select Variant Size</h4>
@@ -1337,22 +1361,22 @@
                                     <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                         <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Dealer Price ({activeVariant.capacity})</div>
                                         <div className="flex items-baseline gap-2.5 mt-1">
-                                            <span className="text-3xl font-black text-blue-950">₹{activeVariant.DealerPrice}</span>
+                                            <span className="text-3xl font-black text-blue-950">₹{dealerVal}</span>
                                             {hasDiscount && (
                                                 <React.Fragment>
-                                                    <span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{activeVariant.MRP}</span>
+                                                    <span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{mrpVal}</span>
                                                     <span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
                                                 </React.Fragment>
                                             )}
                                         </div>
                                         <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
-                                            <span>📦</span> In Stock Status: {activeVariant.Stock || 'Available'} units
+                                            <span>📦</span> In Stock Status: {activeStock} units
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
                                         <div className="text-xs text-green-800 font-black uppercase tracking-wider">Offer MRP ({activeVariant.capacity})</div>
-                                        <div className="text-3xl font-black text-green-950 mt-1">₹{activeVariant.MRP || 'Contact store'}</div>
+                                        <div className="text-3xl font-black text-green-950 mt-1">₹{mrpVal || 'Contact store'}</div>
                                     </div>
                                 )}
 
@@ -1379,7 +1403,7 @@
                                 <React.Fragment>
                                     <div>
                                         <div className="text-[9px] uppercase font-black text-gray-400">Total Selection ({activeVariant.capacity})</div>
-                                        <div className="font-black text-lg text-gray-900 leading-none mt-0.5">₹{activeVariant.DealerPrice * (currentQty || 1)}</div>
+                                        <div className="font-black text-lg text-gray-900 leading-none mt-0.5">₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}</div>
                                     </div>
                                     
                                     <div className="w-1/2">
@@ -1396,9 +1420,9 @@
                                 </React.Fragment>
                             ) : (
                                 <button onClick={() => {
-                                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeVariant.ProductName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeVariant.Brand || 'Premium'}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
+                                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeBrand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
                                     if (navigator.share) {
-                                        navigator.share({ title: activeVariant.ProductName, text: shareText, url: imagesList[0] }).catch(() => {});
+                                        navigator.share({ title: activeName, text: shareText, url: imagesList[0] }).catch(() => {});
                                     } else {
                                         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + imagesList[0])}`, '_blank');
                                     }
@@ -1409,12 +1433,10 @@
                         </div>
                     </div>
 
-                    {/* NEW DETAIL FEATURE: Immersive Fullscreen Zoom View Overlay (With dynamic swipe navigation & zoom scale) */}
                     {isZoomed && (
                         <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
                             <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
                             
-                            {/* Navigation controls inside the zoom view */}
                             {imagesList.length > 1 && (
                                 <div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
                                     <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">←</button>
@@ -1427,8 +1449,8 @@
                                 className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out" 
                                 style={{ transform: 'scale(' + zoomScale + ')' }}
                                 onClick={(e) => {
-                                    e.stopPropagation(); // Prevents modal from closing
-                                    setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25); // Tap to double scale
+                                    e.stopPropagation(); 
+                                    setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25); 
                                 }}
                                 alt="Zoomed Product"
                             />
