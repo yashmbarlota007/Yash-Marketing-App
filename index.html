@@ -70,9 +70,23 @@
         const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
         const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
 
+        // Extremely robust case & space insensitive column reader helper
+        function getProp(obj, propName) {
+            if (!obj) return "";
+            if (obj[propName] !== undefined) return obj[propName];
+            var cleanTarget = propName.toLowerCase().replace(/[^a-z0-9]/g, "");
+            for (var key in obj) {
+                var cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+                if (cleanKey === cleanTarget) {
+                    return obj[key];
+                }
+            }
+            return "";
+        }
+
         function getSmartImage(product) {
             if (!product) return null;
-            var imageUrl = product.ImageURL || product.imageurl || product["Image URL"] || "";
+            var imageUrl = getProp(product, "ImageURL");
             if (imageUrl && imageUrl.trim() !== "") {
                 let url = imageUrl.trim();
                 if (url.indexOf("//") === 0) {
@@ -89,7 +103,7 @@
                 return url; 
             }
             
-            var brand = (product.Brand || product.brand || "").toUpperCase();
+            var brand = getProp(product, "Brand").toString().toUpperCase();
             if (brand.indexOf("BOAT") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Boat_Logo.webp/512px-Boat_Logo.webp.png";
             if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
             if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
@@ -156,17 +170,19 @@
             );
         }
 
+        // Case-insensitive, grouping corrector to solve the "Standard" issue
         function groupProductsByVariant(flatList) {
             var grouped = {};
             var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
 
             flatList.forEach(function(p) {
-                var name = p.ProductName || p.productname || p["Product Name"] || p["product Name"] || "";
-                var brand = p.Brand || p.brand || "";
-                var type = p.Type || p.type || "";
+                var name = getProp(p, "ProductName") || "";
+                var brand = getProp(p, "Brand") || "";
+                var type = getProp(p, "Type") || "";
+                var itemCode = getProp(p, "ItemCode") || "";
                 
                 if (!name) {
-                    name = "Product " + (p.ItemCode || Math.random().toString(36).substr(2, 5));
+                    name = "Product " + (itemCode || Math.random().toString(36).substr(2, 5));
                 }
 
                 var match = name.match(capacityRegex);
@@ -178,9 +194,10 @@
                     baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
                 }
 
+                // If items do not contain dynamic capacity variations, keep them ungrouped by adding unique IDs
                 var groupKey = capacity 
                     ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
-                    : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + (p.ItemCode || ""));
+                    : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
 
                 if (!grouped[groupKey]) {
                     grouped[groupKey] = {
@@ -188,9 +205,9 @@
                         baseName: baseName,
                         Brand: brand,
                         Type: type,
-                        Features: p.Features || p.features || "",
-                        ImageURL: p.ImageURL || p.imageurl || p["Image URL"] || "",
-                        MoreImages: p.MoreImages || p.moreimages || "",
+                        Features: getProp(p, "Features"),
+                        ImageURL: getProp(p, "ImageURL"),
+                        MoreImages: getProp(p, "MoreImages"),
                         variants: []
                     };
                 }
@@ -213,8 +230,9 @@
                 });
                 
                 var primary = group.variants[0];
+                var primaryName = getProp(primary, "ProductName") || "";
                 return Object.assign({}, primary, {
-                    ProductName: group.variants.length > 1 ? group.baseName : primary.ProductName,
+                    ProductName: group.variants.length > 1 ? group.baseName : primaryName,
                     isGrouped: group.variants.length > 1,
                     variants: group.variants
                 });
@@ -497,7 +515,7 @@
             const cartItems = Object.values(cart);
             const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
             const totalAmount = cartItems.reduce((a, b) => {
-                const itemPrice = b.DealerPrice || b.dealerprice || b["Dealer Price"] || 0;
+                const itemPrice = Number(getProp(b, "DealerPrice") || 0);
                 return a + (itemPrice * b.qty);
             }, 0);
 
@@ -541,10 +559,10 @@
             const updateQty = (product, change) => {
                 if (globalProps.customerMode) return; 
                 const updated = Object.assign({}, cart);
-                const itemCode = product.ItemCode || product.itemcode || product["Item Code"] || "";
+                const itemCode = getProp(product, "ItemCode");
                 if (!itemCode) return;
                 
-                const stockVal = parseInt(product.Stock || product.stock || 0) || 0;
+                const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
                 const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
                 const newQty = currentQty + change;
                 if (newQty > stockVal && stockVal > 0) return alert("Maximum stock limit reached!");
@@ -556,7 +574,7 @@
             if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
             const inStockFlat = products.filter(p => {
-                const stockVal = p.Stock || p.stock || p["Stock"] || 0;
+                const stockVal = getProp(p, "Stock") || 0;
                 return stockVal && parseInt(stockVal) > 0;
             });
             
@@ -565,19 +583,19 @@
             const renderProducts = (productList) => (
                 <div className="p-4 grid grid-cols-2 gap-4">
                     {productList.map((p, idx) => {
-                        var name = p.ProductName || p.productname || p["Product Name"] || p["product Name"] || "Premium Item";
-                        var brand = p.Brand || p.brand || "Premium";
-                        var type = p.Type || p.type || "Accessories";
+                        var name = getProp(p, "ProductName") || "Premium Item";
+                        var brand = getProp(p, "Brand") || "Premium";
+                        var type = getProp(p, "Type") || "Accessories";
 
-                        var activeItemCode = activeVariants[p.ItemCode] || (p.variants && p.variants[0] ? p.variants[0].ItemCode : p.ItemCode);
-                        var activeVariant = p.variants ? p.variants.find(v => v.ItemCode === activeItemCode) || p : p;
+                        var activeItemCode = activeVariants[getProp(p, "ItemCode")] || (p.variants && p.variants[0] ? getProp(p.variants[0], "ItemCode") : getProp(p, "ItemCode"));
+                        var activeVariant = p.variants ? p.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || p : p;
 
-                        const itemCode = activeVariant.ItemCode || activeVariant.itemcode || "";
+                        const itemCode = getProp(activeVariant, "ItemCode");
                         const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
                         const smartImg = getSmartImage(activeVariant);
                         
-                        const mrpVal = Number(activeVariant.MRP || activeVariant.mrp || 0);
-                        const dealerVal = Number(activeVariant.DealerPrice || activeVariant.dealerprice || activeVariant["Dealer Price"] || 0);
+                        const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
+                        const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
                         const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
                         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
@@ -611,20 +629,23 @@
                                 
                                 {p.isGrouped && (
                                     <div className="flex flex-wrap gap-1 mt-1 mb-2">
-                                        {p.variants.map(v => (
-                                            <button 
-                                                key={v.ItemCode}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    var nextActives = Object.assign({}, activeVariants);
-                                                    nextActives[p.ItemCode] = v.ItemCode;
-                                                    setActiveVariants(nextActives);
-                                                }}
-                                                className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${v.ItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                                            >
-                                                {v.capacity}
-                                            </button>
-                                        ))}
+                                        {p.variants.map(v => {
+                                            const vItemCode = getProp(v, "ItemCode");
+                                            return (
+                                                <button 
+                                                    key={vItemCode}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        var nextActives = Object.assign({}, activeVariants);
+                                                        nextActives[getProp(p, "ItemCode")] = vItemCode;
+                                                        setActiveVariants(nextActives);
+                                                    }}
+                                                    className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                                                >
+                                                    {v.capacity}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 )}
 
@@ -633,12 +654,12 @@
                                         <div>
                                             {hasDiscount && isValidPrice ? (
                                                 <div className="flex items-center gap-1.5 mb-1">
-                                                    <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{activeVariant.MRP || activeVariant.mrp}</span>
+                                                    <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{getProp(activeVariant, "MRP")}</span>
                                                     <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
                                                 </div>
                                             ) : (
-                                                (activeVariant.MRP || activeVariant.mrp) && (
-                                                    <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{activeVariant.MRP || activeVariant.mrp}</div>
+                                                getProp(activeVariant, "MRP") && (
+                                                    <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{getProp(activeVariant, "MRP")}</div>
                                                 )
                                             )}
                                             <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">{displayPrice}</div>
@@ -664,7 +685,7 @@
                                             } else {
                                                 window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
                                             }
-                                            globalProps.logSpyData("Shared Product Image", activeVariant.ItemCode);
+                                            globalProps.logSpyData("Shared Product Image", getProp(activeVariant, "ItemCode"));
                                         }} className="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-black py-3 rounded-xl shadow-sm flex items-center justify-center gap-1">
                                             📲 SHARE PHOTO
                                         </button>
@@ -678,18 +699,18 @@
 
             const handleShareCategory = () => {
                 const categoryProducts = inStockProducts.filter(p => {
-                    const pType = p.Type || p.type || "";
+                    const pType = getProp(p, "Type") || "";
                     return pType === selectedType;
                 });
                 let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
                 
                 categoryProducts.slice(0, 15).forEach((p, idx) => {
                     const cleanPhotoUrl = getSmartImage(p);
-                    const features = p.Features || p.features || "";
+                    const features = getProp(p, "Features") || "";
                     const featuresExcerpt = (features && features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
-                    const name = p.ProductName || p.productname || "";
-                    const mrp = p.MRP || p.mrp || 0;
-                    const dealerPrice = p.DealerPrice || p.dealerprice || 0;
+                    const name = getProp(p, "ProductName") || "";
+                    const mrp = getProp(p, "MRP") || 0;
+                    const dealerPrice = getProp(p, "DealerPrice") || 0;
 
                     if (globalProps.customerMode) {
                         shareText += `${idx + 1}. *${name}*\n💰 Offer Price: ₹${mrp}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
@@ -727,8 +748,8 @@
             if (searchQuery.trim() !== "") {
                 const safeQuery = searchQuery.toLowerCase();
                 const searchResults = inStockProducts.filter(p => {
-                    const pName = (p.ProductName || p.productname || "").toLowerCase();
-                    const pBrand = (p.Brand || p.brand || "").toLowerCase();
+                    const pName = (getProp(p, "ProductName") || "").toLowerCase();
+                    const pBrand = (getProp(p, "Brand") || "").toLowerCase();
                     return pName.includes(safeQuery) || pBrand.includes(safeQuery);
                 });
                 mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
@@ -738,7 +759,7 @@
                     "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
                 ];
 
-                const types = [...new Set(inStockFlat.map(p => p.Type || p.type).filter(Boolean))].sort((a, b) => {
+                const types = [...new Set(inStockFlat.map(p => getProp(p, "Type")).filter(Boolean))].sort((a, b) => {
                     const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
                     const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
                     
@@ -753,7 +774,7 @@
                         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
                         <div className="grid grid-cols-2 gap-4">
                             {types.map(type => {
-                                const coverProduct = inStockFlat.find(p => (p.Type || p.type) === type);
+                                const coverProduct = inStockFlat.find(p => getProp(p, "Type") === type);
                                 const cover = coverProduct ? getSmartImage(coverProduct) : null;
                                 return (
                                     <div key={type} onClick={() => {
@@ -769,9 +790,9 @@
                     </div>
                 );
             } else {
-                const filteredProducts = inStockProducts.filter(p => (p.Type || p.type) === selectedType).sort((a, b) => {
-                    const priceA = Number(a.DealerPrice || a.dealerprice || 0);
-                    const priceB = Number(b.DealerPrice || b.dealerprice || 0);
+                const filteredProducts = inStockProducts.filter(p => getProp(p, "Type") === selectedType).sort((a, b) => {
+                    const priceA = Number(getProp(a, "DealerPrice") || 0);
+                    const priceB = Number(getProp(b, "DealerPrice") || 0);
                     return priceB - priceA;
                 });
                 mainContent = (
@@ -847,7 +868,7 @@
             
             const cartItems = Object.values(cart);
             const totalAmount = cartItems.reduce((acc, item) => {
-                const itemPrice = Number(item.DealerPrice || item.dealerprice || item["Dealer Price"] || 0);
+                const itemPrice = Number(getProp(item, "DealerPrice") || 0);
                 return acc + (itemPrice * item.qty);
             }, 0);
 
@@ -880,10 +901,10 @@
 
             const updateQty = (product, change) => {
                 const updated = Object.assign({}, cart);
-                const itemCode = product.ItemCode || product.itemcode || "";
+                const itemCode = getProp(product, "ItemCode");
                 if (!itemCode) return;
                 
-                const stockVal = parseInt(product.Stock || product.stock || 9999);
+                const stockVal = parseInt(getProp(product, "Stock") || 9999);
                 const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
                 const newQty = currentQty + change;
                 if (newQty > stockVal) return alert("Maximum stock limit reached!");
@@ -897,7 +918,7 @@
                 if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
                 setLoading(true);
                 var itemsStr = cartItems.map(function(i) {
-                    const itemName = i.ProductName || i.productname || "Premium Item";
+                    const itemName = getProp(i, "ProductName") || "Premium Item";
                     return itemName + " x" + i.qty;
                 }).join(" | ");
                 callAPI({ 
@@ -928,10 +949,11 @@
                         ) : (
                             cartItems.map(item => {
                                 var smartImg = getSmartImage(item);
-                                var itemName = item.ProductName || item.productname || "Premium Item";
-                                var dealerPrice = Number(item.DealerPrice || item.dealerprice || 0);
+                                var itemName = getProp(item, "ProductName") || "Premium Item";
+                                var dealerPrice = Number(getProp(item, "DealerPrice") || 0);
+                                var itemCode = getProp(item, "ItemCode");
                                 return (
-                                    <div key={item.ItemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white">
+                                    <div key={itemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white">
                                         {smartImg ? (
                                             <img src={smartImg} className="w-12 h-12 object-contain rounded-lg border bg-white p-1 flex-shrink-0" />
                                         ) : (
@@ -1226,15 +1248,15 @@
             var activeVariants = props.activeVariants;
             var setActiveVariants = props.setActiveVariants;
 
-            var activeItemCode = activeVariants[product.ItemCode] || (product.variants && product.variants[0] ? product.variants[0].ItemCode : product.ItemCode);
-            var activeVariant = product.variants ? product.variants.find(v => v.ItemCode === activeItemCode) || product : product;
+            var activeItemCode = activeVariants[getProp(product, "ItemCode")] || (product.variants && product.variants[0] ? getProp(product.variants[0], "ItemCode") : getProp(product, "ItemCode"));
+            var activeVariant = product.variants ? product.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || product : product;
 
             const [currentImgIndex, setCurrentImgIndex] = useState(0);
             const [imagesList, setImagesList] = useState([]);
             const [isZoomed, setIsZoomed] = useState(false);
             const [zoomScale, setZoomScale] = useState(1.25);
 
-            const activeVariantCode = activeVariant.ItemCode || activeVariant.itemcode || "";
+            const activeVariantCode = getProp(activeVariant, "ItemCode");
             const currentQty = cart[activeVariantCode] ? cart[activeVariantCode].qty : 0;
             
             useEffect(() => {
@@ -1246,7 +1268,7 @@
                 
                 var allVariants = product.variants || [product];
                 allVariants.forEach(function(v) {
-                    var vMoreImages = v.MoreImages || v.moreimages || "";
+                    var vMoreImages = getProp(v, "MoreImages");
                     if (vMoreImages && vMoreImages.trim() !== "") {
                         var extraImages = vMoreImages.split(" | ").map(img => img.trim());
                         extraImages.forEach(function(img) {
@@ -1264,7 +1286,7 @@
             }, [activeVariant, product]);
 
             const featuresList = [];
-            var activeFeatures = activeVariant.Features || activeVariant.features || "";
+            var activeFeatures = getProp(activeVariant, "Features");
             if (activeFeatures && activeFeatures.trim() !== "") {
                 const parsed = activeFeatures.split(" | ").map(f => f.trim());
                 parsed.forEach(f => {
@@ -1272,8 +1294,8 @@
                 });
             }
 
-            const mrpVal = Number(activeVariant.MRP || activeVariant.mrp || 0);
-            const dealerVal = Number(activeVariant.DealerPrice || activeVariant.dealerprice || activeVariant["Dealer Price"] || 0);
+            const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
+            const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
             const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
             const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
@@ -1287,10 +1309,10 @@
 
             if (imagesList.length === 0) return null;
 
-            var activeName = product.ProductName || product.productname || "Premium Item";
-            var activeBrand = activeVariant.Brand || activeVariant.brand || "Premium";
-            var activeType = activeVariant.Type || activeVariant.type || "Accessories";
-            var activeStock = activeVariant.Stock || activeVariant.stock || "Available";
+            var activeName = getProp(product, "ProductName") || "Premium Item";
+            var activeBrand = getProp(activeVariant, "Brand") || "Premium";
+            var activeType = getProp(activeVariant, "Type") || "Accessories";
+            var activeStock = getProp(activeVariant, "Stock") || "Available";
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
@@ -1323,9 +1345,12 @@
                                         <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
                                         
                                         <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
-                                            {imagesList.map((_, idx) => (
-                                                <div key={idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
-                                            ))}
+                                            {imagesList.map((_, idx) => {
+                                                const varItemCode = getProp(product.variants[idx] || {}, "ItemCode");
+                                                return (
+                                                    <div key={varItemCode || idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
+                                                );
+                                            })}
                                         </div>
                                     </React.Fragment>
                                 )}
@@ -1340,19 +1365,22 @@
                                     <div className="mt-4">
                                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Select Variant Size</h4>
                                         <div className="flex flex-wrap gap-2">
-                                            {product.variants.map(v => (
-                                                <button
-                                                    key={v.ItemCode}
-                                                    onClick={() => {
-                                                        var nextActives = Object.assign({}, activeVariants);
-                                                        nextActives[product.ItemCode] = v.ItemCode;
-                                                        setActiveVariants(nextActives);
-                                                    }}
-                                                    className={`text-xs font-black px-3.5 py-2 rounded-xl border transition-all ${v.ItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900 shadow-md' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
-                                                >
-                                                    {v.capacity}
-                                                </button>
-                                            ))}
+                                            {product.variants.map(v => {
+                                                const vItemCode = getProp(v, "ItemCode");
+                                                return (
+                                                    <button
+                                                        key={vItemCode}
+                                                        onClick={() => {
+                                                            var nextActives = Object.assign({}, activeVariants);
+                                                            nextActives[getProp(product, "ItemCode")] = vItemCode;
+                                                            setActiveVariants(nextActives);
+                                                        }}
+                                                        className={`text-xs font-black px-3.5 py-2 rounded-xl border transition-all ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900 shadow-md' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
+                                                    >
+                                                        {v.capacity}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
