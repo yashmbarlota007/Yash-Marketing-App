@@ -601,6 +601,8 @@ const inStockFlat = products.filter(p => {
                         
                         const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
                         const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
+                    const stockVal = parseInt(getProp(activeVariant, "Stock") || 0);
+const isPreBook = stockVal <= 0;
                         const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
                         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
