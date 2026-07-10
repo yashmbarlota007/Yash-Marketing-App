@@ -573,9 +573,14 @@
 
             if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
-            const inStockFlat = products.filter(p => {
-                const stockVal = getProp(p, "Stock") || 0;
-                return stockVal && parseInt(stockVal) > 0;
+            // NAYA CODE: Priority brands ke zero stock ko bypass karein
+const inStockFlat = products.filter(p => {
+    const stockVal = parseInt(getProp(p, "Stock") || 0);
+    const brand = (getProp(p, "Brand") || "").toUpperCase();
+    const isPriorityBrand = brand.includes("HIKVISION") || brand.includes("VELOCITY");
+    
+    // Agar stock > 0 hai YA phir priority brand hai, toh hi product dikhao
+    return stockVal > 0 || isPriorityBrand;
             });
             
             const inStockProducts = groupProductsByVariant(inStockFlat);
