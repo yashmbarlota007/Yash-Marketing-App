@@ -9,16 +9,12 @@
 <link rel="icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&rounded=true&bold=true">
 <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=180&bold=true">
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/react@18/unpkg/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/unpkg/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-<!-- Celebration / Confetti Library -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<!-- ==========================================
-ONESIGNAL FREE PUSH NOTIFICATION SDK
-#ERROR!
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
 window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -755,8 +751,8 @@ return pName.includes(safeQuery) || pBrand.includes(safeQuery);
 mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
 } else if (!selectedType) {
 const priorityOrder = [
-SMART WATCH, "AIRPODS", "NECKBAND", "POWERBANK",
-CABLE, "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
+"SMART WATCH", "AIRPODS", "NECKBAND", "POWERBANK",
+"CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
 ];
 
 const types = [...new Set(inStockFlat.map(p => getProp(p, "Type")).filter(Boolean))].sort((a, b) => {
@@ -1202,7 +1198,7 @@ return (
 <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
 ord.status === "Delivered" ? "bg-green-100 text-green-700" :
 ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
-bg-amber-100 text-amber-700
+"bg-amber-100 text-amber-700"
 }`}>
 {ord.status || "Pending"}
 </span>
