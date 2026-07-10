@@ -1,1506 +1,1498 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yash Marketing</title>
-    <meta name="apple-mobile-web-app-title" content="Yash Marketing">
-    <meta name="application-name" content="Yash Marketing">
-    <link rel="icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&rounded=true&bold=true">
-    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=180&bold=true">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-    
-    <!-- Celebration / Confetti Library -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Yash Marketing</title>
+<meta name="apple-mobile-web-app-title" content="Yash Marketing">
+<meta name="application-name" content="Yash Marketing">
+<link rel="icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&rounded=true&bold=true">
+<link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=180&bold=true">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-    <!-- ==========================================
-      ONESIGNAL FREE PUSH NOTIFICATION SDK
-    ========================================== -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
-        });
-      });
-    </script>
+<!-- Celebration / Confetti Library -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    <style>
-        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
-        .spinner { border-top-color: #3498db; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+<!-- ==========================================
+ONESIGNAL FREE PUSH NOTIFICATION SDK
+#ERROR!
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+await OneSignal.init({
+appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
+});
+});
+</script>
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        
-        /* Clean Black and White PDF Styles */
-        @media print {
-            body { background: white !important; color: black !important; }
-            nav, button, .sticky, header, .z-50, .fixed, .shadow-2xl, .bg-blue-900 { display: none !important; }
-            .max-w-md { max-width: 100% !important; box-shadow: none !important; }
-            .bg-white { border: none !important; box-shadow: none !important; }
-        }
-    </style>
+<style>
+body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+.spinner { border-top-color: #3498db; animation: spinner 1.5s linear infinite; }
+@keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes slideUp {
+from { transform: translateY(100%); }
+to { transform: translateY(0); }
+}
+.animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes fadeIn {
+from { opacity: 0; }
+to { opacity: 1; }
+}
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+
+/* Clean Black and White PDF Styles */
+@media print {
+body { background: white !important; color: black !important; }
+nav, button, .sticky, header, .z-50, .fixed, .shadow-2xl, .bg-blue-900 { display: none !important; }
+.max-w-md { max-width: 100% !important; box-shadow: none !important; }
+.bg-white { border: none !important; box-shadow: none !important; }
+}
+</style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
-    <div id="root"></div>
+<div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-        
-        // MASTER CONFIGURATIONS
-        var cacheBypass = "?v=" + new Date().getTime();
-        
-        const API_URL = "https://script.google.com/macros/s/AKfycbwXY9RxnKMrSxAwIs69zn9LJCOJDGY12ufXalvIZEbbp_07rg04LbE5qoDTN_UHd4IoZA/exec"; 
-        const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
-        const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
+<script type="text/babel">
+const { useState, useEffect } = React;
 
-        // Extremely robust case & space insensitive column reader helper
-        function getProp(obj, propName) {
-            if (!obj) return "";
-            if (obj[propName] !== undefined) return obj[propName];
-            var cleanTarget = propName.toLowerCase().replace(/[^a-z0-9]/g, "");
-            for (var key in obj) {
-                var cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
-                if (cleanKey === cleanTarget) {
-                    return obj[key];
-                }
-            }
-            return "";
-        }
+// MASTER CONFIGURATIONS
+var cacheBypass = "?v=" + new Date().getTime();
 
-        function getSmartImage(product) {
-            if (!product) return null;
-            var imageUrl = getProp(product, "ImageURL");
-            if (imageUrl && imageUrl.trim() !== "") {
-                let url = imageUrl.trim();
-                if (url.indexOf("//") === 0) {
-                    url = "https:" + url;
-                }
-                if (url.includes("drive.google.com")) {
-                    let fileId = "";
-                    const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-                    if (dMatch) fileId = dMatch[1];
-                    else if (idMatch) fileId = idMatch[1];
-                    if (fileId) return "https://drive.google.com/uc?export=view&id=" + fileId;
-                }
-                return url; 
-            }
-            
-            var brand = getProp(product, "Brand").toString().toUpperCase();
-            if (brand.indexOf("BOAT") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Boat_Logo.webp/512px-Boat_Logo.webp.png";
-            if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
-            if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
-            if (brand.indexOf("HIKVISION") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Hikvision_logo.svg/512px-Hikvision_logo.svg.png";
-            if (brand) return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand) + "&background=f3f4f6&color=1e3a8a&size=200&bold=true";
-            return null; 
-        }
+const API_URL = "https://script.google.com/macros/s/AKfycbwXY9RxnKMrSxAwIs69zn9LJCOJDGY12ufXalvIZEbbp_07rg04LbE5qoDTN_UHd4IoZA/exec";
+const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
+const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
 
-        function ProgressBar(props) {
-            var totalAmount = props.totalAmount;
-            var discounts = props.discounts;
-            
-            var sortedDiscounts = [...discounts]
-                .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
-                .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-                .sort((a, b) => a.minAmount - b.minAmount);
+// Extremely robust case & space insensitive column reader helper
+function getProp(obj, propName) {
+if (!obj) return "";
+if (obj[propName] !== undefined) return obj[propName];
+var cleanTarget = propName.toLowerCase().replace(/[^a-z0-9]/g, "");
+for (var key in obj) {
+var cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+if (cleanKey === cleanTarget) {
+return obj[key];
+}
+}
+return "";
+}
 
-            if (sortedDiscounts.length === 0) return null;
+function getSmartImage(product) {
+if (!product) return null;
+var imageUrl = getProp(product, "ImageURL");
+if (imageUrl && imageUrl.trim() !== "") {
+let url = imageUrl.trim();
+if (url.indexOf("//") === 0) {
+url = "https:" + url;
+}
+if (url.includes("drive.google.com")) {
+let fileId = "";
+const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+if (dMatch) fileId = dMatch[1];
+else if (idMatch) fileId = idMatch[1];
+if (fileId) return "https://drive.google.com/uc?export=view&id=" + fileId;
+}
+return url;
+}
 
-            var activeTier = null;
-            var nextTier = null;
+var brand = getProp(product, "Brand").toString().toUpperCase();
+if (brand.indexOf("BOAT") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Boat_Logo.webp/512px-Boat_Logo.webp.png";
+if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
+if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
+if (brand.indexOf("HIKVISION") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Hikvision_logo.svg/512px-Hikvision_logo.svg.png";
+if (brand) return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand) + "&background=f3f4f6&color=1e3a8a&size=200&bold=true";
+return null;
+}
 
-            for (var i = 0; i < sortedDiscounts.length; i++) {
-                if (totalAmount >= sortedDiscounts[i].minAmount) {
-                    activeTier = sortedDiscounts[i];
-                } else {
-                    nextTier = sortedDiscounts[i];
-                    break;
-                }
-            }
+function ProgressBar(props) {
+var totalAmount = props.totalAmount;
+var discounts = props.discounts;
 
-            var progress = 0;
-            var message = "";
+var sortedDiscounts = [...discounts]
+.map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+.filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+.sort((a, b) => a.minAmount - b.minAmount);
 
-            if (!activeTier) {
-                var first = sortedDiscounts[0];
-                progress = (totalAmount / first.minAmount) * 100;
-                message = "Add ₹" + (first.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + first.percent + "% discount";
-            } else if (nextTier) {
-                var range = nextTier.minAmount - activeTier.minAmount;
-                var currentInRange = totalAmount - activeTier.minAmount;
-                progress = (currentInRange / range) * 100;
-                message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + (nextTier.minAmount - totalAmount).toLocaleString('en-IN') + " more to get " + nextTier.percent + "% discount";
-            } else {
-                progress = 100;
-                message = "🎉 Maximum " + activeTier.percent + "% Bulk Discount Unlocked!";
-            }
+if (sortedDiscounts.length === 0) return null;
 
-            return (
-                <div className="bg-amber-50 p-4 border-b-2 border-amber-200 shadow-sm">
-                    <div className="flex justify-between text-xs font-black text-amber-900 mb-1.5 uppercase tracking-wider">
-                        <span>Bulk Discount Tracker</span>
-                        <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">
-                            {activeTier ? activeTier.percent + "% Active" : "No Discount"} (₹{totalAmount.toLocaleString('en-IN')})
-                        </span>
-                    </div>
-                    <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
-                        <div className="bg-green-600 h-full transition-all duration-300" style={{ width: Math.min(progress, 100) + '%' }}></div>
-                    </div>
-                    <p className="text-[10px] text-green-800 font-black mt-2 uppercase tracking-wide flex items-center gap-1">
-                        <span>💡</span> {message}
-                    </p>
-                </div>
-            );
-        }
+var activeTier = null;
+var nextTier = null;
 
-        // Case-insensitive, grouping corrector to solve the "Standard" issue
-        function groupProductsByVariant(flatList) {
-            var grouped = {};
-            var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
+for (var i = 0; i < sortedDiscounts.length; i++) {
+if (totalAmount >= sortedDiscounts[i].minAmount) {
+activeTier = sortedDiscounts[i];
+} else {
+nextTier = sortedDiscounts[i];
+break;
+}
+}
 
-            flatList.forEach(function(p) {
-                var name = getProp(p, "ProductName") || "";
-                var brand = getProp(p, "Brand") || "";
-                var type = getProp(p, "Type") || "";
-                var itemCode = getProp(p, "ItemCode") || "";
-                
-                if (!name) {
-                    name = "Product " + (itemCode || Math.random().toString(36).substr(2, 5));
-                }
+var progress = 0;
+var message = "";
 
-                var match = name.match(capacityRegex);
-                var capacity = match ? match[1].toUpperCase().replace(/\s/g, "") : "";
-                
-                var baseName = name;
-                if (match) {
-                    baseName = name.replace(match[0], "").replace(/\s+/g, " ").trim();
-                    baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
-                }
+if (!activeTier) {
+var first = sortedDiscounts[0];
+progress = (totalAmount / first.minAmount) * 100;
+message = "Add ₹" + (first.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + first.percent + "% discount";
+} else if (nextTier) {
+var range = nextTier.minAmount - activeTier.minAmount;
+var currentInRange = totalAmount - activeTier.minAmount;
+progress = (currentInRange / range) * 100;
+message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + (nextTier.minAmount - totalAmount).toLocaleString('en-IN') + " more to get " + nextTier.percent + "% discount";
+} else {
+progress = 100;
+message = "🎉 Maximum " + activeTier.percent + "% Bulk Discount Unlocked!";
+}
 
-                // If items do not contain dynamic capacity variations, keep them ungrouped by adding unique IDs
-                var groupKey = capacity 
-                    ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
-                    : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
+return (
+<div className="bg-amber-50 p-4 border-b-2 border-amber-200 shadow-sm">
+<div className="flex justify-between text-xs font-black text-amber-900 mb-1.5 uppercase tracking-wider">
+<span>Bulk Discount Tracker</span>
+<span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">
+{activeTier ? activeTier.percent + "% Active" : "No Discount"} (₹{totalAmount.toLocaleString('en-IN')})
+</span>
+</div>
+<div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
+<div className="bg-green-600 h-full transition-all duration-300" style={{ width: Math.min(progress, 100) + '%' }}></div>
+</div>
+<p className="text-[10px] text-green-800 font-black mt-2 uppercase tracking-wide flex items-center gap-1">
+<span>💡</span> {message}
+</p>
+</div>
+);
+}
 
-                if (!grouped[groupKey]) {
-                    grouped[groupKey] = {
-                        key: groupKey,
-                        baseName: baseName,
-                        Brand: brand,
-                        Type: type,
-                        Features: getProp(p, "Features"),
-                        ImageURL: getProp(p, "ImageURL"),
-                        MoreImages: getProp(p, "MoreImages"),
-                        variants: []
-                    };
-                }
+// Case-insensitive, grouping corrector to solve the "Standard" issue
+function groupProductsByVariant(flatList) {
+var grouped = {};
+var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
 
-                grouped[groupKey].variants.push(
-                    Object.assign({}, p, { 
-                        ProductName: name,
-                        capacity: capacity || "Standard" 
-                    })
-                );
-            });
+flatList.forEach(function(p) {
+var name = getProp(p, "ProductName") || "";
+var brand = getProp(p, "Brand") || "";
+var type = getProp(p, "Type") || "";
+var itemCode = getProp(p, "ItemCode") || "";
 
-            return Object.keys(grouped).map(function(k) {
-                var group = grouped[k];
-                
-                group.variants.sort(function(a, b) {
-                    var numA = parseInt(a.capacity) || 0;
-                    var numB = parseInt(b.capacity) || 0;
-                    return numA - numB;
-                });
-                
-                var primary = group.variants[0];
-                var primaryName = getProp(primary, "ProductName") || "";
-                return Object.assign({}, primary, {
-                    ProductName: group.variants.length > 1 ? group.baseName : primaryName,
-                    isGrouped: group.variants.length > 1,
-                    variants: group.variants
-                });
-            });
-        }
+if (!name) {
+name = "Product " + (itemCode || Math.random().toString(36).substr(2, 5));
+}
 
-        function App() {
-            const [user, setUser] = useState(null);
-            const [view, setView] = useState("catalog"); 
-            const [products, setProducts] = useState([]);
-            const [cart, setCart] = useState({});
-            const [loading, setLoading] = useState(false);
-            const [customerMode, setCustomerMode] = useState(false);
-            const [announcements, setAnnouncements] = useState([]);
-            const [showNotice, setShowNotice] = useState(false);
-            const [isNotificationGranted, setIsNotificationGranted] = useState(true);
+var match = name.match(capacityRegex);
+var capacity = match ? match[1].toUpperCase().replace(/\s/g, "") : "";
 
-            useEffect(() => {
-                try {
-                    const savedUser = localStorage.getItem("yashDealerSession");
-                    if (savedUser) {
-                        setUser(JSON.parse(savedUser));
-                    }
-                    const savedCart = localStorage.getItem("yashDealerCart");
-                    if (savedCart) {
-                        setCart(JSON.parse(savedCart));
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-            }, []);
+var baseName = name;
+if (match) {
+baseName = name.replace(match[0], "").replace(/\s+/g, " ").trim();
+baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
+}
 
-            useEffect(() => {
-                if (user) {
-                    localStorage.setItem("yashDealerCart", JSON.stringify(cart));
-                }
-            }, [cart, user]);
+// If items do not contain dynamic capacity variations, keep them ungrouped by adding unique IDs
+var groupKey = capacity
+? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
+: (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
 
-            useEffect(() => {
-                if (window.Notification) {
-                    if (Notification.permission !== "granted") {
-                        setIsNotificationGranted(false);
-                    }
-                }
-            }, []);
+if (!grouped[groupKey]) {
+grouped[groupKey] = {
+key: groupKey,
+baseName: baseName,
+Brand: brand,
+Type: type,
+Features: getProp(p, "Features"),
+ImageURL: getProp(p, "ImageURL"),
+MoreImages: getProp(p, "MoreImages"),
+variants: []
+};
+}
 
-            useEffect(() => {
-                if (user) {
-                    fetch(API_URL + cacheBypass, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: "getAnnouncements" }),
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                    })
-                    .then(r => r.json())
-                    .then(res => {
-                        let parsedData = [];
-                        if (res && res.success && Array.isArray(res.data)) {
-                            parsedData = res.data;
-                        } else if (res && Array.isArray(res.data)) {
-                            parsedData = res.data;
-                        } else if (Array.isArray(res)) {
-                            parsedData = res;
-                        }
+grouped[groupKey].variants.push(
+Object.assign({}, p, {
+ProductName: name,
+capacity: capacity || "Standard"
+})
+);
+});
 
-                        if (parsedData.length > 0) {
-                            setAnnouncements(parsedData);
-                            setShowNotice(true); 
-                        } else {
-                            setShowNotice(false);
-                        }
-                    }).catch((e) => {
-                        console.log("Announcement fetch error", e);
-                        var defaultMsg = [{
-                            title: "Welcome to Yash Marketing",
-                            message: "Naye schemes aur bulk order discount live hain. Kisi bhi inquiry ke liye direct WhatsApp par contact karein."
-                        }];
-                        setAnnouncements(defaultMsg);
-                        setShowNotice(true);
-                    });
-                }
-            }, [user]);
+return Object.keys(grouped).map(function(k) {
+var group = grouped[k];
 
-            const logSpyData = (eventName, detailsStr) => {
-                var details = detailsStr || "";
-                fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: eventName, details: details }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                }).catch(e => console.log("Silent Log Failed"));
-            };
+group.variants.sort(function(a, b) {
+var numA = parseInt(a.capacity) || 0;
+var numB = parseInt(b.capacity) || 0;
+return numA - numB;
+});
 
-            const globalProps = { logSpyData, customerMode };
+var primary = group.variants[0];
+var primaryName = getProp(primary, "ProductName") || "";
+return Object.assign({}, primary, {
+ProductName: group.variants.length > 1 ? group.baseName : primaryName,
+isGrouped: group.variants.length > 1,
+variants: group.variants
+});
+});
+}
 
-            const callAPI = function(payload) {
-                return fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                })
-                .then(function(response) {
-                    return response.json();
-                })
-                .catch(function(e) {
-                    alert("🚨 API CONNECT ERROR:\n" + e.toString() + "\n\nTarget URL: " + API_URL);
-                    return { success: false, message: "Network Error: Check Internet" };
-                });
-            };
+function App() {
+const [user, setUser] = useState(null);
+const [view, setView] = useState("catalog");
+const [products, setProducts] = useState([]);
+const [cart, setCart] = useState({});
+const [loading, setLoading] = useState(false);
+const [customerMode, setCustomerMode] = useState(false);
+const [announcements, setAnnouncements] = useState([]);
+const [showNotice, setShowNotice] = useState(false);
+const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
-            const handleRequestPermission = () => {
-                if (window.Notification) {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            setIsNotificationGranted(true);
-                        } else {
-                            alert("App use karne ke liye Permission allow karna compulsory hai!");
-                        }
-                    });
-                }
-            };
+useEffect(() => {
+try {
+const savedUser = localStorage.getItem("yashDealerSession");
+if (savedUser) {
+setUser(JSON.parse(savedUser));
+}
+const savedCart = localStorage.getItem("yashDealerCart");
+if (savedCart) {
+setCart(JSON.parse(savedCart));
+}
+} catch (e) {
+console.error(e);
+}
+}, []);
 
-            const handleLogout = () => {
-                localStorage.removeItem("yashDealerSession");
-                localStorage.removeItem("yashDealerCart");
-                setUser(null);
-                setCart({});
-                setView("catalog");
-            };
+useEffect(() => {
+if (user) {
+localStorage.setItem("yashDealerCart", JSON.stringify(cart));
+}
+}, [cart, user]);
 
-            if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
+useEffect(() => {
+if (window.Notification) {
+if (Notification.permission !== "granted") {
+setIsNotificationGranted(false);
+}
+}
+}, []);
 
-            if (!isNotificationGranted) {
-                return (
-                    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
-                        <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
-                            <span className="text-5xl animate-bounce inline-block">🔔</span>
-                            <h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
-                            <p className="text-xs font-semibold text-gray-500 mt-4 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                Yash Marketing Portal ka use karne ke liye Push Notification allow karna compulsory hai. Isse aapko naye schemes, payments aur order updates instantly mobile screen par milenge.
-                            </p>
-                            <button onClick={handleRequestPermission} className="w-full bg-red-600 text-white font-black text-md py-4 rounded-xl mt-6 shadow-lg active:scale-95">
-                                ENABLE NOTIFICATIONS NOW
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
+useEffect(() => {
+if (user) {
+fetch(API_URL + cacheBypass, {
+method: 'POST',
+body: JSON.stringify({ action: "getAnnouncements" }),
+headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+})
+.then(r => r.json())
+.then(res => {
+let parsedData = [];
+if (res && res.success && Array.isArray(res.data)) {
+parsedData = res.data;
+} else if (res && Array.isArray(res.data)) {
+parsedData = res.data;
+} else if (Array.isArray(res)) {
+parsedData = res;
+}
 
-            return (
-                <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
-                    <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
-                        <div>
-                            <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
-                                <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-                                Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.4</span>
-                            </h1>
-                            <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
-                        </div>
-                        <div className="flex gap-1.5 items-center">
-                            {!customerMode && view === "catalog" && (
-                                <React.Fragment>
-                                    <button onClick={() => setView("orders")} className="text-white text-[10px] font-bold bg-green-700 px-2.5 py-2 rounded-lg shadow-sm">📦 ORDERS</button>
-                                    <button onClick={() => setView("ledger")} className="text-white text-[10px] font-bold bg-amber-600 px-2.5 py-2 rounded-lg shadow-sm">📖 LEDGER</button>
-                                </React.Fragment>
-                            )}
-                            <button onClick={() => {
-                                const m = !customerMode;
-                                setCustomerMode(m);
-                                if (m && (view === "ledger" || view === "orders")) setView("catalog");
-                                logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
-                            }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
-                                {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
-                            </button>
-                            {(view === "cart" || view === "ledger" || view === "orders") && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
-                            <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
-                        </div>
-                    </div>
-                    {view === "catalog" ? (
-                        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} />
-                    ) : view === "cart" ? (
-                        <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />
-                    ) : view === "ledger" ? (
-                        <LedgerView user={user} callAPI={callAPI} />
-                    ) : (
-                        <OrdersHistoryView user={user} callAPI={callAPI} />
-                    )}
+if (parsedData.length > 0) {
+setAnnouncements(parsedData);
+setShowNotice(true);
+} else {
+setShowNotice(false);
+}
+}).catch((e) => {
+console.log("Announcement fetch error", e);
+var defaultMsg = [{
+title: "Welcome to Yash Marketing",
+message: "Naye schemes aur bulk order discount live hain. Kisi bhi inquiry ke liye direct WhatsApp par contact karein."
+}];
+setAnnouncements(defaultMsg);
+setShowNotice(true);
+});
+}
+}, [user]);
 
-                    {user && showNotice && announcements.length > 0 && (
-                        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
-                            <div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center animate-slide-up">
-                                <span className="text-4xl">🔔</span>
-                                <h2 className="text-xl font-black text-gray-900 mt-3">{announcements[0].title}</h2>
-                                <p className="text-sm font-semibold text-gray-600 mt-4 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">{announcements[0].message}</p>
-                                <button onClick={() => setShowNotice(false)} className="w-full bg-amber-600 text-white font-black text-md py-3.5 rounded-xl mt-6 shadow-lg active:scale-95">GOT IT, THANKYOU!</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+const logSpyData = (eventName, detailsStr) => {
+var details = detailsStr || "";
+fetch(API_URL, {
+method: 'POST',
+body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: eventName, details: details }),
+headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+}).catch(e => console.log("Silent Log Failed"));
+};
 
-        function LoginScreen(props) {
-            var onLogin = props.onLogin;
-            var callAPI = props.callAPI;
-            var loading = props.loading;
-            var setLoading = props.setLoading;
+const globalProps = { logSpyData, customerMode };
 
-            const [phone, setPhone] = useState("");
+const callAPI = function(payload) {
+return fetch(API_URL, {
+method: 'POST',
+body: JSON.stringify(payload),
+headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+})
+.then(function(response) {
+return response.json();
+})
+.catch(function(e) {
+alert("🚨 API CONNECT ERROR:\n" + e.toString() + "\n\nTarget URL: " + API_URL);
+return { success: false, message: "Network Error: Check Internet" };
+});
+};
 
-            const handleLogin = function() {
-                if (phone.length < 10) return alert("Enter 10-digit number");
-                setLoading(true);
-                callAPI({ action: "verifyDealer", phone: phone }).then(function(res) {
-                    setLoading(false);
-                    if (res.success) {
-                        var dealerData = { phone: phone, shopName: res.shopName };
-                        localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
-                        
-                        fetch(API_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({ action: "logEvent", phone: dealerData.phone, shopName: dealerData.shopName, event: "Login Success", details: "App Opened" }),
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                        }).catch(function(e) {});
+const handleRequestPermission = () => {
+if (window.Notification) {
+Notification.requestPermission().then(permission => {
+if (permission === 'granted') {
+setIsNotificationGranted(true);
+} else {
+alert("App use karne ke liye Permission allow karna compulsory hai!");
+}
+});
+}
+};
 
-                        onLogin(dealerData);
-                    } else {
-                        alert(res.message);
-                    }
-                });
-            };
+const handleLogout = () => {
+localStorage.removeItem("yashDealerSession");
+localStorage.removeItem("yashDealerCart");
+setUser(null);
+setCart({});
+setView("catalog");
+};
 
-            return (
-                <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center font-sans">
-                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-900">
-                        <img src={LOGO_URL} className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" />
-                        <h2 className="text-3xl font-black mb-1 text-gray-900">Yash Marketing</h2>
-                        <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">Authorized Dealer Portal</p>
-                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" placeholder="MOBILE NO." />
-                        <button onClick={handleLogin} disabled={loading} className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center">
-                            {loading ? <div className="border-4 border-white border-t-transparent w-7 h-7 rounded-full spinner"></div> : "SECURE LOGIN"}
-                        </button>
-                    </div>
-                </div>
-            );
-        }
+if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
+
+if (!isNotificationGranted) {
+return (
+<div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
+<div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
+<span className="text-5xl animate-bounce inline-block">🔔</span>
+<h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
+<p className="text-xs font-semibold text-gray-500 mt-4 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
+Yash Marketing Portal ka use karne ke liye Push Notification allow karna compulsory hai. Isse aapko naye schemes, payments aur order updates instantly mobile screen par milenge.
+</p>
+<button onClick={handleRequestPermission} className="w-full bg-red-600 text-white font-black text-md py-4 rounded-xl mt-6 shadow-lg active:scale-95">
+ENABLE NOTIFICATIONS NOW
+</button>
+</div>
+</div>
+);
+}
+
+return (
+<div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
+<div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
+<div>
+<h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
+<img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
+Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.4</span>
+</h1>
+<p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
+</div>
+<div className="flex gap-1.5 items-center">
+{!customerMode && view === "catalog" && (
+<React.Fragment>
+<button onClick={() => setView("orders")} className="text-white text-[10px] font-bold bg-green-700 px-2.5 py-2 rounded-lg shadow-sm">📦 ORDERS</button>
+<button onClick={() => setView("ledger")} className="text-white text-[10px] font-bold bg-amber-600 px-2.5 py-2 rounded-lg shadow-sm">📖 LEDGER</button>
+</React.Fragment>
+)}
+<button onClick={() => {
+const m = !customerMode;
+setCustomerMode(m);
+if (m && (view === "ledger" || view === "orders")) setView("catalog");
+logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
+}} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
+{customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
+</button>
+{(view === "cart" || view === "ledger" || view === "orders") && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
+<button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
+</div>
+</div>
+{view === "catalog" ? (
+<Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} />
+) : view === "cart" ? (
+<Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />
+) : view === "ledger" ? (
+<LedgerView user={user} callAPI={callAPI} />
+) : (
+<OrdersHistoryView user={user} callAPI={callAPI} />
+)}
+
+{user && showNotice && announcements.length > 0 && (
+<div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
+<div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center animate-slide-up">
+<span className="text-4xl">🔔</span>
+<h2 className="text-xl font-black text-gray-900 mt-3">{announcements[0].title}</h2>
+<p className="text-sm font-semibold text-gray-600 mt-4 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">{announcements[0].message}</p>
+<button onClick={() => setShowNotice(false)} className="w-full bg-amber-600 text-white font-black text-md py-3.5 rounded-xl mt-6 shadow-lg active:scale-95">GOT IT, THANKYOU!</button>
+</div>
+</div>
+)}
+</div>
+);
+}
+
+function LoginScreen(props) {
+var onLogin = props.onLogin;
+var callAPI = props.callAPI;
+var loading = props.loading;
+var setLoading = props.setLoading;
+
+const [phone, setPhone] = useState("");
+
+const handleLogin = function() {
+if (phone.length < 10) return alert("Enter 10-digit number");
+setLoading(true);
+callAPI({ action: "verifyDealer", phone: phone }).then(function(res) {
+setLoading(false);
+if (res.success) {
+var dealerData = { phone: phone, shopName: res.shopName };
+localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+
+fetch(API_URL, {
+method: 'POST',
+body: JSON.stringify({ action: "logEvent", phone: dealerData.phone, shopName: dealerData.shopName, event: "Login Success", details: "App Opened" }),
+headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+}).catch(function(e) {});
+
+onLogin(dealerData);
+} else {
+alert(res.message);
+}
+});
+};
+
+return (
+<div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center font-sans">
+<div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-900">
+<img src={LOGO_URL} className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" />
+<h2 className="text-3xl font-black mb-1 text-gray-900">Yash Marketing</h2>
+<p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">Authorized Dealer Portal</p>
+<input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" placeholder="MOBILE NO." />
+<button onClick={handleLogin} disabled={loading} className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center">
+{loading ? <div className="border-4 border-white border-t-transparent w-7 h-7 rounded-full spinner"></div> : "SECURE LOGIN"}
+</button>
+</div>
+</div>
+);
+}
 
 function Catalog(props) {
-    var user = props.user;
-    var callAPI = props.callAPI;
-    var cart = props.cart;
-    var setCart = props.setCart;
-    var products = props.products;
-    var setProducts = props.setProducts;
-    var setView = props.setView;
-    var globalProps = props.globalProps;
+var user = props.user;
+var callAPI = props.callAPI;
+var cart = props.cart;
+var setCart = props.setCart;
+var products = props.products;
+var setProducts = props.setProducts;
+var setView = props.setView;
+var globalProps = props.globalProps;
 
-    const [loading, setLoading] = useState(products.length === 0);
-    const [selectedType, setSelectedType] = useState(null);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
-    const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
-    const [activeVariants, setActiveVariants] = useState({});
+const [loading, setLoading] = useState(products.length === 0);
+const [selectedType, setSelectedType] = useState(null);
+const [searchQuery, setSearchQuery] = useState("");
+const [selectedProduct, setSelectedProduct] = useState(null);
+const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
+const [activeVariants, setActiveVariants] = useState({});
 
-    useEffect(() => {
-        if (products.length === 0) {
-            callAPI({ action: "getProducts" }).then(res => {
-                if (res && res.success) setProducts(res.data);
-                else alert("Data Error: Please check Sheet");
-                setLoading(false);
-            });
-        }
-        callAPI({ action: "getDiscounts" }).then(res => {
-            if (res && res.success && res.data.length > 0) {
-                setDiscounts(res.data);
-            }
-        }).catch(() => {});
-    }, []);
-
-    const cartItems = Object.values(cart);
-    const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
-    const totalAmount = cartItems.reduce((a, b) => {
-        const itemPrice = Number(getProp(b, "DealerPrice") || 0);
-        return a + (itemPrice * b.qty);
-    }, 0);
-
-    useEffect(() => {
-        var sortedDiscounts = [...discounts]
-            .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
-            .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-            .sort((a, b) => a.minAmount - b.minAmount);
-
-        var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
-        var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
-
-        if (totalAmount >= tier2Min) {
-            if (!celebratedTiers.tier2) {
-                if (window.confetti) {
-                    window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-                }
-                setCelebratedTiers(prev => Object.assign({}, prev, { tier2: true }));
-            }
-        } else if (totalAmount >= tier1Min) {
-            if (!celebratedTiers.tier1) {
-                if (window.confetti) {
-                    window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-                }
-                setCelebratedTiers(prev => Object.assign({}, prev, { tier1: true }));
-            }
-            if (celebratedTiers.tier2) {
-                setCelebratedTiers(prev => Object.assign({}, prev, { tier2: false }));
-            }
-        } else {
-            if (celebratedTiers.tier1 || celebratedTiers.tier2) {
-                setCelebratedTiers({ tier1: false, tier2: false });
-            }
-        }
-    }, [totalAmount, discounts]);
-
-    const handleSearchChange = (e) => {
-        setSearchQuery(e.target.value);
-    };
-
-    const updateQty = (product, change) => {
-        if (globalProps.customerMode) return;
-        const updated = Object.assign({}, cart);
-        const itemCode = getProp(product, "ItemCode");
-        if (!itemCode) return;
-        
-        const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
-        const brand = (getProp(product, "Brand") || "").toUpperCase();
-        const isPriorityBrand = brand.includes("HIKVISION") || brand.includes("VELOCITY");
-        
-        const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
-        const newQty = currentQty + change;
-        
-        if (!isPriorityBrand && newQty > stockVal && stockVal > 0) return alert("Maximum stock limit reached!");
-        if (newQty <= 0) delete updated[itemCode];
-        else updated[itemCode] = Object.assign({}, product, { qty: newQty });
-        setCart(updated);
-    };
-
-    if (loading) return <div className="text-center p-10 font-bold text-gray-500 animate-pulse">Syncing Inventory...</div>;
-
-    const inStockFlat = products.filter(p => {
-        const stockVal = parseInt(getProp(p, "Stock") || 0);
-        const brand = (getProp(p, "Brand") || "").toUpperCase();
-        const isPriorityBrand = brand.includes("HIKVISION") || brand.includes("VELOCITY");
-        return stockVal > 0 || isPriorityBrand;
-    });
-
-    const inStockProducts = groupProductsByVariant(inStockFlat);
-
-    const renderProducts = (productList) => (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {productList.map((p, idx) => {
-                var name = getProp(p, "ProductName") || "Premium Item";
-                var brand = getProp(p, "Brand") || "Premium";
-                var type = getProp(p, "Type") || "Accessories";
-
-                var activeItemCode = activeVariants[getProp(p, "ItemCode")] || (p.variants && p.variants[0] ? getProp(p.variants[0], "ItemCode") : getProp(p, "ItemCode"));
-                var activeVariant = p.variants ? p.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || p : p;
-
-                const itemCode = getProp(activeVariant, "ItemCode");
-                const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
-                const smartImg = getSmartImage(activeVariant);
-
-                const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
-                const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
-                const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
-                const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
-                const isValidPrice = !isNaN(dealerVal) && dealerVal > 0;
-                const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
-
-                const stockVal = parseInt(getProp(activeVariant, "Stock") || 0);
-                const isPreBook = stockVal <= 0;
-
-                return (
-                    <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
-                        
-                        {isPreBook && (
-                            <div className="absolute top-2 left-2 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded shadow-md z-10">
-                                ⚠️ PRE-BOOK (2 Days)
-                            </div>
-                        )}
-
-                        {idx % 7 === 0 && (
-                            <div className="absolute top-2 right-2 bg-red-100 text-red-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest z-10">🔥 High Demand</div>
-                        )}
-                        {idx % 5 === 0 && idx % 7 !== 0 && (
-                            <div className="absolute top-2 right-2 bg-amber-100 text-amber-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest z-10">⭐ Most Ordered</div>
-                        )}
-
-                        <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
-                            {smartImg ? (
-                                <img
-                                    src={smartImg}
-                                    className="h-32 w-full object-contain mb-2 p-1"
-                                    onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
-                                    }}
-                                />
-                            ) : (
-                                <div className="h-32 w-full bg-gray-50 flex items-center justify-center mb-2 rounded-xl text-gray-300 font-bold text-xs">No Image</div>
-                            )}
-                            <div className="font-bold text-gray-800 text-xs leading-snug h-8 overflow-hidden">{name}</div>
-                            <div className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-wider">{brand}</div>
-                        </div>
-
-                        {p.isGrouped && (
-                            <div className="flex gap-1 mt-2 overflow-x-auto no-scrollbar pb-1">
-                                {p.variants.map(v => {
-                                    const vItemCode = getProp(v, "ItemCode");
-                                    return (
-                                        <button
-                                            key={vItemCode}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                var nextActives = Object.assign({}, activeVariants);
-                                                nextActives[getProp(p, "ItemCode")] = vItemCode;
-                                                setActiveVariants(nextActives);
-                                            }}
-                                            className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                                        >
-                                            {v.capacity}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        <div className="mt-3">
-                            {!globalProps.customerMode ? (
-                                <div className="flex items-center justify-between mb-2">
-                                    {hasDiscount && isValidPrice ? (
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-gray-400 font-bold line-through">MRP: ₹{getProp(activeVariant, "MRP")}</span>
-                                            <span className="text-[9px] text-green-600 font-black">{discountPercent}% OFF</span>
-                                        </div>
-                                    ) : (
-                                        getProp(activeVariant, "MRP") && (
-                                            <span className="text-[10px] text-gray-400 font-bold">MRP: ₹{getProp(activeVariant, "MRP")}</span>
-                                        )
-                                    )}
-                                    <div className="font-black text-blue-900 text-sm">{displayPrice}</div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-between mb-2">
-                                    <div className="font-black text-blue-900 text-sm">MRP: ₹{getProp(activeVariant, "MRP")}</div>
-                                </div>
-                            )}
-
-                            {!globalProps.customerMode ? (
-                                isValidPrice && (
-                                    currentQty > 0 ? (
-                                        <div className="flex justify-between items-center bg-gray-50 p-1 rounded-xl border border-gray-100">
-                                            <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
-                                            <span className="font-bold text-sm">{currentQty}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
-                                        </div>
-                                    ) : (
-                                        <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className={`w-full text-white text-xs font-bold py-3 rounded-xl shadow-sm ${isPreBook ? 'bg-orange-600' : 'bg-gray-950'}`}>
-                                            {isPreBook ? "PRE-BOOK" : "+ ADD"}
-                                        </button>
-                                    )
-                                )
-                            ) : (
-                                <button onClick={(e) => {
-                                    e.stopPropagation();
-                                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${brand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
-                                    if (navigator.share) {
-                                        navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
-                                    } else {
-                                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
-                                    }
-                                    globalProps.logSpyData("Shared Product Image", getProp(activeVariant, "ItemCode"));
-                                }} className="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-black py-3 rounded-xl shadow-sm flex items-center justify-center gap-1">
-                                    📲 SHARE PHOTO
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-
-    const handleShareCategory = () => {
-        const categoryProducts = inStockProducts.filter(p => {
-            const pType = getProp(p, "Type") || "";
-            return pType === selectedType;
-        });
-        let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
-
-        categoryProducts.slice(0, 15).forEach((p, idx) => {
-            const cleanPhotoUrl = getSmartImage(p);
-            const features = getProp(p, "Features") || "";
-            const featuresExcerpt = (features && features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
-            const name = getProp(p, "ProductName") || "";
-            const mrp = getProp(p, "MRP") || 0;
-            const dealerPrice = getProp(p, "DealerPrice") || 0;
-
-            if (globalProps.customerMode) {
-                shareText += `${idx + 1}. *${name}*\n💰 Offer Price: ₹${mrp}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
-            } else {
-                shareText += `${idx + 1}. *${name}*\n💰 Dealer Price: ₹${dealerPrice} (MRP: ₹${mrp})${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
-            }
-        });
-        shareText += `Ask for the best bulk deals today!`;
-
-        if (navigator.share) {
-            navigator.share({ title: `${selectedType} Catalog`, text: shareText }).catch(() => {});
-        } else {
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-        }
-        globalProps.logSpyData("Shared Category", selectedType);
-    };
-
-    const searchBarUI = (
-        <div className="px-4 py-3 bg-white flex gap-2 relative z-20">
-            <input
-                type="text"
-                placeholder="Search products, brands..."
-                value={searchQuery}
-                onChange={handleSearchChange}
-                className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
-            />
-            {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl">✕</button>
-            )}
-        </div>
-    );
-
-    let mainContent;
-
-    if (searchQuery.trim() !== "") {
-        const safeQuery = searchQuery.toLowerCase();
-        const searchResults = inStockProducts.filter(p => {
-            const pName = (getProp(p, "ProductName") || "").toLowerCase();
-            const pBrand = (getProp(p, "Brand") || "").toLowerCase();
-            return pName.includes(safeQuery) || pBrand.includes(safeQuery);
-        });
-        mainContent = searchResults.length > 0 ? <div className="p-4">{renderProducts(searchResults)}</div> : <div className="text-center p-10 font-bold text-gray-400">No products found.</div>;
-    } else if (!selectedType) {
-        const priorityOrder = [
-            "SMART WATCH", "AIRPODS", "NECKBAND", "POWERBANK",
-            "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
-        ];
-
-        const types = [...new Set(inStockFlat.map(p => getProp(p, "Type")).filter(Boolean))].sort((a, b) => {
-            const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
-            const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
-
-            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-            if (indexA !== -1) return -1;
-            if (indexB !== -1) return 1;
-            return a.localeCompare(b);
-        });
-
-        mainContent = (
-            <div className="p-4">
-                <div className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center justify-between">
-                    <span>Select Category</span>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {types.map(type => {
-                        const coverProduct = inStockFlat.find(p => getProp(p, "Type") === type);
-                        const cover = coverProduct ? getSmartImage(coverProduct) : null;
-                        return (
-                            <div key={type} onClick={() => {
-                                setSelectedType(type);
-                                globalProps.logSpyData("Viewed Category", type);
-                            }} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
-                                {cover ? <img src={cover} className="h-20 object-contain mb-3" /> : <div className="text-4xl mb-3">📦</div>}
-                                <span className="font-black text-blue-900 text-xs text-center">{type}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    } else {
-        const filteredProducts = inStockProducts.filter(p => getProp(p, "Type") === selectedType).sort((a, b) => {
-            const priceA = Number(getProp(a, "DealerPrice") || 0);
-            const priceB = Number(getProp(b, "DealerPrice") || 0);
-            return priceB - priceA;
-        });
-        mainContent = (
-            <div className="p-4 animate-slide-up">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
-                        <span className="font-black text-lg text-gray-800">{selectedType}</span>
-                    </div>
-                    <button onClick={handleShareCategory} className="bg-green-600 text-white text-[10px] font-black px-2 py-1.5 rounded-lg shadow-sm">📲 SHARE LIST</button>
-                </div>
-                {renderProducts(filteredProducts)}
-            </div>
-        );
-    }
-
-    return (
-        <div className="pb-24 bg-gray-50 min-h-screen">
-            <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
-                {totalItems > 0 && !globalProps.customerMode && (
-                    <ProgressBar totalAmount={totalAmount} discounts={discounts} />
-                )}
-                {searchBarUI}
-            </div>
-            {mainContent}
-            {selectedProduct && (
-                <ProductDetailModal
-                    product={selectedProduct}
-                    onClose={() => setSelectedProduct(null)}
-                    cart={cart}
-                    updateQty={updateQty}
-                    user={user}
-                    globalProps={globalProps}
-                    activeVariants={activeVariants}
-                    setActiveVariants={setActiveVariants}
-                />
-            )}
-            {totalItems > 0 && !globalProps.customerMode && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
-                globalProps.logSpyData("Viewed Cart", "Items: " + totalItems + ", Val: ₹" + totalAmount);
-                setView("cart");
-            }} />}
-        </div>
-    );
+useEffect(() => {
+if (products.length === 0) {
+callAPI({ action: "getProducts" }).then(res => {
+if (res && res.success) setProducts(res.data);
+else alert("Data Error: Please check Sheet");
+setLoading(false);
+});
 }
 
-        function Cart(props) {
-    var user = props.user;
-    var cart = props.cart;
-    var setCart = props.setCart;
-    var setView = props.setView;
-    var callAPI = props.callAPI;
-    var globalProps = props.globalProps;
-
-    const [loading, setLoading] = useState(false);
-    const [paymentMode, setPaymentMode] = useState("");
-    const [screenshotUploaded, setScreenshotUploaded] = useState(false);
-    const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
-
-    const cartItems = Object.values(cart);
-    const totalAmount = cartItems.reduce((acc, item) => {
-        const itemPrice = Number(getProp(item, "DealerPrice") || 0);
-        return acc + (itemPrice * item.qty);
-    }, 0);
-
-    useEffect(() => {
-        callAPI({ action: "getDiscounts" }).then(res => {
-            if (res && res.success && res.data.length > 0) {
-                setDiscounts(res.data);
-            }
-        }).catch(() => {});
-    }, []);
-
-    var sortedDiscountsDesc = [...discounts]
-        .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
-        .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-        .sort((a, b) => b.minAmount - a.minAmount);
-
-    let bulkPercent = 0;
-    for (var i = 0; i < sortedDiscountsDesc.length; i++) {
-        if (totalAmount >= sortedDiscountsDesc[i].minAmount) {
-            bulkPercent = sortedDiscountsDesc[i].percent;
-            break;
-        }
-    }
-
-    const bulkDiscountAmount = Math.round(totalAmount * (bulkPercent / 100));
-    const afterBulkTotal = totalAmount - bulkDiscountAmount;
-
-    const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
-    const finalAmount = afterBulkTotal - upiDiscountAmount;
-
-    const updateQty = (product, change) => {
-        const updated = Object.assign({}, cart);
-        const itemCode = getProp(product, "ItemCode");
-        if (!itemCode) return;
-
-        const stockVal = parseInt(getProp(product, "Stock") || 9999);
-        const brand = (getProp(product, "Brand") || "").toUpperCase();
-        const isPriorityBrand = brand.includes("HIKVISION") || brand.includes("VELOCITY");
-        
-        const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
-        const newQty = currentQty + change;
-        
-        if (!isPriorityBrand && newQty > stockVal && stockVal > 0) return alert("Maximum stock limit reached!");
-        
-        if (newQty <= 0) delete updated[itemCode];
-        else updated[itemCode] = Object.assign({}, product, { qty: newQty });
-        setCart(updated);
-    };
-
-    const handleCheckout = function() {
-        if (!paymentMode) return alert("Please select Payment Mode!");
-        if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
-        setLoading(true);
-        var itemsStr = cartItems.map(function(i) {
-            const itemName = getProp(i, "ProductName") || "Premium Item";
-            return itemName + " x" + i.qty;
-        }).join(" | ");
-        callAPI({
-            action: "placeOrder",
-            order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount: totalAmount, finalAmount: finalAmount, paymentMode: paymentMode }
-        }).then(function(res) {
-            setLoading(false);
-            if (res.success) {
-                alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\n We will dispatch it shortly.");
-                globalProps.logSpyData("Order Placed", "ID: " + res.orderId + ", Val: ₹" + finalAmount);
-                setCart({});
-                setView("catalog");
-            } else {
-                alert("Order failed.");
-            }
-        });
-    };
-
-    return (
-        <div className="p-4 pb-24 bg-gray-50 min-h-screen animate-slide-up">
-            <h2 className="text-xl font-black text-gray-900 mb-6">Review Order</h2>
-            {cartItems.length === 0 ? (
-                <div className="text-center bg-white p-10 rounded-2xl shadow-sm border border-gray-100">
-                    <div className="text-5xl mb-4">🛒</div>
-                    <h3 className="font-bold text-gray-800 text-lg">Cart Khali Hai</h3>
-                    <button onClick={() => setView("catalog")} className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm">Catalog par jayein</button>
-                </div>
-            ) : (
-                cartItems.map(item => {
-                    var smartImg = getSmartImage(item);
-                    var itemName = getProp(item, "ProductName") || "Premium Item";
-                    var dealerPrice = Number(getProp(item, "DealerPrice") || 0);
-                    var itemCode = getProp(item, "ItemCode");
-                    return (
-                        <div key={itemCode} className="bg-white p-3 rounded-2xl shadow-sm mb-3 flex gap-3 border border-gray-50">
-                            {smartImg ? (
-                                <img src={smartImg} className="w-16 h-16 object-contain bg-gray-50 rounded-xl p-1" />
-                            ) : (
-                                <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center text-xs font-bold text-gray-400">No Img</div>
-                            )}
-
-                            <div className="flex-1 flex flex-col justify-between">
-                                <span className="font-bold text-sm text-gray-800 leading-tight">{itemName}</span>
-                                <div className="flex justify-between items-end mt-2">
-                                    <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-100">
-                                        <button onClick={() => updateQty(item, -1)} className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">-</button>
-                                        <span className="font-black text-sm w-4 text-center">{item.qty}</span>
-                                        <button onClick={() => updateQty(item, 1)} className="bg-blue-900 text-white font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">+</button>
-                                    </div>
-                                    <div className="font-black text-blue-900">₹{(dealerPrice * item.qty).toLocaleString('en-IN')}</div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })
-            )}
-
-            {cartItems.length > 0 && (
-                <div className="bg-white p-4 rounded-2xl shadow-sm mb-6 border border-gray-50 mt-6">
-                    <div className="flex justify-between text-sm font-bold text-gray-600 mb-2">
-                        <span>Net Value</span>
-                        <span>₹{totalAmount.toLocaleString('en-IN')}</span>
-                    </div>
-                    {cartItems.length > 0 && bulkPercent > 0 && (
-                        <div className="flex justify-between text-sm font-bold text-green-600 mb-2">
-                            <span>Bulk Discount ({bulkPercent}%)</span>
-                            <span>-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
-                        </div>
-                    )}
-                    {cartItems.length > 0 && paymentMode === 'UPI' && (
-                        <div className="flex justify-between text-sm font-bold text-purple-600 mb-2">
-                            <span>UPI Discount (2%)</span>
-                            <span>-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {cartItems.length > 0 && (
-                <React.Fragment>
-                    <h3 className="font-black text-gray-800 mb-3 ml-1">Payment Options</h3>
-                    <div className="grid grid-cols-1 gap-3 mb-8">
-                        <div onClick={() => setPaymentMode('COD')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
-                            <span className="font-black text-gray-800">Cash On Delivery (COD)</span>
-                        </div>
-
-                        <div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
-                            <div className="flex justify-between items-center">
-                                <div>
-                                    <div className="font-black text-purple-900 flex items-center gap-2"><span className="text-xl">⚡</span> PhonePe</div>
-                                    <div className="text-xs font-bold text-purple-600 mt-1">UPI (2% CASH DISCOUNT)</div>
-                                </div>
-                                <span className="bg-purple-100 text-purple-700 text-[10px] font-black px-2 py-1 rounded-full border border-purple-200">EXTRA SAVINGS</span>
-                            </div>
-                            {paymentMode === 'UPI' && (
-                                <div className="mt-4 pt-4 border-t border-purple-200 text-center animate-fade-in">
-                                    <div className="bg-purple-900 text-white font-black py-2 rounded-xl text-lg mb-4 shadow-sm">Scan & Pay Exactly: ₹{finalAmount}</div>
-                                    <img src={PHONEPE_QR_URL} className="w-48 h-48 mx-auto rounded-2xl shadow-md border-4 border-white mb-4" alt="PhonePe QR" />
-                                    <div className="bg-white p-3 rounded-xl border border-purple-100 mb-3 shadow-sm">
-                                        <div className="text-xs font-bold text-purple-900 mb-2">Upload Screenshot after payment to confirm order</div>
-                                        <input type="file" accept="image/*" onChange={() => setScreenshotUploaded(true)} className="text-[10px] block mx-auto text-purple-900 font-black" />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div onClick={() => setPaymentMode('DAILY')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
-                            <span className="font-black text-gray-800">Daily Collection (Auto-Pay)</span>
-                            {paymentMode === 'DAILY' && (
-                                <div className="mt-3 text-xs font-bold text-gray-500 bg-white p-2 rounded-lg border border-gray-100">
-                                    Aapka area representative next visit par collection karega.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-gray-100 z-50">
-                        <div className="flex justify-between items-center mb-3 px-2">
-                            <span className="font-bold text-gray-500 text-sm">Subtotal <span className="line-through ml-1 text-xs">₹{totalAmount.toLocaleString('en-IN')}</span></span>
-                            <span className="font-black text-2xl text-blue-900">
-                                <span className="text-sm text-gray-500 font-bold mr-1 block text-right">Final Amount</span>
-                                ₹{finalAmount.toLocaleString('en-IN')}
-                            </span>
-                        </div>
-                        <button onClick={handleCheckout} disabled={loading} className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}>
-                            {loading ? <div className="spinner border-t-white border-white/20 h-5 w-5 border-2 rounded-full"></div> : "CONFIRM ORDER"}
-                        </button>
-                    </div>
-                </React.Fragment>
-            )}
-        </div>
-    );
+callAPI({ action: "getDiscounts" }).then(res => {
+if (res && res.success && res.data.length > 0) {
+setDiscounts(res.data);
 }
-        function LedgerView(props) {
-            var user = props.user;
-            var callAPI = props.callAPI;
+}).catch(() => {});
+}, []);
 
-            const [ledgerData, setLedgerData] = useState([]);
-            const [loading, setLoading] = useState(true);
+const cartItems = Object.values(cart);
+const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+const totalAmount = cartItems.reduce((a, b) => {
+const itemPrice = Number(getProp(b, "DealerPrice") || 0);
+return a + (itemPrice * b.qty);
+}, 0);
 
-            useEffect(() => {
-                callAPI({ action: "getLedger", phone: user.phone }).then(res => {
-                    if (res && res.success) {
-                        setLedgerData(res.data);
-                    } else {
-                        alert(res.message || "Ledger statement sync issue.");
-                    }
-                    setLoading(false);
-                });
-            }, []);
+useEffect(() => {
+var sortedDiscounts = [...discounts]
+.map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+.filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+.sort((a, b) => a.minAmount - b.minAmount);
 
-            if (loading) return (
-                <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
-                    <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
-                    <p className="font-bold">Generating Ledger Statement...</p>
-                </div>
-            );
+var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
+var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
 
-            let totalDebit = 0;
-            let totalCredit = 0;
-            ledgerData.forEach(item => {
-                totalDebit += item.debit || 0;
-                totalCredit += item.credit || 0;
-            });
-            const netBalance = totalDebit - totalCredit;
+if (totalAmount >= tier2Min) {
+if (!celebratedTiers.tier2) {
+if (window.confetti) {
+window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+}
+setCelebratedTiers(prev => Object.assign({}, prev, { tier2: true }));
+}
+} else if (totalAmount >= tier1Min) {
+if (!celebratedTiers.tier1) {
+if (window.confetti) {
+window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+}
+setCelebratedTiers(prev => Object.assign({}, prev, { tier1: true }));
+}
+if (celebratedTiers.tier2) {
+setCelebratedTiers(prev => Object.assign({}, prev, { tier2: false }));
+}
+} else {
+if (celebratedTiers.tier1 || celebratedTiers.tier2) {
+setCelebratedTiers({ tier1: false, tier2: false });
+}
+}
+}, [totalAmount, discounts]);
 
-            return (
-                <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
-                    <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
-                        <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
-                        <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
-                        
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                            <div className="bg-red-50 p-3 rounded-xl border border-red-100">
-                                <div className="text-[9px] text-red-600 font-bold uppercase">Total Bills</div>
-                                <div className="font-black text-red-900 text-sm mt-1">₹{Math.round(totalDebit).toLocaleString('en-IN')}</div>
-                            </div>
-                            <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-                                <div className="text-[9px] text-green-600 font-bold uppercase">Total Paid</div>
-                                <div className="font-black text-green-900 text-sm mt-1">₹{Math.round(totalCredit).toLocaleString('en-IN')}</div>
-                            </div>
-                            <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
-                                <div className="text-[9px] text-blue-600 font-bold uppercase">Outstanding</div>
-                                <div className="font-black text-blue-900 text-sm mt-1">₹{Math.round(netBalance).toLocaleString('en-IN')}</div>
-                            </div>
-                        </div>
-                    </div>
+const handleSearchChange = (e) => {
+setSearchQuery(e.target.value);
+};
 
-                    <h3 className="font-black text-gray-800 text-md mb-3 px-1">Ledger Entries</h3>
-                    <div className="space-y-3 font-mono">
-                        {ledgerData.length === 0 ? (
-                            <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">Koi ledger record nahi mila.</div>
-                        ) : (
-                            ledgerData.map((item, index) => {
-                                const isDebit = item.debit > 0;
-                                return (
-                                    <div key={index} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-start">
-                                        <div className="w-2/3">
-                                            <div className="text-[10px] text-gray-400 font-bold">{item.date}</div>
-                                            <h4 className="text-xs font-black text-gray-800 mt-1 leading-snug">{item.particulars}</h4>
-                                            {item.vchType && (
-                                                <div className="flex gap-1.5 mt-1.5 font-sans">
-                                                    <span className="bg-gray-100 text-gray-600 font-bold text-[8px] px-1.5 py-0.5 rounded uppercase">{item.vchType}</span>
-                                                    {item.vchNo && <span className="bg-blue-50 text-blue-600 font-bold text-[8px] px-1.5 py-0.5 rounded">No: {item.vchNo}</span>}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="text-right">
-                                            {isDebit ? (
-                                                <div>
-                                                    <div className="text-xs text-red-500 font-bold">DR (Debited)</div>
-                                                    <div className="font-black text-red-600 text-base mt-0.5">₹{Math.round(item.debit).toLocaleString('en-IN')}</div>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <div className="text-xs text-green-500 font-bold">CR (Credited)</div>
-                                                    <div className="font-black text-green-600 text-base mt-0.5">₹{Math.round(item.credit).toLocaleString('en-IN')}</div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                    
-                    <button onClick={() => window.print()} className="w-full bg-blue-900 text-white font-black py-4 rounded-2xl shadow-lg mt-6 flex items-center justify-center gap-1.5 active:scale-95">
-                        📥 DOWNLOAD LEDGER PDF
-                    </button>
-                </div>
-            );
-        }
+const updateQty = (product, change) => {
+if (globalProps.customerMode) return;
+const updated = Object.assign({}, cart);
+const itemCode = getProp(product, "ItemCode");
+if (!itemCode) return;
 
-        function OrdersHistoryView(props) {
-            var user = props.user;
-            var callAPI = props.callAPI;
-            const [orders, setOrders] = useState([]);
-            const [loading, setLoading] = useState(true);
+const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
+const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
+const newQty = currentQty + change;
+if (newQty > stockVal && stockVal > 0) return alert("Maximum stock limit reached!");
+if (newQty <= 0) delete updated[itemCode];
+else updated[itemCode] = Object.assign({}, product, { qty: newQty });
+setCart(updated);
+};
 
-            useEffect(() => {
-                callAPI({ action: "getDealerOrders", phone: user.phone }).then(res => {
-                    if (res && res.success) {
-                        setOrders(res.data);
-                    } else {
-                        alert(res.message || "Orders history fetch failed.");
-                    }
-                    setLoading(false);
-                });
-            }, []);
+if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
-            if (loading) return (
-                <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
-                    <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
-                    <p className="font-bold">Generating Order History...</p>
-                </div>
-            );
+const inStockFlat = products.filter(p => {
+const stockVal = getProp(p, "Stock") || 0;
+return stockVal && parseInt(stockVal) > 0;
+});
 
-            return (
-                <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
-                    <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
-                    {orders.length === 0 ? (
-                        <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
-                    ) : (
-                        <div className="space-y-4">
-                            {orders.map((ord, idx) => {
-                                var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
-                                return (
-                                    <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
-                                        <div className="flex justify-between items-start border-b border-gray-50 pb-2">
-                                            <div>
-                                                <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
-                                                <div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
-                                            </div>
-                                            <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                                                ord.status === "Delivered" ? "bg-green-100 text-green-700" :
-                                                ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
-                                                "bg-amber-100 text-amber-700"
-                                            }`}>
-                                                {ord.status || "Pending"}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="py-3 border-b border-dashed border-gray-100">
-                                            <div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items Ordered</div>
-                                            <div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
-                                                {itemsList.map((it, i) => (
-                                                    <div key={i} className="flex justify-between items-center py-0.5">
-                                                        <span>• {it.trim()}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+const inStockProducts = groupProductsByVariant(inStockFlat);
 
-                                        <div className="flex justify-between items-center pt-2">
-                                            <div>
-                                                <div className="text-[9px] text-gray-400 font-black uppercase">Payment</div>
-                                                <div className="text-xs font-black text-gray-600">{ord.paymentMode}</div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
-                                                <div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            );
-        }
+const renderProducts = (productList) => (
+<div className="p-4 grid grid-cols-2 gap-4">
+{productList.map((p, idx) => {
+var name = getProp(p, "ProductName") || "Premium Item";
+var brand = getProp(p, "Brand") || "Premium";
+var type = getProp(p, "Type") || "Accessories";
 
-        function ProductDetailModal(props) {
-            var product = props.product;
-            var onClose = props.onClose;
-            var cart = props.cart;
-            var updateQty = props.updateQty;
-            var user = props.user;
-            var globalProps = props.globalProps;
-            var activeVariants = props.activeVariants;
-            var setActiveVariants = props.setActiveVariants;
+var activeItemCode = activeVariants[getProp(p, "ItemCode")] || (p.variants && p.variants[0] ? getProp(p.variants[0], "ItemCode") : getProp(p, "ItemCode"));
+var activeVariant = p.variants ? p.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || p : p;
 
-            var activeItemCode = activeVariants[getProp(product, "ItemCode")] || (product.variants && product.variants[0] ? getProp(product.variants[0], "ItemCode") : getProp(product, "ItemCode"));
-            var activeVariant = product.variants ? product.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || product : product;
+const itemCode = getProp(activeVariant, "ItemCode");
+const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
+const smartImg = getSmartImage(activeVariant);
 
-            const [currentImgIndex, setCurrentImgIndex] = useState(0);
-            const [imagesList, setImagesList] = useState([]);
-            const [isZoomed, setIsZoomed] = useState(false);
-            const [zoomScale, setZoomScale] = useState(1.25);
+const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
+const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
+const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
+const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
-            const activeVariantCode = getProp(activeVariant, "ItemCode");
-            const currentQty = cart[activeVariantCode] ? cart[activeVariantCode].qty : 0;
-            
-            useEffect(() => {
-                const list = [];
-                const mainImg = getSmartImage(activeVariant);
-                if (mainImg) {
-                    list.push(mainImg);
-                }
-                
-                var allVariants = product.variants || [product];
-                allVariants.forEach(function(v) {
-                    var vMoreImages = getProp(v, "MoreImages");
-                    if (vMoreImages && vMoreImages.trim() !== "") {
-                        var extraImages = vMoreImages.split(" | ").map(img => img.trim());
-                        extraImages.forEach(function(img) {
-                            if (img !== "" && list.indexOf(img) === -1) {
-                                list.push(img);
-                            }
-                        });
-                    }
-                });
+const isValidPrice = !isNaN(dealerVal) && dealerVal > 0;
+const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
 
-                if (list.length === 0) {
-                    list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
-                }
-                setImagesList(list);
-            }, [activeVariant, product]);
+return (
+<div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
+{idx % 7 === 0 && (
+<span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none">🔥 High Demand</span>
+)}
+{idx % 5 === 0 && idx % 7 !== 0 && (
+<span className="absolute top-2 left-2 bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 select-none">⭐ Most Ordered</span>
+)}
 
-            const featuresList = [];
-            var activeFeatures = getProp(activeVariant, "Features");
-            if (activeFeatures && activeFeatures.trim() !== "") {
-                const parsed = activeFeatures.split(" | ").map(f => f.trim());
-                parsed.forEach(f => {
-                    if (f !== "") featuresList.push(f);
-                });
-            }
+<div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
+{smartImg ? (
+<img
+src={smartImg}
+className="h-32 w-full object-contain mb-2 p-1"
+onError={(e) => {
+e.target.onerror = null;
+e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
+}}
+/>
+) : (
+<div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
+)}
+<h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{name}</h3>
+</div>
 
-            const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
-            const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
-            const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
-            const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
+{p.isGrouped && (
+<div className="flex flex-wrap gap-1 mt-1 mb-2">
+{p.variants.map(v => {
+const vItemCode = getProp(v, "ItemCode");
+return (
+<button
+key={vItemCode}
+onClick={(e) => {
+e.stopPropagation();
+var nextActives = Object.assign({}, activeVariants);
+nextActives[getProp(p, "ItemCode")] = vItemCode;
+setActiveVariants(nextActives);
+}}
+className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+>
+{v.capacity}
+</button>
+);
+})}
+</div>
+)}
 
-            const handleNextImage = () => {
-                setCurrentImgIndex((prev) => (prev + 1) % imagesList.length);
-            };
+<div className="mt-1">
+{!globalProps.customerMode ? (
+<div>
+{hasDiscount && isValidPrice ? (
+<div className="flex items-center gap-1.5 mb-1">
+<span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{getProp(activeVariant, "MRP")}</span>
+<span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+</div>
+) : (
+getProp(activeVariant, "MRP") && (
+<div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{getProp(activeVariant, "MRP")}</div>
+)
+)}
+<div className="font-black text-lg text-blue-950 mb-2 tracking-tight">{displayPrice}</div>
 
-            const handlePrevImage = () => {
-                setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
-            };
+{isValidPrice && (
+currentQty > 0 ? (
+<div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+<button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+<span className="font-black text-blue-900">{currentQty}</span>
+<button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+</div>
+) : (
+<button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+)
+)}
+</div>
+) : (
+<button onClick={(e) => {
+e.stopPropagation();
+const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${brand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
+if (navigator.share) {
+navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
+} else {
+window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
+}
+globalProps.logSpyData("Shared Product Image", getProp(activeVariant, "ItemCode"));
+}} className="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-black py-3 rounded-xl shadow-sm flex items-center justify-center gap-1">
+📲 SHARE PHOTO
+</button>
+)}
+</div>
+</div>
+);
+})}
+</div>
+);
 
-            if (imagesList.length === 0) return null;
+const handleShareCategory = () => {
+const categoryProducts = inStockProducts.filter(p => {
+const pType = getProp(p, "Type") || "";
+return pType === selectedType;
+});
+let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
 
-            var activeName = getProp(product, "ProductName") || "Premium Item";
-            var activeBrand = getProp(activeVariant, "Brand") || "Premium";
-            var activeType = getProp(activeVariant, "Type") || "Accessories";
-            var activeStock = getProp(activeVariant, "Stock") || "Available";
+categoryProducts.slice(0, 15).forEach((p, idx) => {
+const cleanPhotoUrl = getSmartImage(p);
+const features = getProp(p, "Features") || "";
+const featuresExcerpt = (features && features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
+const name = getProp(p, "ProductName") || "";
+const mrp = getProp(p, "MRP") || 0;
+const dealerPrice = getProp(p, "DealerPrice") || 0;
 
-            return (
-                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
-                    <div className="absolute inset-0" onClick={onClose}></div>
-                    <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10 font-sans">
-                        
-                        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3 cursor-pointer" onClick={onClose}></div>
-                        
-                        <button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
-                        
-                        <div className="overflow-y-auto no-scrollbar pb-32">
-                            <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
-                                <img 
-                                    src={imagesList[currentImgIndex]} 
-                                    className="h-72 max-w-full object-contain" 
-                                    onError={(e) => {
-                                        if (imagesList.length > 1) {
-                                            const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
-                                            setImagesList(updatedList);
-                                            setCurrentImgIndex(0);
-                                        } else {
-                                            e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
-                                        }
-                                    }}
-                                />
-                                
-                                {imagesList.length > 1 && (
-                                    <React.Fragment>
-                                        <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">←</button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
-                                        
-                                        <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
-                                            {imagesList.map((_, idx) => {
-                                                const varItemCode = getProp(product.variants[idx] || {}, "ItemCode");
-                                                return (
-                                                    <div key={varItemCode || idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
-                                                );
-                                            })}
-                                        </div>
-                                    </React.Fragment>
-                                )}
-                            </div>
+if (globalProps.customerMode) {
+shareText += `${idx + 1}. *${name}*\n💰 Offer Price: ₹${mrp}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
+} else {
+shareText += `${idx + 1}. *${name}*\n💰 Dealer Price: ₹${dealerPrice} (MRP: ₹${mrp})${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
+}
+});
+shareText += `Ask for the best bulk deals today!`;
 
-                            <div className="p-5">
-                                <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">{activeBrand}</span>
-                                <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">{activeName}</h2>
-                                <p className="text-xs text-gray-400 font-bold mt-1 uppercase">Category: {activeType}</p>
+if (navigator.share) {
+navigator.share({ title: `${selectedType} Catalog`, text: shareText }).catch(() => {});
+} else {
+window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+}
+globalProps.logSpyData("Shared Category", selectedType);
+};
 
-                                {product.isGrouped && (
-                                    <div className="mt-4">
-                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Select Variant Size</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {product.variants.map(v => {
-                                                const vItemCode = getProp(v, "ItemCode");
-                                                return (
-                                                    <button
-                                                        key={vItemCode}
-                                                        onClick={() => {
-                                                            var nextActives = Object.assign({}, activeVariants);
-                                                            nextActives[getProp(product, "ItemCode")] = vItemCode;
-                                                            setActiveVariants(nextActives);
-                                                        }}
-                                                        className={`text-xs font-black px-3.5 py-2 rounded-xl border transition-all ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900 shadow-md' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
-                                                    >
-                                                        {v.capacity}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
+const searchBarUI = (
+<div className="p-3 bg-white flex items-center border-b">
+<input
+type="text"
+placeholder="Search products, brands..."
+value={searchQuery}
+onChange={handleSearchChange}
+className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
+/>
+{searchQuery && (
+<button onClick={() => setSearchQuery("")} className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl">✕</button>
+)}
+</div>
+);
 
-                                {!globalProps.customerMode ? (
-                                    <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                        <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Dealer Price ({activeVariant.capacity})</div>
-                                        <div className="flex items-baseline gap-2.5 mt-1">
-                                            <span className="text-3xl font-black text-blue-950">₹{dealerVal}</span>
-                                            {hasDiscount && (
-                                                <React.Fragment>
-                                                    <span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{mrpVal}</span>
-                                                    <span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
-                                                </React.Fragment>
-                                            )}
-                                        </div>
-                                        <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
-                                            <span>📦</span> In Stock Status: {activeStock} units
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
-                                        <div className="text-xs text-green-800 font-black uppercase tracking-wider">Offer MRP ({activeVariant.capacity})</div>
-                                        <div className="text-3xl font-black text-green-950 mt-1">₹{mrpVal || 'Contact store'}</div>
-                                    </div>
-                                )}
+let mainContent;
 
-                                <div className="mt-6">
-                                    <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">Product Key Highlights</h3>
-                                    {featuresList.length === 0 ? (
-                                        <p className="text-xs text-gray-500 font-bold italic leading-relaxed">High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.</p>
-                                    ) : (
-                                        <ul className="space-y-2.5">
-                                            {featuresList.map((f, i) => (
-                                                <li key={i} className="text-xs text-gray-700 font-bold flex items-start gap-2 leading-snug">
-                                                    <span className="text-green-600 text-sm leading-none mt-0.5">⚡</span>
-                                                    <span>{f}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
+if (searchQuery.trim() !== "") {
+const safeQuery = searchQuery.toLowerCase();
+const searchResults = inStockProducts.filter(p => {
+const pName = (getProp(p, "ProductName") || "").toLowerCase();
+const pBrand = (getProp(p, "Brand") || "").toLowerCase();
+return pName.includes(safeQuery) || pBrand.includes(safeQuery);
+});
+mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
+} else if (!selectedType) {
+const priorityOrder = [
+SMART WATCH, "AIRPODS", "NECKBAND", "POWERBANK",
+CABLE, "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
+];
 
-                        <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-30 shadow-inner">
-                            {!globalProps.customerMode ? (
-                                <React.Fragment>
-                                    <div>
-                                        <div className="text-[9px] uppercase font-black text-gray-400">Total Selection ({activeVariant.capacity})</div>
-                                        <div className="font-black text-lg text-gray-900 leading-none mt-0.5">₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}</div>
-                                    </div>
-                                    
-                                    <div className="w-1/2">
-                                        {currentQty > 0 ? (
-                                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                                <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-10 h-10 rounded-lg shadow-sm">-</button>
-                                                <span className="font-black text-blue-900 text-lg">{currentQty}</span>
-                                                <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm">+</button>
-                                            </div>
-                                        ) : (
-                                            <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95">Add To Order</button>
-                                        )}
-                                    </div>
-                                </React.Fragment>
-                            ) : (
-                                <button onClick={() => {
-                                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeBrand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
-                                    if (navigator.share) {
-                                        navigator.share({ title: activeName, text: shareText, url: imagesList[0] }).catch(() => {});
-                                    } else {
-                                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + imagesList[0])}`, '_blank');
-                                    }
-                                }} className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
-                                    📲 SHARE PHOTO WITH DEALER
-                                </button>
-                            )}
-                        </div>
-                    </div>
+const types = [...new Set(inStockFlat.map(p => getProp(p, "Type")).filter(Boolean))].sort((a, b) => {
+const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
+const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
 
-                    {isZoomed && (
-                        <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
-                            <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
-                            
-                            {imagesList.length > 1 && (
-                                <div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
-                                    <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">←</button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">→</button>
-                                </div>
-                            )}
+if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+if (indexA !== -1) return -1;
+if (indexB !== -1) return 1;
+return a.localeCompare(b);
+});
 
-                            <img 
-                                src={imagesList[currentImgIndex]} 
-                                className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out" 
-                                style={{ transform: 'scale(' + zoomScale + ')' }}
-                                onClick={(e) => {
-                                    e.stopPropagation(); 
-                                    setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25); 
-                                }}
-                                alt="Zoomed Product"
-                            />
-                            <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
-                                Tap image to Zoom In / Out. Use arrows to change photos.
-                            </p>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+mainContent = (
+<div className="p-4">
+<h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+<div className="grid grid-cols-2 gap-4">
+{types.map(type => {
+const coverProduct = inStockFlat.find(p => getProp(p, "Type") === type);
+const cover = coverProduct ? getSmartImage(coverProduct) : null;
+return (
+<div key={type} onClick={() => {
+setSelectedType(type);
+globalProps.logSpyData("Viewed Category", type);
+}} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
+{cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
+<h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
+</div>
+);
+})}
+</div>
+</div>
+);
+} else {
+const filteredProducts = inStockProducts.filter(p => getProp(p, "Type") === selectedType).sort((a, b) => {
+const priceA = Number(getProp(a, "DealerPrice") || 0);
+const priceB = Number(getProp(b, "DealerPrice") || 0);
+return priceB - priceA;
+});
+mainContent = (
+<div>
+<div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
+<button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
+<span className="font-black text-gray-800">{selectedType}</span>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+<button onClick={handleShareCategory} className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md active:scale-95 flex items-center gap-1">📲 SHARE LIST</button>
+</div>
+{renderProducts(filteredProducts)}
+</div>
+);
+}
+
+return (
+<div className="flex flex-col">
+<div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
+{totalItems > 0 && !globalProps.customerMode && (
+<ProgressBar totalAmount={totalAmount} discounts={discounts} />
+)}
+{searchBarUI}
+</div>
+{mainContent}
+{selectedProduct && (
+<ProductDetailModal
+product={selectedProduct}
+onClose={() => setSelectedProduct(null)}
+cart={cart}
+updateQty={updateQty}
+user={user}
+globalProps={globalProps}
+activeVariants={activeVariants}
+setActiveVariants={setActiveVariants}
+/>
+)}
+{totalItems > 0 && !globalProps.customerMode && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
+globalProps.logSpyData("Viewed Cart", "Items: " + totalItems + ", Val: ₹" + totalAmount);
+setView("cart");
+}} />}
+</div>
+);
+}
+
+function CartFooter(props) {
+var totalItems = props.totalItems;
+var totalAmount = props.totalAmount;
+var setView = props.setView;
+
+return (
+<div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
+<div>
+<div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
+<div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')} Total</div>
+</div>
+<button onClick={setView} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
+</div>
+);
+}
+
+function Cart(props) {
+var user = props.user;
+var cart = props.cart;
+var setCart = props.setCart;
+var setView = props.setView;
+var callAPI = props.callAPI;
+var globalProps = props.globalProps;
+
+const [loading, setLoading] = useState(false);
+const [paymentMode, setPaymentMode] = useState("");
+const [screenshotUploaded, setScreenshotUploaded] = useState(false);
+const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+
+const cartItems = Object.values(cart);
+const totalAmount = cartItems.reduce((acc, item) => {
+const itemPrice = Number(getProp(item, "DealerPrice") || 0);
+return acc + (itemPrice * item.qty);
+}, 0);
+
+useEffect(() => {
+callAPI({ action: "getDiscounts" }).then(res => {
+if (res && res.success && res.data.length > 0) {
+setDiscounts(res.data);
+}
+}).catch(() => {});
+}, []);
+
+var sortedDiscountsDesc = [...discounts]
+.map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+.filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+.sort((a, b) => b.minAmount - a.minAmount);
+
+let bulkPercent = 0;
+for (var i = 0; i < sortedDiscountsDesc.length; i++) {
+if (totalAmount >= sortedDiscountsDesc[i].minAmount) {
+bulkPercent = sortedDiscountsDesc[i].percent;
+break;
+}
+}
+
+const bulkDiscountAmount = Math.round(totalAmount * (bulkPercent / 100));
+const afterBulkTotal = totalAmount - bulkDiscountAmount;
+
+const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
+const finalAmount = afterBulkTotal - upiDiscountAmount;
+
+const updateQty = (product, change) => {
+const updated = Object.assign({}, cart);
+const itemCode = getProp(product, "ItemCode");
+if (!itemCode) return;
+
+const stockVal = parseInt(getProp(product, "Stock") || 9999);
+const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
+const newQty = currentQty + change;
+if (newQty > stockVal) return alert("Maximum stock limit reached!");
+if (newQty <= 0) delete updated[itemCode];
+else updated[itemCode] = Object.assign({}, product, { qty: newQty });
+setCart(updated);
+};
+
+const handleCheckout = function() {
+if (!paymentMode) return alert("Please select Payment Mode!");
+if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
+setLoading(true);
+var itemsStr = cartItems.map(function(i) {
+const itemName = getProp(i, "ProductName") || "Premium Item";
+return itemName + " x" + i.qty;
+}).join(" | ");
+callAPI({
+action: "placeOrder",
+order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount: totalAmount, finalAmount: finalAmount, paymentMode: paymentMode }
+}).then(function(res) {
+setLoading(false);
+if (res.success) {
+alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\n We will dispatch it shortly.");
+globalProps.logSpyData("Order Placed", "ID: " + res.orderId + ", Val: ₹" + finalAmount);
+setCart({});
+setView("catalog");
+} else {
+alert("Order failed.");
+}
+});
+};
+
+return (
+<div className="p-4 bg-gray-50 min-h-screen pb-40 font-sans">
+<div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
+{cartItems.length === 0 ? (
+<div className="text-center py-12">
+<span className="text-4xl">🛒</span>
+<p className="font-black text-gray-400 mt-2 text-sm uppercase">Cart Khali Hai</p>
+<button onClick={() => setView("catalog")} className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm">Catalog par jayein</button>
+</div>
+) : (
+cartItems.map(item => {
+var smartImg = getSmartImage(item);
+var itemName = getProp(item, "ProductName") || "Premium Item";
+var dealerPrice = Number(getProp(item, "DealerPrice") || 0);
+var itemCode = getProp(item, "ItemCode");
+return (
+<div key={itemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white">
+{smartImg ? (
+<img src={smartImg} className="w-12 h-12 object-contain rounded-lg border bg-white p-1 flex-shrink-0" />
+) : (
+<div className="w-12 h-12 bg-gray-50 rounded-lg border flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">No Img</div>
+)}
+
+<div className="flex-grow">
+<h4 className="text-xs font-bold leading-tight line-clamp-2">{itemName}</h4>
+<div className="flex items-center justify-between mt-2">
+<div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+<button onClick={() => updateQty(item, -1)} className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">-</button>
+<span className="font-black text-blue-900 text-xs px-2 min-w-[20px] text-center">{item.qty}</span>
+<button onClick={() => updateQty(item, 1)} className="bg-blue-900 text-white font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">+</button>
+</div>
+<div className="font-black text-gray-900 text-xs text-right">
+₹{(dealerPrice * item.qty).toLocaleString('en-IN')}
+</div>
+</div>
+</div>
+</div>
+);
+})
+)}
+
+{cartItems.length > 0 && (
+<div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
+<span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
+<span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+</div>
+)}
+
+{cartItems.length > 0 && bulkPercent > 0 && (
+<div className="flex justify-between items-center mt-2 text-green-700">
+<span className="font-bold uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
+<span className="font-black text-sm">-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
+</div>
+)}
+
+{cartItems.length > 0 && paymentMode === 'UPI' && (
+<div className="flex justify-between items-center mt-2 text-green-700">
+<span className="font-bold uppercase text-[10px]">UPI Discount (2%)</span>
+<span className="font-black text-sm">-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
+</div>
+)}
+</div>
+
+{cartItems.length > 0 && (
+<React.Fragment>
+<h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
+<div className="space-y-3">
+<div onClick={() => setPaymentMode('COD')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+<div className="font-black text-gray-800">Cash On Delivery (COD)</div>
+</div>
+
+<div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+<div className="flex justify-between items-center">
+<div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight">
+<span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">PhonePe</span>
+UPI (2% CASH DISCOUNT)
+</div>
+<div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
+</div>
+{paymentMode === 'UPI' && (
+<div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in">
+<p className="text-xs font-bold mb-3">Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span></p>
+
+<div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-4">
+<img src={PHONEPE_QR_URL} className="w-48 h-48 object-contain mx-auto" alt="PhonePe UPI Barcode" />
+<div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">PhonePe QR</div>
+</div>
+
+<p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
+<input type="file" accept="image/*" onChange={() => setScreenshotUploaded(true)} className="text-[10px] block mx-auto text-purple-900 font-black" />
+</div>
+)}
+</div>
+<div onClick={() => setPaymentMode('DAILY')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+<div className="font-black text-purple-900">Daily Collection (Auto-Pay)</div>
+{paymentMode === 'DAILY' && (
+<div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-purple-100">
+<iframe width="100%" height="180" src="https://www.youtube.com/embed/tgbNymZ7vqY" frameBorder="0" allowFullScreen></iframe>
+</div>
+)}
+</div>
+</div>
+
+<div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-50">
+<div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
+<span>Subtotal</span>
+<span className="line-through font-mono">₹{totalAmount.toLocaleString('en-IN')}</span>
+</div>
+<div className="flex justify-between items-center mb-4">
+<span className="font-black text-gray-800 text-lg">Final Amount</span>
+<span className="text-blue-900 text-2xl font-black">₹{finalAmount.toLocaleString('en-IN')}</span>
+</div>
+<button onClick={handleCheckout} disabled={loading} className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}>
+{loading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "CONFIRM ORDER"}
+</button>
+</div>
+</React.Fragment>
+)}
+</div>
+);
+}
+
+function LedgerView(props) {
+var user = props.user;
+var callAPI = props.callAPI;
+
+const [ledgerData, setLedgerData] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+callAPI({ action: "getLedger", phone: user.phone }).then(res => {
+if (res && res.success) {
+setLedgerData(res.data);
+} else {
+alert(res.message || "Ledger statement sync issue.");
+}
+setLoading(false);
+});
+}, []);
+
+if (loading) return (
+<div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+<div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+<p className="font-bold">Generating Ledger Statement...</p>
+</div>
+);
+
+let totalDebit = 0;
+let totalCredit = 0;
+ledgerData.forEach(item => {
+totalDebit += item.debit || 0;
+totalCredit += item.credit || 0;
+});
+const netBalance = totalDebit - totalCredit;
+
+return (
+<div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
+<div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
+<h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
+<p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
+
+<div className="grid grid-cols-3 gap-2 text-center">
+<div className="bg-red-50 p-3 rounded-xl border border-red-100">
+<div className="text-[9px] text-red-600 font-bold uppercase">Total Bills</div>
+<div className="font-black text-red-900 text-sm mt-1">₹{Math.round(totalDebit).toLocaleString('en-IN')}</div>
+</div>
+<div className="bg-green-50 p-3 rounded-xl border border-green-100">
+<div className="text-[9px] text-green-600 font-bold uppercase">Total Paid</div>
+<div className="font-black text-green-900 text-sm mt-1">₹{Math.round(totalCredit).toLocaleString('en-IN')}</div>
+</div>
+<div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+<div className="text-[9px] text-blue-600 font-bold uppercase">Outstanding</div>
+<div className="font-black text-blue-900 text-sm mt-1">₹{Math.round(netBalance).toLocaleString('en-IN')}</div>
+</div>
+</div>
+</div>
+
+<h3 className="font-black text-gray-800 text-md mb-3 px-1">Ledger Entries</h3>
+<div className="space-y-3 font-mono">
+{ledgerData.length === 0 ? (
+<div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">Koi ledger record nahi mila.</div>
+) : (
+ledgerData.map((item, index) => {
+const isDebit = item.debit > 0;
+return (
+<div key={index} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between items-start">
+<div className="w-2/3">
+<div className="text-[10px] text-gray-400 font-bold">{item.date}</div>
+<h4 className="text-xs font-black text-gray-800 mt-1 leading-snug">{item.particulars}</h4>
+{item.vchType && (
+<div className="flex gap-1.5 mt-1.5 font-sans">
+<span className="bg-gray-100 text-gray-600 font-bold text-[8px] px-1.5 py-0.5 rounded uppercase">{item.vchType}</span>
+{item.vchNo && <span className="bg-blue-50 text-blue-600 font-bold text-[8px] px-1.5 py-0.5 rounded">No: {item.vchNo}</span>}
+</div>
+)}
+</div>
+<div className="text-right">
+{isDebit ? (
+<div>
+<div className="text-xs text-red-500 font-bold">DR (Debited)</div>
+<div className="font-black text-red-600 text-base mt-0.5">₹{Math.round(item.debit).toLocaleString('en-IN')}</div>
+</div>
+) : (
+<div>
+<div className="text-xs text-green-500 font-bold">CR (Credited)</div>
+<div className="font-black text-green-600 text-base mt-0.5">₹{Math.round(item.credit).toLocaleString('en-IN')}</div>
+</div>
+)}
+</div>
+</div>
+);
+})
+)}
+</div>
+
+<button onClick={() => window.print()} className="w-full bg-blue-900 text-white font-black py-4 rounded-2xl shadow-lg mt-6 flex items-center justify-center gap-1.5 active:scale-95">
+📥 DOWNLOAD LEDGER PDF
+</button>
+</div>
+);
+}
+
+function OrdersHistoryView(props) {
+var user = props.user;
+var callAPI = props.callAPI;
+const [orders, setOrders] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+callAPI({ action: "getDealerOrders", phone: user.phone }).then(res => {
+if (res && res.success) {
+setOrders(res.data);
+} else {
+alert(res.message || "Orders history fetch failed.");
+}
+setLoading(false);
+});
+}, []);
+
+if (loading) return (
+<div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+<div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+<p className="font-bold">Generating Order History...</p>
+</div>
+);
+
+return (
+<div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
+<h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
+{orders.length === 0 ? (
+<div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
+) : (
+<div className="space-y-4">
+{orders.map((ord, idx) => {
+var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
+return (
+<div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
+<div className="flex justify-between items-start border-b border-gray-50 pb-2">
+<div>
+<div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
+<div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
+</div>
+<span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+ord.status === "Delivered" ? "bg-green-100 text-green-700" :
+ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
+bg-amber-100 text-amber-700
+}`}>
+{ord.status || "Pending"}
+</span>
+</div>
+
+<div className="py-3 border-b border-dashed border-gray-100">
+<div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items Ordered</div>
+<div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
+{itemsList.map((it, i) => (
+<div key={i} className="flex justify-between items-center py-0.5">
+<span>• {it.trim()}</span>
+</div>
+))}
+</div>
+</div>
+
+<div className="flex justify-between items-center pt-2">
+<div>
+<div className="text-[9px] text-gray-400 font-black uppercase">Payment</div>
+<div className="text-xs font-black text-gray-600">{ord.paymentMode}</div>
+</div>
+<div className="text-right">
+<div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
+<div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}</div>
+</div>
+</div>
+</div>
+);
+})}
+</div>
+)}
+</div>
+);
+}
+
+function ProductDetailModal(props) {
+var product = props.product;
+var onClose = props.onClose;
+var cart = props.cart;
+var updateQty = props.updateQty;
+var user = props.user;
+var globalProps = props.globalProps;
+var activeVariants = props.activeVariants;
+var setActiveVariants = props.setActiveVariants;
+
+var activeItemCode = activeVariants[getProp(product, "ItemCode")] || (product.variants && product.variants[0] ? getProp(product.variants[0], "ItemCode") : getProp(product, "ItemCode"));
+var activeVariant = product.variants ? product.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || product : product;
+
+const [currentImgIndex, setCurrentImgIndex] = useState(0);
+const [imagesList, setImagesList] = useState([]);
+const [isZoomed, setIsZoomed] = useState(false);
+const [zoomScale, setZoomScale] = useState(1.25);
+
+const activeVariantCode = getProp(activeVariant, "ItemCode");
+const currentQty = cart[activeVariantCode] ? cart[activeVariantCode].qty : 0;
+
+useEffect(() => {
+const list = [];
+const mainImg = getSmartImage(activeVariant);
+if (mainImg) {
+list.push(mainImg);
+}
+
+var allVariants = product.variants || [product];
+allVariants.forEach(function(v) {
+var vMoreImages = getProp(v, "MoreImages");
+if (vMoreImages && vMoreImages.trim() !== "") {
+var extraImages = vMoreImages.split(" | ").map(img => img.trim());
+extraImages.forEach(function(img) {
+if (img !== "" && list.indexOf(img) === -1) {
+list.push(img);
+}
+});
+}
+});
+
+if (list.length === 0) {
+list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
+}
+setImagesList(list);
+}, [activeVariant, product]);
+
+const featuresList = [];
+var activeFeatures = getProp(activeVariant, "Features");
+if (activeFeatures && activeFeatures.trim() !== "") {
+const parsed = activeFeatures.split(" | ").map(f => f.trim());
+parsed.forEach(f => {
+if (f !== "") featuresList.push(f);
+});
+}
+
+const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
+const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
+const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
+const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
+
+const handleNextImage = () => {
+setCurrentImgIndex((prev) => (prev + 1) % imagesList.length);
+};
+
+const handlePrevImage = () => {
+setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
+};
+
+if (imagesList.length === 0) return null;
+
+var activeName = getProp(product, "ProductName") || "Premium Item";
+var activeBrand = getProp(activeVariant, "Brand") || "Premium";
+var activeType = getProp(activeVariant, "Type") || "Accessories";
+var activeStock = getProp(activeVariant, "Stock") || "Available";
+
+return (
+<div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
+<div className="absolute inset-0" onClick={onClose}></div>
+<div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10 font-sans">
+
+<div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3 cursor-pointer" onClick={onClose}></div>
+
+<button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
+
+<div className="overflow-y-auto no-scrollbar pb-32">
+<div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
+<img
+src={imagesList[currentImgIndex]}
+className="h-72 max-w-full object-contain"
+onError={(e) => {
+if (imagesList.length > 1) {
+const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
+setImagesList(updatedList);
+setCurrentImgIndex(0);
+} else {
+e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
+}
+}}
+/>
+
+{imagesList.length > 1 && (
+<React.Fragment>
+<button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">←</button>
+<button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
+
+<div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
+{imagesList.map((_, idx) => {
+const varItemCode = getProp(product.variants[idx] || {}, "ItemCode");
+return (
+<div key={varItemCode || idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
+);
+})}
+</div>
+</React.Fragment>
+)}
+</div>
+
+<div className="p-5">
+<span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">{activeBrand}</span>
+<h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">{activeName}</h2>
+<p className="text-xs text-gray-400 font-bold mt-1 uppercase">Category: {activeType}</p>
+
+{product.isGrouped && (
+<div className="mt-4">
+<h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Select Variant Size</h4>
+<div className="flex flex-wrap gap-2">
+{product.variants.map(v => {
+const vItemCode = getProp(v, "ItemCode");
+return (
+<button
+key={vItemCode}
+onClick={() => {
+var nextActives = Object.assign({}, activeVariants);
+nextActives[getProp(product, "ItemCode")] = vItemCode;
+setActiveVariants(nextActives);
+}}
+className={`text-xs font-black px-3.5 py-2 rounded-xl border transition-all ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900 shadow-md' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
+>
+{v.capacity}
+</button>
+);
+})}
+</div>
+</div>
+)}
+
+{!globalProps.customerMode ? (
+<div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+<div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Dealer Price ({activeVariant.capacity})</div>
+<div className="flex items-baseline gap-2.5 mt-1">
+<span className="text-3xl font-black text-blue-950">₹{dealerVal}</span>
+{hasDiscount && (
+<React.Fragment>
+<span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{mrpVal}</span>
+<span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+</React.Fragment>
+)}
+</div>
+<div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
+<span>📦</span> In Stock Status: {activeStock} units
+</div>
+</div>
+) : (
+<div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
+<div className="text-xs text-green-800 font-black uppercase tracking-wider">Offer MRP ({activeVariant.capacity})</div>
+<div className="text-3xl font-black text-green-950 mt-1">₹{mrpVal || 'Contact store'}</div>
+</div>
+)}
+
+<div className="mt-6">
+<h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">Product Key Highlights</h3>
+{featuresList.length === 0 ? (
+<p className="text-xs text-gray-500 font-bold italic leading-relaxed">High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.</p>
+) : (
+<ul className="space-y-2.5">
+{featuresList.map((f, i) => (
+<li key={i} className="text-xs text-gray-700 font-bold flex items-start gap-2 leading-snug">
+<span className="text-green-600 text-sm leading-none mt-0.5">⚡</span>
+<span>{f}</span>
+</li>
+))}
+</ul>
+)}
+</div>
+</div>
+</div>
+
+<div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-between items-center z-30 shadow-inner">
+{!globalProps.customerMode ? (
+<React.Fragment>
+<div>
+<div className="text-[9px] uppercase font-black text-gray-400">Total Selection ({activeVariant.capacity})</div>
+<div className="font-black text-lg text-gray-900 leading-none mt-0.5">₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}</div>
+</div>
+
+<div className="w-1/2">
+{currentQty > 0 ? (
+<div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+<button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-10 h-10 rounded-lg shadow-sm">-</button>
+<span className="font-black text-blue-900 text-lg">{currentQty}</span>
+<button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm">+</button>
+</div>
+) : (
+<button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95">Add To Order</button>
+)}
+</div>
+</React.Fragment>
+) : (
+<button onClick={() => {
+const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeBrand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
+if (navigator.share) {
+navigator.share({ title: activeName, text: shareText, url: imagesList[0] }).catch(() => {});
+} else {
+window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + imagesList[0])}`, '_blank');
+}
+}} className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
+📲 SHARE PHOTO WITH DEALER
+</button>
+)}
+</div>
+</div>
+
+{isZoomed && (
+<div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
+<button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
+
+{imagesList.length > 1 && (
+<div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
+<button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">←</button>
+<button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">→</button>
+</div>
+)}
+
+<img
+src={imagesList[currentImgIndex]}
+className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out"
+style={{ transform: 'scale(' + zoomScale + ')' }}
+onClick={(e) => {
+e.stopPropagation();
+setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25);
+}}
+alt="Zoomed Product"
+/>
+<p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
+Tap image to Zoom In / Out. Use arrows to change photos.
+</p>
+</div>
+)}
+</div>
+);
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
 </body>
 </html>
