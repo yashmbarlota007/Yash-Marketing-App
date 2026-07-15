@@ -166,7 +166,6 @@ return (
 );
 }
 
-// Case-insensitive, grouping corrector to solve the "Standard" issue
 function groupProductsByVariant(flatList) {
 var grouped = {};
 var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
@@ -190,10 +189,11 @@ baseName = name.replace(match[0], "").replace(/\s+/g, " ").trim();
 baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
 }
 
-// If items do not contain dynamic capacity variations, keep them ungrouped by adding unique IDs
-var groupKey = capacity
-? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
-: (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
+if (capacity) {
+var groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase();
+} else {
+var groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode;
+}
 
 if (!grouped[groupKey]) {
 grouped[groupKey] = {
@@ -382,7 +382,7 @@ return (
 <div>
 <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
 <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.4</span>
+Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.5</span>
 </h1>
 <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
 </div>
@@ -1156,82 +1156,149 @@ return (
 }
 
 function OrdersHistoryView(props) {
-var user = props.user;
-var callAPI = props.callAPI;
-const [orders, setOrders] = useState([]);
-const [loading, setLoading] = useState(true);
+  var user = props.user;
+  var callAPI = props.callAPI;
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [zoomedMedia, setZoomedMedia] = useState(null); 
 
-useEffect(() => {
-callAPI({ action: "getDealerOrders", phone: user.phone }).then(res => {
-if (res && res.success) {
-setOrders(res.data);
-} else {
-alert(res.message || "Orders history fetch failed.");
-}
-setLoading(false);
-});
-}, []);
+  useEffect(() => {
+    callAPI({ action: "getDealerOrders", phone: user.phone }).then(res => {
+      if (res && res.success) {
+        setOrders(res.data);
+      } else {
+        alert(res.message || "Orders history fetch failed.");
+      }
+      setLoading(false);
+    });
+  }, []);
 
-if (loading) return (
-<div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
-<div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
-<p className="font-bold">Generating Order History...</p>
-</div>
-);
+  const getDriveExportUrl = (url) => {
+    let fileId = "";
+    const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (dMatch) fileId = dMatch[1];
+    else if (idMatch) fileId = idMatch[1];
+    if (fileId) return "https://drive.google.com/uc?export=view&id=" + fileId;
+    return url;
+  };
 
-return (
-<div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
-<h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
-{orders.length === 0 ? (
-<div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
-) : (
-<div className="space-y-4">
-{orders.map((ord, idx) => {
-var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
-return (
-<div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
-<div className="flex justify-between items-start border-b border-gray-50 pb-2">
-<div>
-<div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
-<div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
-</div>
-<span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-ord.status === "Delivered" ? "bg-green-100 text-green-700" :
-ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
-"bg-amber-100 text-amber-700"
-}`}>
-{ord.status || "Pending"}
-</span>
-</div>
+  if (loading) return (
+    <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+      <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+      <p className="font-bold">Generating Order History...</p>
+    </div>
+  );
 
-<div className="py-3 border-b border-dashed border-gray-100">
-<div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items Ordered</div>
-<div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
-{itemsList.map((it, i) => (
-<div key={i} className="flex justify-between items-center py-0.5">
-<span>• {it.trim()}</span>
-</div>
-))}
-</div>
-</div>
+  return (
+    <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans relative">
+      <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
+      {orders.length === 0 ? (
+        <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
+      ) : (
+        <div className="space-y-4">
+          {orders.map((ord, idx) => {
+            var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
+            return (
+              <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
+                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
+                  <div>
+                    <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
+                    <div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
+                  </div>
+                  <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    ord.status === "Delivered" ? "bg-green-100 text-green-700" :
+                    ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
+                    "bg-amber-100 text-amber-700"
+                  }`}>
+                    {ord.status || "Pending"}
+                  </span>
+                </div>
 
-<div className="flex justify-between items-center pt-2">
-<div>
-<div className="text-[9px] text-gray-400 font-black uppercase">Payment</div>
-<div className="text-xs font-black text-gray-600">{ord.paymentMode}</div>
-</div>
-<div className="text-right">
-<div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
-<div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}</div>
-</div>
-</div>
-</div>
-);
-})}
-</div>
-)}
-</div>
-);
+                {ord.attachments && ord.attachments.length > 0 && (
+                    <div className="py-3 border-b border-dashed border-gray-100">
+                        <div className="text-[9px] text-gray-400 font-black uppercase mb-2">Order Documents & Tracking</div>
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                            {ord.attachments.map((att, i) => {
+                                const isAudio = att.label.toLowerCase().includes("call") || att.label.toLowerCase().includes("record");
+                                const isImage = !isAudio;
+                                const previewUrl = getDriveExportUrl(att.url);
+                                
+                                return (
+                                    <div key={i} 
+                                        onClick={() => setZoomedMedia({ label: att.label, url: att.url, type: isAudio ? 'audio' : 'image', previewUrl })}
+                                        className="min-w-[70px] w-[70px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                                    >
+                                        <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm">
+                                            {isImage ? (
+                                                <img src={previewUrl} className="w-full h-full object-cover" 
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Doc&background=f3f4f6&color=9ca3af"; }} 
+                                                />
+                                            ) : (
+                                                <span className="text-2xl text-blue-900">🎧</span>
+                                            )}
+                                        </div>
+                                        <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">{att.label.split(":")[0]}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                <div className="py-3 border-b border-dashed border-gray-100">
+                  <div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items Ordered</div>
+                  <div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
+                    {itemsList.map((it, i) => (
+                      <div key={i} className="flex justify-between items-center py-0.5">
+                        <span>• {it.trim()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2">
+                  <div>
+                    <div className="text-[9px] text-gray-400 font-black uppercase">Payment</div>
+                    <div className="text-xs font-black text-gray-600">{ord.paymentMode}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
+                    <div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {zoomedMedia && (
+         <div className="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
+            <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50">✕</button>
+            <div className="text-white font-black mb-4 uppercase tracking-wider text-center">{zoomedMedia.label}</div>
+            
+            {zoomedMedia.type === 'image' ? (
+                <div className="relative w-full flex justify-center h-full max-h-[70vh]">
+                  <img src={zoomedMedia.previewUrl} className="max-h-full max-w-full object-contain rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+                </div>
+            ) : (
+                <div className="bg-gray-800 p-8 rounded-3xl flex flex-col items-center gap-4 border border-gray-700 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-6xl animate-pulse">📞</span>
+                    <h3 className="text-white font-black text-lg">Call Recording</h3>
+                    <p className="text-gray-400 text-xs font-bold text-center mb-2">Listen to the official order confirmation and support call directly.</p>
+                    <a href={zoomedMedia.url} target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm">
+                        PLAY RECORDING SECURELY ↗
+                    </a>
+                </div>
+            )}
+            <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
+                Tap anywhere outside to close preview.
+            </p>
+         </div>
+      )}
+    </div>
+  );
 }
 
 function ProductDetailModal(props) {
