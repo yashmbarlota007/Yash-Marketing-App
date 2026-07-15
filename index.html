@@ -62,7 +62,7 @@ const { useState, useEffect } = React;
 // MASTER CONFIGURATIONS
 var cacheBypass = "?v=" + new Date().getTime();
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzmsQSqrAi8bkGogOqylI_1O5vsTll9c5tEiV_8ptGrp2nXBjC362yZwOUlBqBUcFzMTg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwXY9RxnKMrSxAwIs69zn9LJCOJDGY12ufXalvIZEbbp_07rg04LbE5qoDTN_UHd4IoZA/exec";
 const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
 
@@ -166,6 +166,7 @@ return (
 );
 }
 
+// Case-insensitive, grouping corrector to solve the "Standard" issue
 function groupProductsByVariant(flatList) {
 var grouped = {};
 var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
@@ -189,11 +190,10 @@ baseName = name.replace(match[0], "").replace(/\s+/g, " ").trim();
 baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
 }
 
-if (capacity) {
-var groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase();
-} else {
-var groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode;
-}
+// If items do not contain dynamic capacity variations, keep them ungrouped by adding unique IDs
+var groupKey = capacity
+? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
+: (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
 
 if (!grouped[groupKey]) {
 grouped[groupKey] = {
@@ -382,7 +382,7 @@ return (
 <div>
 <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
 <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.5</span>
+Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.4</span>
 </h1>
 <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
 </div>
@@ -1173,14 +1173,14 @@ function OrdersHistoryView(props) {
     });
   }, []);
 
-  const getDriveExportUrl = (url) => {
-    let fileId = "";
+  // Helper to extract clean File ID from ANY drive link to force native iframe preview
+  const getFileId = (url) => {
+    if(!url || typeof url !== 'string') return null;
     const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
     const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (dMatch) fileId = dMatch[1];
-    else if (idMatch) fileId = idMatch[1];
-    if (fileId) return "https://drive.google.com/uc?export=view&id=" + fileId;
-    return url;
+    if (dMatch) return dMatch[1];
+    if (idMatch) return idMatch[1];
+    return null;
   };
 
   if (loading) return (
@@ -1201,7 +1201,7 @@ function OrdersHistoryView(props) {
             var itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
             return (
               <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
-                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
+                <div className="flex justify-between items-start border-b border-gray-50 pb-2">
                   <div>
                     <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
                     <div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
@@ -1215,30 +1215,31 @@ function OrdersHistoryView(props) {
                   </span>
                 </div>
 
+                {/* NEW ATTACHMENT TRAY */}
                 {ord.attachments && ord.attachments.length > 0 && (
                     <div className="py-3 border-b border-dashed border-gray-100">
                         <div className="text-[9px] text-gray-400 font-black uppercase mb-2">Order Documents & Tracking</div>
                         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
                             {ord.attachments.map((att, i) => {
-                                const isAudio = att.label.toLowerCase().includes("call") || att.label.toLowerCase().includes("record");
-                                const isImage = !isAudio;
-                                const previewUrl = getDriveExportUrl(att.url);
+                                const fileId = getFileId(att.url);
+                                let icon = "📄";
+                                if(att.type === 'image') icon = "📸";
+                                if(att.type === 'audio') icon = "🎧";
+                                if(att.type === 'rating') icon = "⭐";
                                 
                                 return (
                                     <div key={i} 
-                                        onClick={() => setZoomedMedia({ label: att.label, url: att.url, type: isAudio ? 'audio' : 'image', previewUrl })}
+                                        onClick={() => setZoomedMedia({ ...att, fileId })}
                                         className="min-w-[70px] w-[70px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
                                     >
-                                        <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm">
-                                            {isImage ? (
-                                                <img src={previewUrl} className="w-full h-full object-cover" 
-                                                    onError={(e) => { e.target.onerror = null; e.target.src = "https://ui-avatars.com/api/?name=Doc&background=f3f4f6&color=9ca3af"; }} 
-                                                />
+                                        <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm relative">
+                                            {att.type === 'rating' ? (
+                                                <span className="text-xl font-black text-amber-500">{att.url}</span>
                                             ) : (
-                                                <span className="text-2xl text-blue-900">🎧</span>
+                                                <span className="text-2xl opacity-80">{icon}</span>
                                             )}
                                         </div>
-                                        <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">{att.label.split(":")[0]}</span>
+                                        <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">{att.label}</span>
                                     </div>
                                 );
                             })}
@@ -1273,25 +1274,41 @@ function OrdersHistoryView(props) {
         </div>
       )}
 
+      {/* FULL-SCREEN SECURE IFRAME VIEWER */}
       {zoomedMedia && (
          <div className="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
             <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50">✕</button>
-            <div className="text-white font-black mb-4 uppercase tracking-wider text-center">{zoomedMedia.label}</div>
+            <div className="text-white font-black mb-4 uppercase tracking-wider text-center flex flex-col gap-1">
+                <span>{zoomedMedia.label}</span>
+                <span className="text-[9px] text-gray-400">Secure Viewer</span>
+            </div>
             
-            {zoomedMedia.type === 'image' ? (
-                <div className="relative w-full flex justify-center h-full max-h-[70vh]">
-                  <img src={zoomedMedia.previewUrl} className="max-h-full max-w-full object-contain rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
+            {zoomedMedia.type === 'rating' ? (
+                <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 border-b-8 border-amber-500 max-w-xs w-full" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-6xl">⭐</span>
+                    <h3 className="text-gray-900 font-black text-4xl">{zoomedMedia.url}</h3>
+                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest text-center">Order Rating</p>
+                </div>
+            ) : zoomedMedia.fileId ? (
+                <div className="w-full h-[65vh] max-w-sm bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative border border-gray-800" onClick={(e) => e.stopPropagation()}>
+                    {/* NATIVE IFRAME PREVIEW: Bypasses all image rendering blocks completely */}
+                    <iframe 
+                        src={`https://drive.google.com/file/d/${zoomedMedia.fileId}/preview`} 
+                        className="w-full h-full border-0" 
+                        allow="autoplay"
+                    ></iframe>
                 </div>
             ) : (
                 <div className="bg-gray-800 p-8 rounded-3xl flex flex-col items-center gap-4 border border-gray-700 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-6xl animate-pulse">📞</span>
-                    <h3 className="text-white font-black text-lg">Call Recording</h3>
-                    <p className="text-gray-400 text-xs font-bold text-center mb-2">Listen to the official order confirmation and support call directly.</p>
+                    <span className="text-5xl">🔗</span>
+                    <h3 className="text-white font-black text-lg text-center">External Link</h3>
+                    <p className="text-gray-400 text-xs font-bold text-center mb-2">Click below to open the file in a new secure tab.</p>
                     <a href={zoomedMedia.url} target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm">
-                        PLAY RECORDING SECURELY ↗
+                        OPEN FILE ↗
                     </a>
                 </div>
             )}
+            
             <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
                 Tap anywhere outside to close preview.
             </p>
