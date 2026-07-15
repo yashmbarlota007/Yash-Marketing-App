@@ -62,7 +62,7 @@ const { useState, useEffect } = React;
 // MASTER CONFIGURATIONS
 var cacheBypass = "?v=" + new Date().getTime();
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzmsQSqrAi8bkGogOqylI_1O5vsTll9c5tEiV_8ptGrp2nXBjC362yZwOUlBqBUcFzMTg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwXY9RxnKMrSxAwIs69zn9LJCOJDGY12ufXalvIZEbbp_07rg04LbE5qoDTN_UHd4IoZA/exec";
 const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 const PHONEPE_QR_URL = "https://drive.google.com/uc?export=view&id=1JUBEoVt6pReqHINdb8LZIxzjlMnE-S-G";
 
@@ -235,6 +235,7 @@ function groupProductsByVariant(flatList) {
   });
 }
 
+// Universal Progress Calculator for dynamic brand/mix schemes
 function calculateSchemeProgress(cartItems, scheme) {
   let currentQty = 0;
   cartItems.forEach(item => {
@@ -408,7 +409,7 @@ function App() {
         <div>
           <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
             <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.6</span>
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.7</span>
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
@@ -514,6 +515,7 @@ function Catalog(props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+  const [schemes, setSchemes] = useState([]); // NEW STATE IN CATALOG
   const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
   const [activeVariants, setActiveVariants] = useState({});
 
@@ -528,6 +530,13 @@ function Catalog(props) {
     callAPI({ action: "getDiscounts" }).then(res => {
       if (res && res.success && res.data.length > 0) {
         setDiscounts(res.data);
+      }
+    }).catch(() => {});
+    
+    // NEW: Fetch schemes for Catalog view
+    callAPI({ action: "getSchemes" }).then(res => {
+      if (res && res.success) {
+        setSchemes(res.data);
       }
     }).catch(() => {});
   }, []);
@@ -832,7 +841,28 @@ function Catalog(props) {
     <div className="flex flex-col">
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
         {totalItems > 0 && !globalProps.customerMode && (
-          <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+          <React.Fragment>
+            <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+            {/* CATALOG STICKY SCHEME TRACKER */}
+            {schemes.length > 0 && (
+              <div className="bg-white">
+                {schemes.map((scheme, idx) => {
+                  const progress = calculateSchemeProgress(cartItems, scheme);
+                  return (
+                    <div key={`cat-scheme-${idx}`} className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>{scheme.message}</span>
+                        <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>{progress.current}/{progress.required}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
+                        <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </React.Fragment>
         )}
         {searchBarUI}
       </div>
@@ -973,7 +1003,7 @@ function Cart(props) {
           <div key={idx} className={`p-4 mb-4 rounded-2xl border-2 ${progress.isUnlocked ? 'bg-green-50 border-green-500 shadow-md' : 'bg-amber-50 border-amber-300'}`}>
             <h4 className={`font-black text-xs uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-amber-900'}`}>{scheme.message}</h4>
             <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden border border-gray-300 shadow-inner">
-               <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-900'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
+               <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-amber-500'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
             </div>
             <p className={`text-[10px] font-bold mt-1 ${progress.isUnlocked ? 'text-green-700' : 'text-gray-600'}`}>
               {progress.current}/{progress.required} items added. {progress.isUnlocked && "🎉 REWARD UNLOCKED!"}
