@@ -108,6 +108,27 @@ if (brand) return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand
 return null;
 }
 
+  // Add this inside the <script> block, before the Cart function
+function calculateSchemeProgress(cartItems, scheme) {
+    let currentQty = 0;
+    cartItems.forEach(item => {
+        const itemName = getProp(item, "ProductName").toLowerCase();
+        const brand = getProp(item, "Brand").toLowerCase();
+        const target = scheme.target.toLowerCase();
+        
+        if (scheme.type === "Product" && itemName.includes(target)) {
+            currentQty += item.qty;
+        } else if (scheme.type === "Brand" && brand.includes(target)) {
+            currentQty += item.qty;
+        }
+    });
+    return {
+        current: currentQty,
+        required: scheme.minQty,
+        isUnlocked: currentQty >= scheme.minQty
+    };
+}
+  
 function ProgressBar(props) {
 var totalAmount = props.totalAmount;
 var discounts = props.discounts;
@@ -850,32 +871,50 @@ return (
 }
 
 function Cart(props) {
-var user = props.user;
-var cart = props.cart;
-var setCart = props.setCart;
-var setView = props.setView;
-var callAPI = props.callAPI;
-var globalProps = props.globalProps;
+  var user = props.user;
+  var cart = props.cart;
+  var setCart = props.setCart;
+  var setView = props.setView;
+  var callAPI = props.callAPI;
+  
+  const [loading, setLoading] = useState(false);
+  const [schemes, setSchemes] = useState([]); // NEW: State for schemes
+  const [paymentMode, setPaymentMode] = useState("");
+  
+  const cartItems = Object.values(cart);
+  const totalAmount = cartItems.reduce((acc, item) => acc + (Number(getProp(item, "DealerPrice") || 0) * item.qty), 0);
 
-const [loading, setLoading] = useState(false);
-const [paymentMode, setPaymentMode] = useState("");
-const [screenshotUploaded, setScreenshotUploaded] = useState(false);
-const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+  useEffect(() => {
+    // Fetch Schemes dynamically from backend
+    callAPI({ action: "getSchemes" }).then(res => {
+      if (res && res.success) setSchemes(res.data);
+    });
+  }, []);
 
-const cartItems = Object.values(cart);
-const totalAmount = cartItems.reduce((acc, item) => {
-const itemPrice = Number(getProp(item, "DealerPrice") || 0);
-return acc + (itemPrice * item.qty);
-}, 0);
+  return (
+    <div className="p-4 bg-gray-50 min-h-screen pb-40 font-sans">
+      {/* SCHEME TRACKER UI */}
+      {schemes.map((scheme, idx) => {
+        const progress = calculateSchemeProgress(cartItems, scheme);
+        return (
+          <div key={idx} className={`p-4 mb-4 rounded-2xl border-2 ${progress.isUnlocked ? 'bg-green-50 border-green-500' : 'bg-amber-50 border-amber-300'}`}>
+            <h4 className="font-black text-xs uppercase">{scheme.message}</h4>
+            <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden">
+               <div className="bg-blue-900 h-full" style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
+            </div>
+            <p className="text-[10px] font-bold mt-1">{progress.current}/{progress.required} items completed.</p>
+          </div>
+        );
+      })}
 
-useEffect(() => {
-callAPI({ action: "getDiscounts" }).then(res => {
-if (res && res.success && res.data.length > 0) {
-setDiscounts(res.data);
+      {/* REMAINDER OF YOUR CART CODE GOES HERE ... */}
+      <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
+         {/* ... Your original cart item rendering code ... */}
+      </div>
+      {/* ... Your payment and checkout button code ... */}
+    </div>
+  );
 }
-}).catch(() => {});
-}, []);
-
 var sortedDiscountsDesc = [...discounts]
 .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
 .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
