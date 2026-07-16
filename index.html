@@ -190,7 +190,6 @@ function groupProductsByVariant(flatList) {
       baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
     }
 
-    // If items do not contain dynamic capacity variations, keep them ungrouped by adding unique IDs
     var groupKey = capacity
     ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
     : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
@@ -409,7 +408,7 @@ function App() {
         <div>
           <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
             <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.7</span>
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.8</span>
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
@@ -515,8 +514,9 @@ function Catalog(props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
-  const [schemes, setSchemes] = useState([]); // NEW STATE IN CATALOG
+  const [schemes, setSchemes] = useState([]); 
   const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
+  const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [activeVariants, setActiveVariants] = useState({});
 
   useEffect(() => {
@@ -533,7 +533,6 @@ function Catalog(props) {
       }
     }).catch(() => {});
     
-    // NEW: Fetch schemes for Catalog view
     callAPI({ action: "getSchemes" }).then(res => {
       if (res && res.success) {
         setSchemes(res.data);
@@ -547,6 +546,23 @@ function Catalog(props) {
     const itemPrice = Number(getProp(b, "DealerPrice") || 0);
     return a + (itemPrice * b.qty);
   }, 0);
+
+  // Dynamic 25 Pcs Target Celebration Engine
+  useEffect(() => {
+    if (totalItems >= 25 && !celebrated25Pcs) {
+      if (window.confetti) {
+        window.confetti({ 
+          particleCount: 250, 
+          spread: 100, 
+          origin: { y: 0.5 }, 
+          colors: ['#ff0055', '#00ffcc', '#ffcc00', '#33ff33'] 
+        });
+      }
+      setCelebrated25Pcs(true);
+    } else if (totalItems < 25) {
+      setCelebrated25Pcs(false);
+    }
+  }, [totalItems]);
 
   useEffect(() => {
     var sortedDiscounts = [...discounts]
@@ -633,6 +649,9 @@ function Catalog(props) {
 
         return (
           <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
+            {totalItems >= 25 && (
+              <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10 select-none">25+ Target Unlocked</span>
+            )}
             {idx % 7 === 0 && (
               <span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none">🔥 High Demand</span>
             )}
@@ -838,11 +857,17 @@ function Catalog(props) {
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="max-w-md mx-auto relative flex flex-col">
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
         {totalItems > 0 && !globalProps.customerMode && (
           <React.Fragment>
             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+            {/* Target 25 Pcs Milestone Activation Banner */}
+            {totalItems >= 25 && (
+              <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase tracking-widest border-b border-green-700 shadow-md animate-bounce">
+                🎉 Target 25 Pcs Met! Extra Bumper Reward Live! 🎁
+              </div>
+            )}
             {/* CATALOG STICKY SCHEME TRACKER */}
             {schemes.length > 0 && (
               <div className="bg-white">
@@ -896,7 +921,7 @@ function CartFooter(props) {
     <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
       <div>
         <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
-        <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')} Total</div>
+        <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')}</div>
       </div>
       <button onClick={setView} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
     </div>
@@ -914,14 +939,16 @@ function Cart(props) {
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState([]); 
   const [paymentMode, setPaymentMode] = useState("");
-  const [screenshotUploaded, setScreenshotUploaded] = useState(false);
+  const [screenshotData, setScreenshotData] = useState(null);
   const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+  const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
 
   const cartItems = Object.values(cart);
   const totalAmount = cartItems.reduce((acc, item) => {
     const itemPrice = Number(getProp(item, "DealerPrice") || 0);
     return acc + (itemPrice * item.qty);
   }, 0);
+  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
   useEffect(() => {
     callAPI({ action: "getDiscounts" }).then(res => {
@@ -936,6 +963,18 @@ function Cart(props) {
       }
     }).catch(() => {});
   }, []);
+
+  // 25 Pcs Target Cart Checker Animation
+  useEffect(() => {
+    if (totalItems >= 25 && !celebrated25Pcs) {
+      if (window.confetti) {
+        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ['#ffc0cb', '#87ceeb', '#ffd700'] });
+      }
+      setCelebrated25Pcs(true);
+    } else if (totalItems < 25) {
+      setCelebrated25Pcs(false);
+    }
+  }, [totalItems]);
 
   var sortedDiscountsDesc = [...discounts]
   .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
@@ -956,6 +995,22 @@ function Cart(props) {
   const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
   const finalAmount = afterBulkTotal - upiDiscountAmount;
 
+  // Screenshot base64 conversion framework
+  const handleScreenshotUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setScreenshotData({
+          base64: ev.target.result.split(',')[1],
+          mimeType: file.type,
+          filename: file.name
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const updateQty = (product, change) => {
     const updated = Object.assign({}, cart);
     const itemCode = getProp(product, "ItemCode");
@@ -972,15 +1027,35 @@ function Cart(props) {
 
   const handleCheckout = function() {
     if (!paymentMode) return alert("Please select Payment Mode!");
-    if (paymentMode === 'UPI' && !screenshotUploaded) return alert("Upload Payment Screenshot first!");
+    if (paymentMode === 'UPI' && !screenshotData) return alert("Upload Payment Screenshot first!");
     setLoading(true);
+    
     var itemsStr = cartItems.map(function(i) {
       const itemName = getProp(i, "ProductName") || "Premium Item";
       return itemName + " x" + i.qty;
     }).join(" | ");
+
+    // Schemes metadata checking for explicit backend synchronization
+    let unlockedRewardsList = schemes.filter(s => calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
+    if (totalItems >= 25) {
+      unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
+    }
+    let rewardsCombinedStr = unlockedRewardsList.join(", ");
+
     callAPI({
       action: "placeOrder",
-      order: { phone: user.phone, shopName: user.shopName, items: itemsStr, totalAmount: totalAmount, finalAmount: finalAmount, paymentMode: paymentMode }
+      order: { 
+        phone: user.phone, 
+        shopName: user.shopName, 
+        items: itemsStr, 
+        totalAmount: totalAmount, 
+        finalAmount: finalAmount, 
+        paymentMode: paymentMode,
+        bulkDiscount: bulkDiscountAmount,
+        upiDiscount: upiDiscountAmount,
+        rewards: rewardsCombinedStr,
+        screenshot: screenshotData
+      }
     }).then(function(res) {
       setLoading(false);
       if (res.success) {
@@ -997,6 +1072,13 @@ function Cart(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-40 font-sans">
       
+      {totalItems >= 25 && (
+        <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
+           <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">🏆 25 PCS TARGET ACHIEVED</h4>
+           <p className="text-[10px] font-bold text-green-700 mt-1">Bumper celebration package and direct extra reward points allocated explicitly under this master checkout request.</p>
+        </div>
+      )}
+
       {schemes.map((scheme, idx) => {
         const progress = calculateSchemeProgress(cartItems, scheme);
         return (
@@ -1006,7 +1088,7 @@ function Cart(props) {
                <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-amber-500'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
             </div>
             <p className={`text-[10px] font-bold mt-1 ${progress.isUnlocked ? 'text-green-700' : 'text-gray-600'}`}>
-              {progress.current}/{progress.required} items added. {progress.isUnlocked && "🎉 REWARD UNLOCKED!"}
+              {progress.current}/{progress.required} items added. {progress.isUnlocked && "🎉 REWARD UNLOCKED: " + scheme.reward}
             </p>
           </div>
         );
@@ -1058,17 +1140,23 @@ function Cart(props) {
           </div>
         )}
 
-        {cartItems.length > 0 && bulkPercent > 0 && (
+        {cartItems.length > 0 && bulkDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-2 text-green-700">
-            <span className="font-bold uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
+            <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
             <span className="font-black text-sm">-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
 
         {cartItems.length > 0 && paymentMode === 'UPI' && (
           <div className="flex justify-between items-center mt-2 text-green-700">
-            <span className="font-bold uppercase text-[10px]">UPI Discount (2%)</span>
+            <span className="font-black uppercase text-[10px]">UPI Discount (2%)</span>
             <span className="font-black text-sm">-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+
+        {cartItems.length > 0 && totalItems >= 25 && (
+          <div className="mt-2 text-blue-700 text-[10px] font-black uppercase flex items-center gap-1 bg-blue-50 p-2 rounded-xl border border-blue-100">
+             🎁 Unlocked: Target 25 Pcs Bumper Reward Package Included!
           </div>
         )}
       </div>
@@ -1090,19 +1178,25 @@ function Cart(props) {
                 <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
               </div>
               {paymentMode === 'UPI' && (
-                <div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in">
+                <div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in" onClick={(e) => e.stopPropagation()}>
                   <p className="text-xs font-bold mb-3">Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span></p>
 
-                  <div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-4">
+                  <div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-2">
                     <img src={PHONEPE_QR_URL} className="w-48 h-48 object-contain mx-auto" alt="PhonePe UPI Barcode" />
                     <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">PhonePe QR</div>
                   </div>
 
+                  {/* High Visibility Target UPI Number Element */}
+                  <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
+                    UPI NO: 9422928031
+                  </div>
+
                   <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
-                  <input type="file" accept="image/*" onChange={() => setScreenshotUploaded(true)} className="text-[10px] block mx-auto text-purple-900 font-black" />
+                  <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="text-[10px] block mx-auto text-purple-900 font-black" />
                 </div>
               )}
             </div>
+            
             <div onClick={() => setPaymentMode('DAILY')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
               <div className="font-black text-purple-900">Daily Collection (Auto-Pay)</div>
               {paymentMode === 'DAILY' && (
@@ -1299,7 +1393,7 @@ function OrdersHistoryView(props) {
                                 const fileId = getFileId(att.url);
                                 
                                 let icon = "📄";
-                                if(att.type === 'image') icon = "📸";
+                                if(att.type === 'image' || att.label.toLowerCase().includes("screenshot")) icon = "📸";
                                 if(att.type === 'audio') icon = "🎧";
                                 if(att.type === 'rating') icon = "⭐";
                                 
@@ -1324,11 +1418,11 @@ function OrdersHistoryView(props) {
                 )}
 
                 <div className="py-3 border-b border-dashed border-gray-100">
-                  <div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items Ordered</div>
+                  <div className="text-[9px] text-gray-400 font-black uppercase mb-1">Items & Billing Blueprint</div>
                   <div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
                     {itemsList.map((it, i) => (
                       <div key={i} className="flex justify-between items-center py-0.5">
-                        <span>• {it.trim()}</span>
+                        <span className={it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward") ? "text-green-600 font-black" : ""}>• {it.trim()}</span>
                       </div>
                     ))}
                   </div>
@@ -1376,13 +1470,12 @@ function OrdersHistoryView(props) {
                 <div className="bg-gray-800 p-8 rounded-3xl flex flex-col items-center gap-4 border border-gray-700 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
                     <span className="text-5xl">🔗</span>
                     <h3 className="text-white font-black text-lg text-center">External Link</h3>
-                    <p className="text-gray-400 text-xs font-bold text-center mb-2">Click below to open the file in a new secure tab.</p>
+                    <p className="text-gray-400 text-xs font-bold text-center mb-2">Click below to open the file securely.</p>
                     <a href={zoomedMedia.url} target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm">
                         OPEN FILE ↗
                     </a>
                 </div>
             )}
-            
             <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
                 Tap anywhere outside to close preview.
             </p>
