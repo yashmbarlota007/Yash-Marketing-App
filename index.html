@@ -65,7 +65,7 @@ var cacheBypass = "?v=" + new Date().getTime();
 const API_URL = "https://script.google.com/macros/s/AKfycbzmsQSqrAi8bkGogOqylI_1O5vsTll9c5tEiV_8ptGrp2nXBjC362yZwOUlBqBUcFzMTg/exec";
 const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
-const OFFICE_NUMBER = "918378811922"; // Call & WhatsApp Number for Quick Contact
+const OFFICE_NUMBER = "918378811922"; // 📞 Official Contact Number
 
 // Extremely robust case & space insensitive column reader helper
 function getProp(obj, propName) {
@@ -262,21 +262,21 @@ function calculateSchemeProgress(cartItems, scheme) {
   };
 }
 
-// 📞 FLOATING CONTACT BUTTONS (Feature 4)
+// 📞 NEW FEATURE: FLOATING CONTACT BUTTONS
 function ContactFABs() {
   return (
-    <div className="fixed bottom-[90px] right-4 flex flex-col gap-3 z-40">
+    <div className="fixed bottom-[95px] right-4 flex flex-col gap-3 z-40">
       <a href={`https://wa.me/${OFFICE_NUMBER}?text=Hello%20Yash%20Marketing,%20Mujhe%20order%20ke%20baare%20me%20inquiry%20karni%20hai.`} target="_blank" className="w-12 h-12 bg-green-500 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
-        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       </a>
       <a href={`tel:+${OFFICE_NUMBER}`} className="w-12 h-12 bg-blue-600 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
-        <span className="text-xl">📞</span>
+        <span className="text-xl text-white">📞</span>
       </a>
     </div>
   );
 }
 
-// 🛒 BOTTOM NAVIGATION BAR (Feature 3)
+// 🛒 NEW FEATURE: BOTTOM NAVIGATION BAR
 function BottomNav({ view, setView, totalItems, customerMode }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
@@ -317,8 +317,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("catalog");
   const [products, setProducts] = useState([]);
-  
-  // Feature 2: Background Proof Cart (LocalStorage Setup on Init)
+
+  // 🔥 NEW FEATURE: Permanent Cart (Background Clear Proof)
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("yashDealerCart");
@@ -334,23 +334,26 @@ function App() {
   const [showNotice, setShowNotice] = useState(false);
   const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
-  // Feature 1: Smart Back Button Logic
+  // 🔥 NEW FEATURE: Smart Back Button Setup for App level
   useEffect(() => {
+    window.history.replaceState({ page: 'catalog' }, '');
     const handlePopState = (e) => {
-      if (view !== 'catalog') {
-        setView('catalog'); // Instead of closing app, redirect to Home/Catalog
+      if (e.state && e.state.page) {
+        setView(e.state.page);
+      } else {
+        setView('catalog');
       }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [view]);
+  }, []);
 
-  // When view changes, update browser history so back button triggers popstate
-  useEffect(() => {
-    if (view !== 'catalog') {
-      window.history.pushState({ page: view }, '', window.location.href);
+  const handleSetView = (newView) => {
+    if (newView !== view) {
+      window.history.pushState({ page: newView }, '');
+      setView(newView);
     }
-  }, [view]);
+  };
 
   useEffect(() => {
     try {
@@ -363,7 +366,7 @@ function App() {
     }
   }, []);
 
-  // Save cart permanently on every cart change
+  // Save cart to LocalStorage instantly on every cart change
   useEffect(() => {
     localStorage.setItem("yashDealerCart", JSON.stringify(cart));
   }, [cart]);
@@ -455,7 +458,7 @@ function App() {
     localStorage.removeItem("yashDealerCart");
     setUser(null);
     setCart({});
-    setView("catalog");
+    handleSetView("catalog");
   };
 
   if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
@@ -479,6 +482,10 @@ function App() {
 
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+  const totalAmount = cartItems.reduce((a, b) => {
+    const itemPrice = Number(getProp(b, "DealerPrice") || 0);
+    return a + (itemPrice * b.qty);
+  }, 0);
 
   return (
     <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
@@ -486,7 +493,7 @@ function App() {
         <div>
           <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
             <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v3.0</span>
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v3.5</span>
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
@@ -494,7 +501,7 @@ function App() {
           <button onClick={() => {
             const m = !customerMode;
             setCustomerMode(m);
-            if (m && (view === "ledger" || view === "orders")) setView("catalog");
+            if (m && (view === "ledger" || view === "orders")) handleSetView("catalog");
             logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
           }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
             {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
@@ -504,20 +511,31 @@ function App() {
       </div>
       
       {view === "catalog" ? (
-        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={setView} globalProps={globalProps} />
+        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
       ) : view === "cart" ? (
-        <Cart user={user} cart={cart} setCart={setCart} setView={setView} callAPI={callAPI} globalProps={globalProps} />
+        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
       ) : view === "ledger" ? (
         <LedgerView user={user} callAPI={callAPI} />
       ) : (
         <OrdersHistoryView user={user} callAPI={callAPI} />
       )}
 
-      {/* QUICK ACTION BUTTONS */}
+      {/* Adding Quick Action FABs */}
       <ContactFABs />
+      
+      {/* Adding Bottom Navigation */}
+      <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
 
-      {/* BOTTOM NAVIGATION */}
-      <BottomNav view={view} setView={setView} totalItems={totalItems} customerMode={customerMode} />
+      {/* KEEPING OLD CartFooter Summary just above Bottom Nav for UI richness (if items exist) */}
+      {view === "catalog" && totalItems > 0 && !customerMode && (
+         <div className="fixed bottom-[80px] left-4 right-4 max-w-md mx-auto bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-30 opacity-95">
+           <div>
+             <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
+             <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')}</div>
+           </div>
+           <button onClick={() => handleSetView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
+         </div>
+      )}
 
       {user && showNotice && announcements.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
@@ -652,12 +670,16 @@ function Catalog(props) {
 
     if (totalAmount >= tier2Min) {
       if (!celebratedTiers.tier2) {
-        if (window.confetti) window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+        if (window.confetti) {
+          window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+        }
         setCelebratedTiers(prev => Object.assign({}, prev, { tier2: true }));
       }
     } else if (totalAmount >= tier1Min) {
       if (!celebratedTiers.tier1) {
-        if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        if (window.confetti) {
+          window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        }
         setCelebratedTiers(prev => Object.assign({}, prev, { tier1: true }));
       }
       if (celebratedTiers.tier2) {
@@ -674,16 +696,46 @@ function Catalog(props) {
     setSearchQuery(e.target.value);
   };
 
+  // 🔥 Smart Back Button Logic (Feature 1) for Modals/Categories
+  const openCategory = (type) => {
+    window.history.pushState({ modal: 'category' }, '');
+    setSelectedType(type);
+  };
+
+  const openProductModal = (p) => {
+    window.history.pushState({ modal: 'product' }, '');
+    setSelectedProduct(p);
+  };
+
+  useEffect(() => {
+    const handlePop = (e) => {
+      if (selectedProduct) {
+        setSelectedProduct(null);
+      } else if (selectedType) {
+        setSelectedType(null);
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [selectedProduct, selectedType]);
+
   const updateQty = (product, change) => {
     if (globalProps.customerMode) return;
     const updated = Object.assign({}, cart);
     const itemCode = getProp(product, "ItemCode");
     if (!itemCode) return;
 
+    // 🔥 Always Live Brands Logic (Feature 6)
+    const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
+    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+
     const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
     const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
     const newQty = currentQty + change;
-    if (newQty > stockVal && stockVal > 0) return alert("Maximum stock limit reached!");
+    
+    const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
+
+    if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
     if (newQty <= 0) delete updated[itemCode];
     else updated[itemCode] = Object.assign({}, product, { qty: newQty });
     setCart(updated);
@@ -691,9 +743,12 @@ function Catalog(props) {
 
   if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
+  // 🔥 Apply Always Live filter logic
   const inStockFlat = products.filter(p => {
+    const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
+    const isAlwaysLive = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
     const stockVal = getProp(p, "Stock") || 0;
-    return stockVal && parseInt(stockVal) > 0;
+    return (stockVal && parseInt(stockVal) > 0) || isAlwaysLive;
   });
 
   const inStockProducts = groupProductsByVariant(inStockFlat);
@@ -720,21 +775,32 @@ function Catalog(props) {
         const isValidPrice = !isNaN(dealerVal) && dealerVal > 0;
         const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
 
-        // Feature 5: NEW Badge checking
+        // 🔥 Badge Triggers (NEW & ON ORDER)
         const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
+        const activeBrandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
+        const isAlwaysLiveBrand = activeBrandStr.includes("HIKVISION") || activeBrandStr.includes("VELOCITY");
+        const stockVal = parseInt(getProp(activeVariant, "Stock") || 0);
+        const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
 
         return (
           <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
             
+            {/* NEW Badge takes priority */}
             {isNewItem && (
               <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce select-none">✨ NEW</span>
             )}
             
-            {!isNewItem && totalItems >= 25 && (
-              <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10 select-none">25+ Target Unlocked</span>
+            {/* ON ORDER Badge */}
+            {showOnOrder && !isNewItem && (
+              <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none border border-orange-400">⏳ ON ORDER</span>
             )}
 
-            <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
+            {/* Target Badge fallback */}
+            {!isNewItem && !showOnOrder && totalItems >= 25 && (
+              <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10 select-none">25+ Target Unlocked</span>
+            )}
+            
+            <div className="mt-1 cursor-pointer" onClick={() => openProductModal(p)}>
               {smartImg ? (
                 <img
                   src={smartImg}
@@ -795,7 +861,9 @@ function Catalog(props) {
                         <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
                       </div>
                     ) : (
-                      <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="w-full bg-gray-950 text-white text-xs font-bold py-3 rounded-xl shadow-sm">+ ADD</button>
+                      <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
+                        {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
+                      </button>
                     )
                   )}
                 </div>
@@ -900,10 +968,7 @@ function Catalog(props) {
             const coverProduct = inStockFlat.find(p => getProp(p, "Type") === type);
             const cover = coverProduct ? getSmartImage(coverProduct) : null;
             return (
-              <div key={type} onClick={() => {
-                setSelectedType(type);
-                globalProps.logSpyData("Viewed Category", type);
-              }} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
+              <div key={type} onClick={() => openCategory(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
                 {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
                 <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
               </div>
@@ -921,7 +986,7 @@ function Catalog(props) {
     mainContent = (
       <div>
         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
-          <button onClick={() => setSelectedType(null)} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
+          <button onClick={() => window.history.back()} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
           <span className="font-black text-gray-800">{selectedType}</span>
 
           <button onClick={handleShareCategory} className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md active:scale-95 flex items-center gap-1">📲 SHARE LIST</button>
@@ -970,7 +1035,7 @@ function Catalog(props) {
       {selectedProduct && (
         <ProductDetailModal
           product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
+          onClose={() => window.history.back()}
           cart={cart}
           updateQty={updateQty}
           user={user}
@@ -1019,6 +1084,7 @@ function Cart(props) {
     }).catch(() => {});
   }, []);
 
+  // 25 Pcs Target Cart Checker Animation
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
       if (window.confetti) {
@@ -1049,6 +1115,7 @@ function Cart(props) {
   const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
   const finalAmount = afterBulkTotal - upiDiscountAmount;
 
+  // Screenshot base64 conversion framework
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1069,10 +1136,15 @@ function Cart(props) {
     const itemCode = getProp(product, "ItemCode");
     if (!itemCode) return;
 
-    const stockVal = parseInt(getProp(product, "Stock") || 9999);
+    const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
+    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+
+    const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
     const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
     const newQty = currentQty + change;
-    if (newQty > stockVal) return alert("Maximum stock limit reached!");
+    const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
+
+    if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
     if (newQty <= 0) delete updated[itemCode];
     else updated[itemCode] = Object.assign({}, product, { qty: newQty });
     setCart(updated);
@@ -1088,6 +1160,7 @@ function Cart(props) {
       return itemName + " x" + i.qty;
     }).join(" | ");
 
+    // Schemes metadata checking for explicit backend synchronization
     let unlockedRewardsList = schemes.filter(s => calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
     if (totalItems >= 25) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
@@ -1123,7 +1196,7 @@ function Cart(props) {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-[150px] font-sans">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[150px] font-sans relative">
       
       {totalItems >= 25 && (
         <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
@@ -1160,8 +1233,15 @@ function Cart(props) {
             var itemName = getProp(item, "ProductName") || "Premium Item";
             var dealerPrice = Number(getProp(item, "DealerPrice") || 0);
             var itemCode = getProp(item, "ItemCode");
+            
+            // Checking if ON ORDER Tag is required in Cart
+            var stockVal = parseInt(getProp(item, "Stock") || 0);
+            var activeBrandStr = String(getProp(item, "Brand") || "").toUpperCase();
+            var isAlwaysLiveBrand = activeBrandStr.includes("HIKVISION") || activeBrandStr.includes("VELOCITY");
+            var showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+
             return (
-              <div key={itemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white">
+              <div key={itemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white relative">
                 {smartImg ? (
                   <img src={smartImg} className="w-12 h-12 object-contain rounded-lg border bg-white p-1 flex-shrink-0" />
                 ) : (
@@ -1170,6 +1250,8 @@ function Cart(props) {
 
                 <div className="flex-grow">
                   <h4 className="text-xs font-bold leading-tight line-clamp-2">{itemName}</h4>
+                  {showOnOrder && <span className="text-[8px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded uppercase font-black">On Order (Next Day)</span>}
+                  
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
                       <button onClick={() => updateQty(item, -1)} className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">-</button>
@@ -1259,7 +1341,7 @@ function Cart(props) {
             </div>
           </div>
 
-          <div className="fixed bottom-[65px] left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.08)] z-40">
+          <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
               <span>Subtotal</span>
               <span className="line-through font-mono">₹{totalAmount.toLocaleString('en-IN')}</span>
@@ -1312,7 +1394,7 @@ function LedgerView(props) {
   const netBalance = totalDebit - totalCredit;
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans">
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
         <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
         <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
@@ -1413,7 +1495,7 @@ function OrdersHistoryView(props) {
   );
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-24 font-sans relative">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans relative">
       <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
       {orders.length === 0 ? (
         <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
@@ -1613,6 +1695,11 @@ function ProductDetailModal(props) {
   var activeType = getProp(activeVariant, "Type") || "Accessories";
   var activeStock = getProp(activeVariant, "Stock") || "Available";
 
+  // 🔥 "ON ORDER" Label for Modal
+  const isAlwaysLiveBrand = activeBrand.toUpperCase().includes("HIKVISION") || activeBrand.toUpperCase().includes("VELOCITY");
+  const stockValInt = parseInt(activeStock || 0);
+  const showOnOrder = isAlwaysLiveBrand && stockValInt <= 0;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
       <div className="absolute inset-0" onClick={onClose}></div>
@@ -1696,8 +1783,10 @@ function ProductDetailModal(props) {
                     </React.Fragment>
                   )}
                 </div>
+                
                 <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
-                  <span>📦</span> In Stock Status: {activeStock} units
+                  <span>{showOnOrder ? '⏳' : '📦'}</span> 
+                  {showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${activeStock} units`}
                 </div>
               </div>
             ) : (
@@ -1741,7 +1830,9 @@ function ProductDetailModal(props) {
                     <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm">+</button>
                   </div>
                 ) : (
-                  <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95">Add To Order</button>
+                  <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95">
+                    {showOnOrder ? "Add To Order (Next Day)" : "Add To Order"}
+                  </button>
                 )}
               </div>
             </React.Fragment>
