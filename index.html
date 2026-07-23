@@ -65,6 +65,7 @@ var cacheBypass = "?v=" + new Date().getTime();
 const API_URL = "https://script.google.com/macros/s/AKfycbzmsQSqrAi8bkGogOqylI_1O5vsTll9c5tEiV_8ptGrp2nXBjC362yZwOUlBqBUcFzMTg/exec";
 const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
+const OFFICE_NUMBER = "918378811922"; // Call & WhatsApp Number for Quick Contact
 
 // Extremely robust case & space insensitive column reader helper
 function getProp(obj, propName) {
@@ -261,16 +262,95 @@ function calculateSchemeProgress(cartItems, scheme) {
   };
 }
 
+// 📞 FLOATING CONTACT BUTTONS (Feature 4)
+function ContactFABs() {
+  return (
+    <div className="fixed bottom-[90px] right-4 flex flex-col gap-3 z-40">
+      <a href={`https://wa.me/${OFFICE_NUMBER}?text=Hello%20Yash%20Marketing,%20Mujhe%20order%20ke%20baare%20me%20inquiry%20karni%20hai.`} target="_blank" className="w-12 h-12 bg-green-500 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
+        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      </a>
+      <a href={`tel:+${OFFICE_NUMBER}`} className="w-12 h-12 bg-blue-600 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
+        <span className="text-xl">📞</span>
+      </a>
+    </div>
+  );
+}
+
+// 🛒 BOTTOM NAVIGATION BAR (Feature 3)
+function BottomNav({ view, setView, totalItems, customerMode }) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+      <button onClick={() => setView('catalog')} className={`flex flex-col items-center w-1/4 ${view==='catalog'?'text-blue-900':'text-gray-400'}`}>
+        <span className="text-xl mb-0.5">🏠</span>
+        <span className="text-[10px] font-black">Home</span>
+      </button>
+      
+      {!customerMode && (
+        <button onClick={() => setView('orders')} className={`flex flex-col items-center w-1/4 ${view==='orders'?'text-blue-900':'text-gray-400'}`}>
+          <span className="text-xl mb-0.5">📦</span>
+          <span className="text-[10px] font-black">Orders</span>
+        </button>
+      )}
+
+      {!customerMode && (
+        <button onClick={() => setView('ledger')} className={`flex flex-col items-center w-1/4 ${view==='ledger'?'text-blue-900':'text-gray-400'}`}>
+          <span className="text-xl mb-0.5">📖</span>
+          <span className="text-[10px] font-black">Ledger</span>
+        </button>
+      )}
+
+      <button onClick={() => setView('cart')} className={`flex flex-col items-center w-1/4 relative ${view==='cart'?'text-blue-900':'text-gray-400'}`}>
+        <span className="text-xl mb-0.5">🛒</span>
+        {totalItems > 0 && (
+          <span className="absolute -top-1 right-3 bg-red-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-white">
+            {totalItems}
+          </span>
+        )}
+        <span className="text-[10px] font-black">Cart</span>
+      </button>
+    </div>
+  );
+}
+
+
 function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("catalog");
   const [products, setProducts] = useState([]);
-  const [cart, setCart] = useState({});
+  
+  // Feature 2: Background Proof Cart (LocalStorage Setup on Init)
+  const [cart, setCart] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem("yashDealerCart");
+      return savedCart ? JSON.parse(savedCart) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
   const [loading, setLoading] = useState(false);
   const [customerMode, setCustomerMode] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [showNotice, setShowNotice] = useState(false);
   const [isNotificationGranted, setIsNotificationGranted] = useState(true);
+
+  // Feature 1: Smart Back Button Logic
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (view !== 'catalog') {
+        setView('catalog'); // Instead of closing app, redirect to Home/Catalog
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [view]);
+
+  // When view changes, update browser history so back button triggers popstate
+  useEffect(() => {
+    if (view !== 'catalog') {
+      window.history.pushState({ page: view }, '', window.location.href);
+    }
+  }, [view]);
 
   useEffect(() => {
     try {
@@ -278,20 +358,15 @@ function App() {
       if (savedUser) {
         setUser(JSON.parse(savedUser));
       }
-      const savedCart = localStorage.getItem("yashDealerCart");
-      if (savedCart) {
-        setCart(JSON.parse(savedCart));
-      }
     } catch (e) {
       console.error(e);
     }
   }, []);
 
+  // Save cart permanently on every cart change
   useEffect(() => {
-    if (user) {
-      localStorage.setItem("yashDealerCart", JSON.stringify(cart));
-    }
-  }, [cart, user]);
+    localStorage.setItem("yashDealerCart", JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     if (window.Notification) {
@@ -402,23 +477,20 @@ function App() {
     );
   }
 
+  const cartItems = Object.values(cart);
+  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+
   return (
-    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-24 shadow-xl">
+    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
       <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
         <div>
           <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
             <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v2.8</span>
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v3.0</span>
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
         <div className="flex gap-1.5 items-center">
-          {!customerMode && view === "catalog" && (
-            <React.Fragment>
-              <button onClick={() => setView("orders")} className="text-white text-[10px] font-bold bg-green-700 px-2.5 py-2 rounded-lg shadow-sm">📦 ORDERS</button>
-              <button onClick={() => setView("ledger")} className="text-white text-[10px] font-bold bg-amber-600 px-2.5 py-2 rounded-lg shadow-sm">📖 LEDGER</button>
-            </React.Fragment>
-          )}
           <button onClick={() => {
             const m = !customerMode;
             setCustomerMode(m);
@@ -427,7 +499,6 @@ function App() {
           }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
             {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
           </button>
-          {(view === "cart" || view === "ledger" || view === "orders") && <button onClick={() => setView("catalog")} className="text-white text-[10px] font-bold bg-blue-800 px-2.5 py-2 rounded-lg">← BACK</button>}
           <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
         </div>
       </div>
@@ -441,6 +512,12 @@ function App() {
       ) : (
         <OrdersHistoryView user={user} callAPI={callAPI} />
       )}
+
+      {/* QUICK ACTION BUTTONS */}
+      <ContactFABs />
+
+      {/* BOTTOM NAVIGATION */}
+      <BottomNav view={view} setView={setView} totalItems={totalItems} customerMode={customerMode} />
 
       {user && showNotice && announcements.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
@@ -575,16 +652,12 @@ function Catalog(props) {
 
     if (totalAmount >= tier2Min) {
       if (!celebratedTiers.tier2) {
-        if (window.confetti) {
-          window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-        }
+        if (window.confetti) window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
         setCelebratedTiers(prev => Object.assign({}, prev, { tier2: true }));
       }
     } else if (totalAmount >= tier1Min) {
       if (!celebratedTiers.tier1) {
-        if (window.confetti) {
-          window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        }
+        if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         setCelebratedTiers(prev => Object.assign({}, prev, { tier1: true }));
       }
       if (celebratedTiers.tier2) {
@@ -647,16 +720,18 @@ function Catalog(props) {
         const isValidPrice = !isNaN(dealerVal) && dealerVal > 0;
         const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
 
+        // Feature 5: NEW Badge checking
+        const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
+
         return (
           <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
-            {totalItems >= 25 && (
+            
+            {isNewItem && (
+              <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce select-none">✨ NEW</span>
+            )}
+            
+            {!isNewItem && totalItems >= 25 && (
               <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10 select-none">25+ Target Unlocked</span>
-            )}
-            {idx % 7 === 0 && (
-              <span className="absolute top-2 left-2 bg-red-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none">🔥 High Demand</span>
-            )}
-            {idx % 5 === 0 && idx % 7 !== 0 && (
-              <span className="absolute top-2 left-2 bg-amber-500 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 select-none">⭐ Most Ordered</span>
             )}
 
             <div className="mt-1 cursor-pointer" onClick={() => setSelectedProduct(p)}>
@@ -904,26 +979,6 @@ function Catalog(props) {
           setActiveVariants={setActiveVariants}
         />
       )}
-      {totalItems > 0 && !globalProps.customerMode && <CartFooter totalItems={totalItems} totalAmount={totalAmount} setView={() => {
-        globalProps.logSpyData("Viewed Cart", "Items: " + totalItems + ", Val: ₹" + totalAmount);
-        setView("cart");
-      }} />}
-    </div>
-  );
-}
-
-function CartFooter(props) {
-  var totalItems = props.totalItems;
-  var totalAmount = props.totalAmount;
-  var setView = props.setView;
-
-  return (
-    <div className="fixed bottom-4 left-4 right-4 bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-50">
-      <div>
-        <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
-        <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')}</div>
-      </div>
-      <button onClick={setView} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
     </div>
   );
 }
@@ -964,7 +1019,6 @@ function Cart(props) {
     }).catch(() => {});
   }, []);
 
-  // 25 Pcs Target Cart Checker Animation
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
       if (window.confetti) {
@@ -995,7 +1049,6 @@ function Cart(props) {
   const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
   const finalAmount = afterBulkTotal - upiDiscountAmount;
 
-  // Screenshot base64 conversion framework
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1035,7 +1088,6 @@ function Cart(props) {
       return itemName + " x" + i.qty;
     }).join(" | ");
 
-    // Schemes metadata checking for explicit backend synchronization
     let unlockedRewardsList = schemes.filter(s => calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
     if (totalItems >= 25) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
@@ -1052,7 +1104,7 @@ function Cart(props) {
         finalAmount: finalAmount, 
         paymentMode: paymentMode,
         bulkDiscount: bulkDiscountAmount,
-        bulkPercent: bulkPercent, // <--- YE NAYI LINE ADD KI HAI
+        bulkPercent: bulkPercent,
         upiDiscount: upiDiscountAmount,
         rewards: rewardsCombinedStr,
         screenshot: screenshotData
@@ -1071,7 +1123,7 @@ function Cart(props) {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-40 font-sans">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[150px] font-sans">
       
       {totalItems >= 25 && (
         <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
@@ -1187,9 +1239,8 @@ function Cart(props) {
                     <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">PhonePe QR</div>
                   </div>
 
-                  {/* High Visibility Target UPI Number Element */}
                   <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
-                    UPI NO: 9422928031
+                    UPI NO: {OFFICE_NUMBER}
                   </div>
 
                   <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
@@ -1208,7 +1259,7 @@ function Cart(props) {
             </div>
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-50">
+          <div className="fixed bottom-[65px] left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.08)] z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
               <span>Subtotal</span>
               <span className="line-through font-mono">₹{totalAmount.toLocaleString('en-IN')}</span>
