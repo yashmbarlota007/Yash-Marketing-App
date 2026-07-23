@@ -65,7 +65,14 @@ var cacheBypass = "?v=" + new Date().getTime();
 const API_URL = "https://script.google.com/macros/s/AKfycbzmsQSqrAi8bkGogOqylI_1O5vsTll9c5tEiV_8ptGrp2nXBjC362yZwOUlBqBUcFzMTg/exec";
 const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
-const OFFICE_NUMBER = "918378811922"; // 📞 Official Contact Number
+const OFFICE_NUMBER = "918378811922"; 
+
+// 🛡️ BULLETPROOF NUMBER PARSER (Crash Preventer)
+const getNum = (val) => {
+  if (val === undefined || val === null || val === "") return 0;
+  const clean = String(val).replace(/,/g, '').replace(/[^\d.-]/g, '');
+  return Number(clean) || 0;
+};
 
 // Extremely robust case & space insensitive column reader helper
 function getProp(obj, propName) {
@@ -84,8 +91,8 @@ function getProp(obj, propName) {
 function getSmartImage(product) {
   if (!product) return null;
   var imageUrl = getProp(product, "ImageURL");
-  if (imageUrl && imageUrl.trim() !== "") {
-    let url = imageUrl.trim();
+  if (imageUrl && String(imageUrl).trim() !== "") {
+    let url = String(imageUrl).trim();
     if (url.indexOf("//") === 0) {
       url = "https:" + url;
     }
@@ -100,7 +107,7 @@ function getSmartImage(product) {
     return url;
   }
 
-  var brand = getProp(product, "Brand").toString().toUpperCase();
+  var brand = String(getProp(product, "Brand") || "").toUpperCase();
   if (brand.indexOf("BOAT") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Boat_Logo.webp/512px-Boat_Logo.webp.png";
   if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
   if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
@@ -114,7 +121,7 @@ function ProgressBar(props) {
   var discounts = props.discounts;
 
   var sortedDiscounts = [...discounts]
-  .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+  .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
   .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
   .sort((a, b) => a.minAmount - b.minAmount);
 
@@ -173,10 +180,10 @@ function groupProductsByVariant(flatList) {
   var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
 
   flatList.forEach(function(p) {
-    var name = getProp(p, "ProductName") || "";
-    var brand = getProp(p, "Brand") || "";
-    var type = getProp(p, "Type") || "";
-    var itemCode = getProp(p, "ItemCode") || "";
+    var name = String(getProp(p, "ProductName") || "");
+    var brand = String(getProp(p, "Brand") || "");
+    var type = String(getProp(p, "Type") || "");
+    var itemCode = String(getProp(p, "ItemCode") || "");
 
     if (!name) {
       name = "Product " + (itemCode || Math.random().toString(36).substr(2, 5));
@@ -201,7 +208,7 @@ function groupProductsByVariant(flatList) {
         baseName: baseName,
         Brand: brand,
         Type: type,
-        Features: getProp(p, "Features"),
+        Features: String(getProp(p, "Features") || ""),
         ImageURL: getProp(p, "ImageURL"),
         MoreImages: getProp(p, "MoreImages"),
         variants: []
@@ -226,7 +233,7 @@ function groupProductsByVariant(flatList) {
     });
 
     var primary = group.variants[0];
-    var primaryName = getProp(primary, "ProductName") || "";
+    var primaryName = String(getProp(primary, "ProductName") || "");
     return Object.assign({}, primary, {
       ProductName: group.variants.length > 1 ? group.baseName : primaryName,
       isGrouped: group.variants.length > 1,
@@ -235,14 +242,13 @@ function groupProductsByVariant(flatList) {
   });
 }
 
-// Universal Progress Calculator for dynamic brand/mix schemes
 function calculateSchemeProgress(cartItems, scheme) {
   let currentQty = 0;
   cartItems.forEach(item => {
-    const itemName = getProp(item, "ProductName").toLowerCase();
-    const brand = getProp(item, "Brand").toLowerCase();
-    const type = getProp(item, "Type").toLowerCase();
-    const target = scheme.target.toLowerCase();
+    const itemName = String(getProp(item, "ProductName") || "").toLowerCase();
+    const brand = String(getProp(item, "Brand") || "").toLowerCase();
+    const type = String(getProp(item, "Type") || "").toLowerCase();
+    const target = String(scheme.target || "").toLowerCase();
     
     if (scheme.type === "Product" && itemName.includes(target)) {
       currentQty += item.qty;
@@ -257,12 +263,12 @@ function calculateSchemeProgress(cartItems, scheme) {
   });
   return {
     current: currentQty,
-    required: scheme.minQty,
-    isUnlocked: currentQty >= scheme.minQty
+    required: getNum(scheme.minQty),
+    isUnlocked: currentQty >= getNum(scheme.minQty)
   };
 }
 
-// 📞 NEW FEATURE: FLOATING CONTACT BUTTONS
+// 📞 FLOATING CONTACT BUTTONS
 function ContactFABs() {
   return (
     <div className="fixed bottom-[95px] right-4 flex flex-col gap-3 z-40">
@@ -276,7 +282,7 @@ function ContactFABs() {
   );
 }
 
-// 🛒 NEW FEATURE: BOTTOM NAVIGATION BAR
+// 🛒 BOTTOM NAVIGATION BAR
 function BottomNav({ view, setView, totalItems, customerMode }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
@@ -318,7 +324,7 @@ function App() {
   const [view, setView] = useState("catalog");
   const [products, setProducts] = useState([]);
 
-  // 🔥 NEW FEATURE: Permanent Cart (Background Clear Proof)
+  // Permanent Cart (Background Clear Proof)
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("yashDealerCart");
@@ -334,7 +340,7 @@ function App() {
   const [showNotice, setShowNotice] = useState(false);
   const [isNotificationGranted, setIsNotificationGranted] = useState(true);
 
-  // 🔥 NEW FEATURE: Smart Back Button Setup for App level
+  // Smart Back Button Setup
   useEffect(() => {
     window.history.replaceState({ page: 'catalog' }, '');
     const handlePopState = (e) => {
@@ -366,7 +372,7 @@ function App() {
     }
   }, []);
 
-  // Save cart to LocalStorage instantly on every cart change
+  // Save cart to LocalStorage instantly
   useEffect(() => {
     localStorage.setItem("yashDealerCart", JSON.stringify(cart));
   }, [cart]);
@@ -404,7 +410,6 @@ function App() {
           setShowNotice(false);
         }
       }).catch((e) => {
-        console.log("Announcement fetch error", e);
         var defaultMsg = [{
           title: "Welcome to Yash Marketing",
           message: "Naye schemes aur bulk order discount live hain. Kisi bhi inquiry ke liye direct WhatsApp par contact karein."
@@ -483,7 +488,7 @@ function App() {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   const totalAmount = cartItems.reduce((a, b) => {
-    const itemPrice = Number(getProp(b, "DealerPrice") || 0);
+    const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
   }, 0);
 
@@ -493,7 +498,7 @@ function App() {
         <div>
           <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
             <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v3.5</span>
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v4.0</span>
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
@@ -520,13 +525,9 @@ function App() {
         <OrdersHistoryView user={user} callAPI={callAPI} />
       )}
 
-      {/* Adding Quick Action FABs */}
       <ContactFABs />
-      
-      {/* Adding Bottom Navigation */}
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
 
-      {/* KEEPING OLD CartFooter Summary just above Bottom Nav for UI richness (if items exist) */}
       {view === "catalog" && totalItems > 0 && !customerMode && (
          <div className="fixed bottom-[80px] left-4 right-4 max-w-md mx-auto bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-30 opacity-95">
            <div>
@@ -638,11 +639,10 @@ function Catalog(props) {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   const totalAmount = cartItems.reduce((a, b) => {
-    const itemPrice = Number(getProp(b, "DealerPrice") || 0);
+    const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
   }, 0);
 
-  // Dynamic 25 Pcs Target Celebration Engine
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
       if (window.confetti) {
@@ -661,7 +661,7 @@ function Catalog(props) {
 
   useEffect(() => {
     var sortedDiscounts = [...discounts]
-    .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+    .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
     .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
     .sort((a, b) => a.minAmount - b.minAmount);
 
@@ -696,7 +696,6 @@ function Catalog(props) {
     setSearchQuery(e.target.value);
   };
 
-  // 🔥 Smart Back Button Logic (Feature 1) for Modals/Categories
   const openCategory = (type) => {
     window.history.pushState({ modal: 'category' }, '');
     setSelectedType(type);
@@ -722,14 +721,13 @@ function Catalog(props) {
   const updateQty = (product, change) => {
     if (globalProps.customerMode) return;
     const updated = Object.assign({}, cart);
-    const itemCode = getProp(product, "ItemCode");
+    const itemCode = String(getProp(product, "ItemCode") || "");
     if (!itemCode) return;
 
-    // 🔥 Always Live Brands Logic (Feature 6)
     const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
     const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
 
-    const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
+    const stockVal = getNum(getProp(product, "Stock"));
     const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
     const newQty = currentQty + change;
     
@@ -743,12 +741,11 @@ function Catalog(props) {
 
   if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
-  // 🔥 Apply Always Live filter logic
   const inStockFlat = products.filter(p => {
     const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
     const isAlwaysLive = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
-    const stockVal = getProp(p, "Stock") || 0;
-    return (stockVal && parseInt(stockVal) > 0) || isAlwaysLive;
+    const stockVal = getNum(getProp(p, "Stock"));
+    return (stockVal > 0) || isAlwaysLive;
   });
 
   const inStockProducts = groupProductsByVariant(inStockFlat);
@@ -756,46 +753,42 @@ function Catalog(props) {
   const renderProducts = (productList) => (
     <div className="p-4 grid grid-cols-2 gap-4">
       {productList.map((p, idx) => {
-        var name = getProp(p, "ProductName") || "Premium Item";
-        var brand = getProp(p, "Brand") || "Premium";
-        var type = getProp(p, "Type") || "Accessories";
+        var name = String(getProp(p, "ProductName") || "Premium Item");
+        var brand = String(getProp(p, "Brand") || "Premium");
+        var type = String(getProp(p, "Type") || "Accessories");
 
-        var activeItemCode = activeVariants[getProp(p, "ItemCode")] || (p.variants && p.variants[0] ? getProp(p.variants[0], "ItemCode") : getProp(p, "ItemCode"));
-        var activeVariant = p.variants ? p.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || p : p;
+        var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+        var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
 
-        const itemCode = getProp(activeVariant, "ItemCode");
+        const itemCode = String(getProp(activeVariant, "ItemCode") || "");
         const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
         const smartImg = getSmartImage(activeVariant);
 
-        const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
-        const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
-        const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
+        const mrpVal = getNum(getProp(activeVariant, "MRP"));
+        const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
+        const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
         const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
-        const isValidPrice = !isNaN(dealerVal) && dealerVal > 0;
+        const isValidPrice = dealerVal > 0;
         const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
 
-        // 🔥 Badge Triggers (NEW & ON ORDER)
         const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
         const activeBrandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
         const isAlwaysLiveBrand = activeBrandStr.includes("HIKVISION") || activeBrandStr.includes("VELOCITY");
-        const stockVal = parseInt(getProp(activeVariant, "Stock") || 0);
+        const stockVal = getNum(getProp(activeVariant, "Stock"));
         const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
 
         return (
-          <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
+          <div key={`${activeItemCode || Math.random()}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
             
-            {/* NEW Badge takes priority */}
             {isNewItem && (
               <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce select-none">✨ NEW</span>
             )}
             
-            {/* ON ORDER Badge */}
             {showOnOrder && !isNewItem && (
               <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none border border-orange-400">⏳ ON ORDER</span>
             )}
 
-            {/* Target Badge fallback */}
             {!isNewItem && !showOnOrder && totalItems >= 25 && (
               <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10 select-none">25+ Target Unlocked</span>
             )}
@@ -819,14 +812,14 @@ function Catalog(props) {
             {p.isGrouped && (
               <div className="flex flex-wrap gap-1 mt-1 mb-2">
                 {p.variants.map(v => {
-                  const vItemCode = getProp(v, "ItemCode");
+                  const vItemCode = String(getProp(v, "ItemCode") || "");
                   return (
                     <button
-                      key={vItemCode}
+                      key={vItemCode || Math.random()}
                       onClick={(e) => {
                         e.stopPropagation();
                         var nextActives = Object.assign({}, activeVariants);
-                        nextActives[getProp(p, "ItemCode")] = vItemCode;
+                        nextActives[String(getProp(p, "ItemCode") || "")] = vItemCode;
                         setActiveVariants(nextActives);
                       }}
                       className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
@@ -843,12 +836,12 @@ function Catalog(props) {
                 <div>
                   {hasDiscount && isValidPrice ? (
                     <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{getProp(activeVariant, "MRP")}</span>
+                      <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{mrpVal}</span>
                       <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
                     </div>
                   ) : (
-                    getProp(activeVariant, "MRP") && (
-                      <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{getProp(activeVariant, "MRP")}</div>
+                    mrpVal > 0 && (
+                      <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{mrpVal}</div>
                     )
                   )}
                   <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">{displayPrice}</div>
@@ -876,7 +869,7 @@ function Catalog(props) {
                   } else {
                     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
                   }
-                  globalProps.logSpyData("Shared Product Image", getProp(activeVariant, "ItemCode"));
+                  globalProps.logSpyData("Shared Product Image", String(getProp(activeVariant, "ItemCode") || ""));
                 }} className="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-black py-3 rounded-xl shadow-sm flex items-center justify-center gap-1">
                   📲 SHARE PHOTO
                 </button>
@@ -890,18 +883,18 @@ function Catalog(props) {
 
   const handleShareCategory = () => {
     const categoryProducts = inStockProducts.filter(p => {
-      const pType = getProp(p, "Type") || "";
+      const pType = String(getProp(p, "Type") || "");
       return pType === selectedType;
     });
     let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
 
     categoryProducts.slice(0, 15).forEach((p, idx) => {
       const cleanPhotoUrl = getSmartImage(p);
-      const features = getProp(p, "Features") || "";
-      const featuresExcerpt = (features && features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
-      const name = getProp(p, "ProductName") || "";
-      const mrp = getProp(p, "MRP") || 0;
-      const dealerPrice = getProp(p, "DealerPrice") || 0;
+      const features = String(getProp(p, "Features") || "");
+      const featuresExcerpt = (features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
+      const name = String(getProp(p, "ProductName") || "");
+      const mrp = getNum(getProp(p, "MRP"));
+      const dealerPrice = getNum(getProp(p, "DealerPrice"));
 
       if (globalProps.customerMode) {
         shareText += `${idx + 1}. *${name}*\n💰 Offer Price: ₹${mrp}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
@@ -939,8 +932,8 @@ function Catalog(props) {
   if (searchQuery.trim() !== "") {
     const safeQuery = searchQuery.toLowerCase();
     const searchResults = inStockProducts.filter(p => {
-      const pName = (getProp(p, "ProductName") || "").toLowerCase();
-      const pBrand = (getProp(p, "Brand") || "").toLowerCase();
+      const pName = String(getProp(p, "ProductName") || "").toLowerCase();
+      const pBrand = String(getProp(p, "Brand") || "").toLowerCase();
       return pName.includes(safeQuery) || pBrand.includes(safeQuery);
     });
     mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
@@ -950,7 +943,7 @@ function Catalog(props) {
       "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
     ];
 
-    const types = [...new Set(inStockFlat.map(p => getProp(p, "Type")).filter(Boolean))].sort((a, b) => {
+    const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || "")).filter(Boolean))].sort((a, b) => {
       const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
       const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
 
@@ -965,7 +958,7 @@ function Catalog(props) {
         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
         <div className="grid grid-cols-2 gap-4">
           {types.map(type => {
-            const coverProduct = inStockFlat.find(p => getProp(p, "Type") === type);
+            const coverProduct = inStockFlat.find(p => String(getProp(p, "Type") || "") === type);
             const cover = coverProduct ? getSmartImage(coverProduct) : null;
             return (
               <div key={type} onClick={() => openCategory(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
@@ -978,11 +971,13 @@ function Catalog(props) {
       </div>
     );
   } else {
-    const filteredProducts = inStockProducts.filter(p => getProp(p, "Type") === selectedType).sort((a, b) => {
-      const priceA = Number(getProp(a, "DealerPrice") || 0);
-      const priceB = Number(getProp(b, "DealerPrice") || 0);
+    // 🔥 SAFELY SORTING BY PRICE USING getNum
+    const filteredProducts = inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType).sort((a, b) => {
+      const priceA = getNum(getProp(a, "DealerPrice"));
+      const priceB = getNum(getProp(b, "DealerPrice"));
       return priceB - priceA;
     });
+    
     mainContent = (
       <div>
         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
@@ -1065,7 +1060,7 @@ function Cart(props) {
 
   const cartItems = Object.values(cart);
   const totalAmount = cartItems.reduce((acc, item) => {
-    const itemPrice = Number(getProp(item, "DealerPrice") || 0);
+    const itemPrice = getNum(getProp(item, "DealerPrice"));
     return acc + (itemPrice * item.qty);
   }, 0);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
@@ -1097,7 +1092,7 @@ function Cart(props) {
   }, [totalItems]);
 
   var sortedDiscountsDesc = [...discounts]
-  .map(d => ({ minAmount: Number(d.minAmount), percent: Number(d.percent) }))
+  .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
   .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
   .sort((a, b) => b.minAmount - a.minAmount);
 
@@ -1115,7 +1110,6 @@ function Cart(props) {
   const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
   const finalAmount = afterBulkTotal - upiDiscountAmount;
 
-  // Screenshot base64 conversion framework
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -1133,13 +1127,13 @@ function Cart(props) {
 
   const updateQty = (product, change) => {
     const updated = Object.assign({}, cart);
-    const itemCode = getProp(product, "ItemCode");
+    const itemCode = String(getProp(product, "ItemCode") || "");
     if (!itemCode) return;
 
     const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
     const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
 
-    const stockVal = parseInt(getProp(product, "Stock") || 0) || 0;
+    const stockVal = getNum(getProp(product, "Stock"));
     const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
     const newQty = currentQty + change;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
@@ -1156,11 +1150,10 @@ function Cart(props) {
     setLoading(true);
     
     var itemsStr = cartItems.map(function(i) {
-      const itemName = getProp(i, "ProductName") || "Premium Item";
+      const itemName = String(getProp(i, "ProductName") || "Premium Item");
       return itemName + " x" + i.qty;
     }).join(" | ");
 
-    // Schemes metadata checking for explicit backend synchronization
     let unlockedRewardsList = schemes.filter(s => calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
     if (totalItems >= 25) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
@@ -1230,12 +1223,11 @@ function Cart(props) {
         ) : (
           cartItems.map(item => {
             var smartImg = getSmartImage(item);
-            var itemName = getProp(item, "ProductName") || "Premium Item";
-            var dealerPrice = Number(getProp(item, "DealerPrice") || 0);
-            var itemCode = getProp(item, "ItemCode");
+            var itemName = String(getProp(item, "ProductName") || "Premium Item");
+            var dealerPrice = getNum(getProp(item, "DealerPrice"));
+            var itemCode = String(getProp(item, "ItemCode") || "");
             
-            // Checking if ON ORDER Tag is required in Cart
-            var stockVal = parseInt(getProp(item, "Stock") || 0);
+            var stockVal = getNum(getProp(item, "Stock"));
             var activeBrandStr = String(getProp(item, "Brand") || "").toUpperCase();
             var isAlwaysLiveBrand = activeBrandStr.includes("HIKVISION") || activeBrandStr.includes("VELOCITY");
             var showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
@@ -1629,15 +1621,15 @@ function ProductDetailModal(props) {
   var activeVariants = props.activeVariants;
   var setActiveVariants = props.setActiveVariants;
 
-  var activeItemCode = activeVariants[getProp(product, "ItemCode")] || (product.variants && product.variants[0] ? getProp(product.variants[0], "ItemCode") : getProp(product, "ItemCode"));
-  var activeVariant = product.variants ? product.variants.find(v => getProp(v, "ItemCode") === activeItemCode) || product : product;
+  var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
+  var activeVariant = product.variants ? product.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || product : product;
 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [imagesList, setImagesList] = useState([]);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomScale, setZoomScale] = useState(1.25);
 
-  const activeVariantCode = getProp(activeVariant, "ItemCode");
+  const activeVariantCode = String(getProp(activeVariant, "ItemCode") || "");
   const currentQty = cart[activeVariantCode] ? cart[activeVariantCode].qty : 0;
 
   useEffect(() => {
@@ -1649,7 +1641,7 @@ function ProductDetailModal(props) {
 
     var allVariants = product.variants || [product];
     allVariants.forEach(function(v) {
-      var vMoreImages = getProp(v, "MoreImages");
+      var vMoreImages = String(getProp(v, "MoreImages") || "");
       if (vMoreImages && vMoreImages.trim() !== "") {
         var extraImages = vMoreImages.split(" | ").map(img => img.trim());
         extraImages.forEach(function(img) {
@@ -1667,7 +1659,7 @@ function ProductDetailModal(props) {
   }, [activeVariant, product]);
 
   const featuresList = [];
-  var activeFeatures = getProp(activeVariant, "Features");
+  var activeFeatures = String(getProp(activeVariant, "Features") || "");
   if (activeFeatures && activeFeatures.trim() !== "") {
     const parsed = activeFeatures.split(" | ").map(f => f.trim());
     parsed.forEach(f => {
@@ -1675,9 +1667,9 @@ function ProductDetailModal(props) {
     });
   }
 
-  const mrpVal = Number(getProp(activeVariant, "MRP") || 0);
-  const dealerVal = Number(getProp(activeVariant, "DealerPrice") || 0);
-  const hasDiscount = !isNaN(mrpVal) && !isNaN(dealerVal) && mrpVal > dealerVal;
+  const mrpVal = getNum(getProp(activeVariant, "MRP"));
+  const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
+  const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
   const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
 
   const handleNextImage = () => {
@@ -1690,14 +1682,13 @@ function ProductDetailModal(props) {
 
   if (imagesList.length === 0) return null;
 
-  var activeName = getProp(product, "ProductName") || "Premium Item";
-  var activeBrand = getProp(activeVariant, "Brand") || "Premium";
-  var activeType = getProp(activeVariant, "Type") || "Accessories";
-  var activeStock = getProp(activeVariant, "Stock") || "Available";
+  var activeName = String(getProp(product, "ProductName") || "Premium Item");
+  var activeBrand = String(getProp(activeVariant, "Brand") || "Premium");
+  var activeType = String(getProp(activeVariant, "Type") || "Accessories");
+  var activeStock = String(getProp(activeVariant, "Stock") || "Available");
 
-  // 🔥 "ON ORDER" Label for Modal
   const isAlwaysLiveBrand = activeBrand.toUpperCase().includes("HIKVISION") || activeBrand.toUpperCase().includes("VELOCITY");
-  const stockValInt = parseInt(activeStock || 0);
+  const stockValInt = getNum(activeStock);
   const showOnOrder = isAlwaysLiveBrand && stockValInt <= 0;
 
   return (
@@ -1732,7 +1723,7 @@ function ProductDetailModal(props) {
 
                 <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
                   {imagesList.map((_, idx) => {
-                    const varItemCode = getProp(product.variants[idx] || {}, "ItemCode");
+                    const varItemCode = String(getProp(product.variants[idx] || {}, "ItemCode") || "");
                     return (
                       <div key={varItemCode || idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
                     );
@@ -1752,13 +1743,13 @@ function ProductDetailModal(props) {
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Select Variant Size</h4>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.map(v => {
-                    const vItemCode = getProp(v, "ItemCode");
+                    const vItemCode = String(getProp(v, "ItemCode") || "");
                     return (
                       <button
-                        key={vItemCode}
+                        key={vItemCode || Math.random()}
                         onClick={() => {
                           var nextActives = Object.assign({}, activeVariants);
-                          nextActives[getProp(product, "ItemCode")] = vItemCode;
+                          nextActives[String(getProp(product, "ItemCode") || "")] = vItemCode;
                           setActiveVariants(nextActives);
                         }}
                         className={`text-xs font-black px-3.5 py-2 rounded-xl border transition-all ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900 shadow-md' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
