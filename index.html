@@ -174,7 +174,6 @@ function ProgressBar(props) {
   );
 }
 
-// Case-insensitive, grouping corrector to solve the "Standard" issue
 function groupProductsByVariant(flatList) {
   var grouped = {};
   var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
@@ -361,11 +360,21 @@ function App() {
     }
   };
 
+  // ✅ SSO LOGIC INTEGRATION (Auto Login via Vercel URL Params)
   useEffect(() => {
     try {
-      const savedUser = localStorage.getItem("yashDealerSession");
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+      const urlParams = new URLSearchParams(window.location.search);
+      const portalEmpId = urlParams.get('empId');
+
+      if (portalEmpId && portalEmpId.trim() !== "") {
+        const dealerData = { phone: "SSO_" + portalEmpId, shopName: "Staff Portal (" + portalEmpId + ")" };
+        localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+        setUser(dealerData);
+      } else {
+        const savedUser = localStorage.getItem("yashDealerSession");
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
       }
     } catch (e) {
       console.error(e);
