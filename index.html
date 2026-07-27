@@ -317,7 +317,6 @@ function BottomNav({ view, setView, totalItems, customerMode }) {
   );
 }
 
-
 function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("catalog");
@@ -496,11 +495,12 @@ function App() {
 
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+  
+  // 🔥 APP LEVEL COMBO CALCULATION FOR BOTTOM BAR
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
   }, 0) - (function(){
-    // Smart Combo Logic for Bottom Bar
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
     cartItems.forEach(i => {
       let n = String(getProp(i, "ProductName")).toLowerCase();
@@ -514,6 +514,40 @@ function App() {
     let stPrice = nPrice + pPrice;
     return (combos > 0 && stPrice > 400) ? (stPrice - 400) * combos : 0;
   })();
+
+  return (
+    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
+      <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
+        <div>
+          <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
+            <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v4.0</span>
+          </h1>
+          <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
+        </div>
+        <div className="flex gap-1.5 items-center">
+          <button onClick={() => {
+            const m = !customerMode;
+            setCustomerMode(m);
+            if (m && (view === "ledger" || view === "orders")) handleSetView("catalog");
+            logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
+          }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
+            {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
+          </button>
+          <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
+        </div>
+      </div>
+      
+      {view === "catalog" ? (
+        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
+      ) : view === "cart" ? (
+        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
+      ) : view === "ledger" ? (
+        <LedgerView user={user} callAPI={callAPI} />
+      ) : (
+        <OrdersHistoryView user={user} callAPI={callAPI} />
+      )}
+
       <ContactFABs />
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
 
@@ -627,10 +661,25 @@ function Catalog(props) {
 
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+  
+  // Re-using Combo calculation for Tracker
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
-  }, 0);
+  }, 0) - (function(){
+    let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
+    cartItems.forEach(i => {
+      let n = String(getProp(i, "ProductName")).toLowerCase();
+      let b = String(getProp(i, "Brand")).toLowerCase();
+      if (b.includes("velocity") || n.includes("velocity")) {
+         if (n.includes("wave") || n.includes("neckband")) { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
+         if (n.includes("tws") || n.includes("pods") || n.includes("airpods")) { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
+      }
+    });
+    let combos = Math.min(nQty, pQty);
+    let stPrice = nPrice + pPrice;
+    return (combos > 0 && stPrice > 400) ? (stPrice - 400) * combos : 0;
+  })();
 
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
@@ -728,6 +777,36 @@ function Catalog(props) {
     setCart(updated);
   };
 
+  // 🔥 VELOCITY COMBO BANNER LOGIC
+  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
+
+  const handleAddCombo = () => {
+    if (!comboScheme) return;
+    let p1 = products.find(p => {
+        let n = String(getProp(p, "ProductName")).toLowerCase();
+        return (n.includes("velocity") && (n.includes("wave") || n.includes("neckband")));
+    });
+    let p2 = products.find(p => {
+        let n = String(getProp(p, "ProductName")).toLowerCase();
+        return (n.includes("velocity") && (n.includes("tws") || n.includes("pods")));
+    });
+    
+    if (p1 && p2) {
+      let updated = Object.assign({}, cart);
+      
+      const itemCode1 = String(getProp(p1, "ItemCode") || "");
+      updated[itemCode1] = Object.assign({}, p1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
+      
+      const itemCode2 = String(getProp(p2, "ItemCode") || "");
+      updated[itemCode2] = Object.assign({}, p2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 1 });
+      
+      setCart(updated); // Setting state once safely
+      if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+    } else {
+      alert("Combo items abhi stock me nahi hain ya sync ho rahe hain!");
+    }
+  };
+
   if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
 
   const inStockFlat = products.filter(p => {
@@ -748,29 +827,7 @@ function Catalog(props) {
 
         var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
         var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
-      
-const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO');
 
-  const handleAddCombo = () => {
-    if (!comboScheme) return;
-    let p1 = products.find(p => {
-        let n = String(getProp(p, "ProductName")).toLowerCase();
-        return (n.includes("velocity") && (n.includes("wave") || n.includes("neckband")));
-    });
-    let p2 = products.find(p => {
-        let n = String(getProp(p, "ProductName")).toLowerCase();
-        return (n.includes("velocity") && (n.includes("tws") || n.includes("pods")));
-    });
-    
-    if (p1 && p2) {
-      updateQty(p1, 1);
-      updateQty(p2, 1);
-      if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
-    } else {
-      alert("Combo items abhi stock me nahi hain ya sync ho rahe hain!");
-    }
-  };
-      
         const itemCode = String(getProp(activeVariant, "ItemCode") || "");
         const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
         const smartImg = getSmartImage(activeVariant);
@@ -963,13 +1020,81 @@ const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO');
       if (indexB !== -1) return 1;
       return a.localeCompare(b);
     });
-<div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
-         {/* ... baaki code yahan pehle se hoga ... */}
-         {searchBarUI}
+
+    mainContent = (
+      <div className="p-4">
+        <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+        <div className="grid grid-cols-2 gap-4">
+          {types.map(type => {
+            const coverProduct = inStockFlat.find(p => String(getProp(p, "Type") || "") === type);
+            const cover = coverProduct ? getSmartImage(coverProduct) : null;
+            return (
+              <div key={type} onClick={() => openCategory(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
+                {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
+                <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  } else {
+    const filteredProducts = inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType).sort((a, b) => {
+      const priceA = getNum(getProp(a, "DealerPrice"));
+      const priceB = getNum(getProp(b, "DealerPrice"));
+      return priceB - priceA;
+    });
+    
+    mainContent = (
+      <div>
+        <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
+          <button onClick={() => window.history.back()} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
+          <span className="font-black text-gray-800">{selectedType}</span>
+
+          <button onClick={handleShareCategory} className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md active:scale-95 flex items-center gap-1">📲 SHARE LIST</button>
+        </div>
+        {renderProducts(filteredProducts)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-md mx-auto relative flex flex-col">
+      <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
+        {totalItems > 0 && !globalProps.customerMode && (
+          <React.Fragment>
+            <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+            {totalItems >= 25 && (
+              <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase tracking-widest border-b border-green-700 shadow-md animate-bounce">
+                🎉 Target 25 Pcs Met! Extra Bumper Reward Live! 🎁
+              </div>
+            )}
+            
+            {schemes.length > 0 && (
+              <div className="bg-white">
+                {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
+                  const progress = calculateSchemeProgress(cartItems, scheme);
+                  return (
+                    <div key={`cat-scheme-${idx}`} className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}>
+                      <div className="flex justify-between items-end mb-1">
+                        <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>{scheme.message}</span>
+                        <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>{progress.current}/{progress.required}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
+                        <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </React.Fragment>
+        )}
+        {searchBarUI}
       </div>
 
-      {/* --- NEW COMBO BANNER UI --- */}
-      {comboScheme && !searchQuery && !selectedType && (
+      {/* --- COMBO BANNER UI --- */}
+      {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && (
           <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
               <div className="bg-indigo-950 rounded-3xl p-5 shadow-2xl relative overflow-hidden border border-indigo-800">
                   <div className="absolute top-0 right-0 bg-yellow-400 text-indigo-950 text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase">💡 How it works</div>
@@ -1002,83 +1127,9 @@ const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO');
               </div>
           </div>
       )}
-      {/* --------------------------- */}
 
       {mainContent}
-    mainContent = (
-      <div className="p-4">
-        <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
-        <div className="grid grid-cols-2 gap-4">
-          {types.map(type => {
-            const coverProduct = inStockFlat.find(p => String(getProp(p, "Type") || "") === type);
-            const cover = coverProduct ? getSmartImage(coverProduct) : null;
-            return (
-              <div key={type} onClick={() => openCategory(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
-                {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
-                <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  } else {
-    // 🔥 SAFELY SORTING BY PRICE USING getNum
-    const filteredProducts = inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType).sort((a, b) => {
-      const priceA = getNum(getProp(a, "DealerPrice"));
-      const priceB = getNum(getProp(b, "DealerPrice"));
-      return priceB - priceA;
-    });
-    
-    mainContent = (
-      <div>
-        <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
-          <button onClick={() => window.history.back()} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
-          <span className="font-black text-gray-800">{selectedType}</span>
 
-          <button onClick={handleShareCategory} className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md active:scale-95 flex items-center gap-1">📲 SHARE LIST</button>
-        </div>
-        {renderProducts(filteredProducts)}
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-md mx-auto relative flex flex-col">
-      <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
-        {totalItems > 0 && !globalProps.customerMode && (
-          <React.Fragment>
-            <ProgressBar totalAmount={totalAmount} discounts={discounts} />
-            {/* Target 25 Pcs Milestone Activation Banner */}
-            {totalItems >= 25 && (
-              <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase tracking-widest border-b border-green-700 shadow-md animate-bounce">
-                🎉 Target 25 Pcs Met! Extra Bumper Reward Live! 🎁
-              </div>
-            )}
-            {/* CATALOG STICKY SCHEME TRACKER */}
-            {schemes.length > 0 && (
-              <div className="bg-white">
-                {schemes.map((scheme, idx) => {
-                  const progress = calculateSchemeProgress(cartItems, scheme);
-                  return (
-                    <div key={`cat-scheme-${idx}`} className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}>
-                      <div className="flex justify-between items-end mb-1">
-                        <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>{scheme.message}</span>
-                        <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>{progress.current}/{progress.required}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
-                        <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </React.Fragment>
-        )}
-        {searchBarUI}
-      </div>
-      {mainContent}
       {selectedProduct && (
         <ProductDetailModal
           product={selectedProduct}
@@ -1110,13 +1161,27 @@ function Cart(props) {
   const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
 
+  useEffect(() => {
+    callAPI({ action: "getDiscounts" }).then(res => {
+      if (res && res.success && res.data.length > 0) {
+        setDiscounts(res.data);
+      }
+    }).catch(() => {});
+    
+    callAPI({ action: "getSchemes" }).then(res => {
+      if (res && res.success) {
+        setSchemes(res.data);
+      }
+    }).catch(() => {});
+  }, []);
+
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
-  // --- COMBO CART LOGIC ---
+  // 🔥 VELOCITY COMBO LOGIC IN CART
   let comboDiscountAmount = 0;
   let combosApplied = 0;
-  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO');
+  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   
   if (comboScheme) {
       let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
@@ -1131,8 +1196,8 @@ function Cart(props) {
       
       combosApplied = Math.min(t1Qty, t2Qty);
       if (combosApplied > 0) {
-          const match = String(comboScheme.message).match(/₹(\d+)/);
-          const comboPrice = match ? parseInt(match[1]) : 400; // Auto-detect ₹400
+          const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
+          const comboPrice = match ? parseInt(match[1] || match[0]) : 400; 
           const originalComboPrice = t1Price + t2Price;
           if (originalComboPrice > comboPrice) {
               comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
@@ -1140,10 +1205,10 @@ function Cart(props) {
       }
   }
 
-  const totalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0) - comboDiscountAmount;
-  // -------------------------
-      
-  // 25 Pcs Target Cart Checker Animation
+  const baseTotalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0);
+  const totalAmount = baseTotalAmount - comboDiscountAmount;
+  // ------------------------------------
+
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
       if (window.confetti) {
@@ -1218,7 +1283,7 @@ function Cart(props) {
       return itemName + " x" + i.qty;
     }).join(" | ");
 
-    let unlockedRewardsList = schemes.filter(s => calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
+    let unlockedRewardsList = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO' && calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
     if (totalItems >= 25) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
     }
@@ -1230,9 +1295,10 @@ function Cart(props) {
         phone: user.phone, 
         shopName: user.shopName, 
         items: itemsStr, 
-        totalAmount: totalAmount, 
+        totalAmount: baseTotalAmount, 
         finalAmount: finalAmount, 
         paymentMode: paymentMode,
+        comboDiscount: comboDiscountAmount,
         bulkDiscount: bulkDiscountAmount,
         bulkPercent: bulkPercent,
         upiDiscount: upiDiscountAmount,
@@ -1262,7 +1328,7 @@ function Cart(props) {
         </div>
       )}
 
-      {schemes.map((scheme, idx) => {
+      {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
         const progress = calculateSchemeProgress(cartItems, scheme);
         return (
           <div key={idx} className={`p-4 mb-4 rounded-2xl border-2 ${progress.isUnlocked ? 'bg-green-50 border-green-500 shadow-md' : 'bg-amber-50 border-amber-300'}`}>
@@ -1330,23 +1396,15 @@ function Cart(props) {
             <span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
-
-        {/* EXISTING NET VALUE HTML */}
-        {cartItems.length > 0 && (
-          <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
-            <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
-            <span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
-          </div>
-        )}
-
-        {/* --- COMBO DISCOUNT ALERT --- */}
+        
+        {/* 🔥 NEW UI ALERT COMBO */}
         {combosApplied > 0 && comboDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
             <span className="font-black uppercase text-[10px] flex items-center gap-1">🔥 Combo Offer Applied ({combosApplied}x)</span>
             <span className="font-black text-sm">-₹{comboDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
-        
+
         {cartItems.length > 0 && bulkDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-2 text-green-700">
             <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
@@ -1416,7 +1474,7 @@ function Cart(props) {
           <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
               <span>Subtotal</span>
-              <span className="line-through font-mono">₹{totalAmount.toLocaleString('en-IN')}</span>
+              <span className="line-through font-mono">₹{(totalAmount + comboDiscountAmount).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between items-center mb-4">
               <span className="font-black text-gray-800 text-lg">Final Amount</span>
