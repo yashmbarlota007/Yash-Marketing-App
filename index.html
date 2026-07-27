@@ -499,41 +499,21 @@ function App() {
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
-  }, 0);
-
-  return (
-    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
-      <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
-        <div>
-          <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
-            <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" />
-            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v4.0</span>
-          </h1>
-          <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
-        </div>
-        <div className="flex gap-1.5 items-center">
-          <button onClick={() => {
-            const m = !customerMode;
-            setCustomerMode(m);
-            if (m && (view === "ledger" || view === "orders")) handleSetView("catalog");
-            logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
-          }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
-            {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
-          </button>
-          <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
-        </div>
-      </div>
-      
-      {view === "catalog" ? (
-        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
-      ) : view === "cart" ? (
-        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
-      ) : view === "ledger" ? (
-        <LedgerView user={user} callAPI={callAPI} />
-      ) : (
-        <OrdersHistoryView user={user} callAPI={callAPI} />
-      )}
-
+  }, 0) - (function(){
+    // Smart Combo Logic for Bottom Bar
+    let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
+    cartItems.forEach(i => {
+      let n = String(getProp(i, "ProductName")).toLowerCase();
+      let b = String(getProp(i, "Brand")).toLowerCase();
+      if (b.includes("velocity") || n.includes("velocity")) {
+         if (n.includes("wave") || n.includes("neckband")) { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
+         if (n.includes("tws") || n.includes("pods") || n.includes("airpods")) { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
+      }
+    });
+    let combos = Math.min(nQty, pQty);
+    let stPrice = nPrice + pPrice;
+    return (combos > 0 && stPrice > 400) ? (stPrice - 400) * combos : 0;
+  })();
       <ContactFABs />
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
 
