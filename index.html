@@ -317,6 +317,7 @@ function BottomNav({ view, setView, totalItems, customerMode }) {
   );
 }
 
+
 function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("catalog");
@@ -496,19 +497,16 @@ function App() {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   
-  // 🔥 APP LEVEL COMBO CALCULATION FOR BOTTOM BAR
+  // 🔥 EXACT TARGET DETECTION LOGIC FOR APP BOTTOM BAR
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
   }, 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
     cartItems.forEach(i => {
-      let n = String(getProp(i, "ProductName")).toLowerCase();
-      let b = String(getProp(i, "Brand")).toLowerCase();
-      if (b.includes("velocity") || n.includes("velocity")) {
-         if (n.includes("wave") || n.includes("neckband")) { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
-         if (n.includes("tws") || n.includes("pods") || n.includes("airpods")) { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
-      }
+      let n = String(getProp(i, "ProductName")).toLowerCase().trim();
+      if (n === "velocity neckband wave") { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
+      if (n === "velocity airpods tws pods") { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
     });
     let combos = Math.min(nQty, pQty);
     let stPrice = nPrice + pPrice;
@@ -662,19 +660,15 @@ function Catalog(props) {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   
-  // Re-using Combo calculation for Tracker
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
   }, 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
     cartItems.forEach(i => {
-      let n = String(getProp(i, "ProductName")).toLowerCase();
-      let b = String(getProp(i, "Brand")).toLowerCase();
-      if (b.includes("velocity") || n.includes("velocity")) {
-         if (n.includes("wave") || n.includes("neckband")) { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
-         if (n.includes("tws") || n.includes("pods") || n.includes("airpods")) { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
-      }
+      let n = String(getProp(i, "ProductName")).toLowerCase().trim();
+      if (n === "velocity neckband wave") { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
+      if (n === "velocity airpods tws pods") { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
     });
     let combos = Math.min(nQty, pQty);
     let stPrice = nPrice + pPrice;
@@ -777,33 +771,34 @@ function Catalog(props) {
     setCart(updated);
   };
 
-  // 🔥 VELOCITY COMBO BANNER LOGIC
+  // 🔥 EXACT TARGET DETECTION FOR BANNER
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
+  
+  let comboP1 = null;
+  let comboP2 = null;
+  
+  if (comboScheme && comboScheme.target) {
+      let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
+      if (targets.length >= 2) {
+          comboP1 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[0]);
+          comboP2 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[1]);
+      }
+  }
 
   const handleAddCombo = () => {
-    if (!comboScheme) return;
-    let p1 = products.find(p => {
-        let n = String(getProp(p, "ProductName")).toLowerCase();
-        return (n.includes("velocity") && (n.includes("wave") || n.includes("neckband")));
-    });
-    let p2 = products.find(p => {
-        let n = String(getProp(p, "ProductName")).toLowerCase();
-        return (n.includes("velocity") && (n.includes("tws") || n.includes("pods")));
-    });
-    
-    if (p1 && p2) {
+    if (comboP1 && comboP2) {
       let updated = Object.assign({}, cart);
       
-      const itemCode1 = String(getProp(p1, "ItemCode") || "");
-      updated[itemCode1] = Object.assign({}, p1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
+      const itemCode1 = String(getProp(comboP1, "ItemCode") || "");
+      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
       
-      const itemCode2 = String(getProp(p2, "ItemCode") || "");
-      updated[itemCode2] = Object.assign({}, p2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 1 });
+      const itemCode2 = String(getProp(comboP2, "ItemCode") || "");
+      updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 1 });
       
-      setCart(updated); // Setting state once safely
+      setCart(updated);
       if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
     } else {
-      alert("Combo items abhi stock me nahi hain ya sync ho rahe hain!");
+      alert("Combo Error: Sheet me jo Target Name diya hai ('" + comboScheme.target + "') us naam ka product 'Products' sheet me nahi mila.");
     }
   };
 
@@ -1093,25 +1088,23 @@ function Catalog(props) {
         {searchBarUI}
       </div>
 
-      {/* --- COMBO BANNER UI --- */}
-      {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && (
+      {/* --- COMBO BANNER UI EXACT MATCH FIX --- */}
+      {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
           <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
               <div className="bg-indigo-950 rounded-3xl p-5 shadow-2xl relative overflow-hidden border border-indigo-800">
                   <div className="absolute top-0 right-0 bg-yellow-400 text-indigo-950 text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase">💡 How it works</div>
                   <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wide">🔥 Special Combo Offer</span>
                   
-                  <h3 className="text-white font-black text-lg mt-3 leading-tight">Velocity Wave Neckband + Airpods TWS Pods</h3>
+                  <h3 className="text-white font-black text-lg mt-3 leading-tight">{getProp(comboP1, "ProductName")} + {getProp(comboP2, "ProductName")}</h3>
                   <p className="text-indigo-200 text-[10px] font-bold mt-1.5">{comboScheme.message}</p>
                   
                   <div className="flex items-center justify-center gap-4 mt-5 mb-5 relative z-10">
-                      <div className="bg-white rounded-2xl p-2 w-20 h-20 flex flex-col items-center justify-center shadow-lg transform -rotate-2">
-                          <span className="text-3xl">🎧</span>
-                          <span className="text-[7px] text-center font-black mt-1 text-gray-800 uppercase tracking-tight">Neckband Wave</span>
+                      <div className="bg-white rounded-2xl w-20 h-20 flex flex-col items-center justify-center shadow-lg transform -rotate-2 relative overflow-hidden p-1.5">
+                          {getSmartImage(comboP1) ? <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" /> : <span className="text-3xl">📦</span>}
                       </div>
-                      <div className="bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center font-black text-indigo-900 text-sm shadow-xl z-20">+</div>
-                      <div className="bg-white rounded-2xl p-2 w-20 h-20 flex flex-col items-center justify-center shadow-lg transform rotate-2">
-                          <span className="text-3xl">📻</span>
-                          <span className="text-[7px] text-center font-black mt-1 text-gray-800 uppercase tracking-tight">TWS Pods</span>
+                      <div className="bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center font-black text-indigo-900 text-sm shadow-xl z-20 shrink-0">+</div>
+                      <div className="bg-white rounded-2xl w-20 h-20 flex flex-col items-center justify-center shadow-lg transform rotate-2 relative overflow-hidden p-1.5">
+                          {getSmartImage(comboP2) ? <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" /> : <span className="text-3xl">📦</span>}
                       </div>
                   </div>
                   
@@ -1178,36 +1171,36 @@ function Cart(props) {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
-  // 🔥 VELOCITY COMBO LOGIC IN CART
+  // --- EXACT MATCH SMART COMBO CART LOGIC ---
   let comboDiscountAmount = 0;
   let combosApplied = 0;
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   
-  if (comboScheme) {
-      let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
-      cartItems.forEach(item => {
-          let n = String(getProp(item, "ProductName")).toLowerCase();
-          let b = String(getProp(item, "Brand")).toLowerCase();
-          if (b.includes("velocity") || n.includes("velocity")) {
-             if (n.includes("wave") || n.includes("neckband")) { t1Qty += item.qty; t1Price = getNum(getProp(item, "DealerPrice")); }
-             if (n.includes("tws") || n.includes("pods") || n.includes("airpods")) { t2Qty += item.qty; t2Price = getNum(getProp(item, "DealerPrice")); }
-          }
-      });
-      
-      combosApplied = Math.min(t1Qty, t2Qty);
-      if (combosApplied > 0) {
-          const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
-          const comboPrice = match ? parseInt(match[1] || match[0]) : 400; 
-          const originalComboPrice = t1Price + t2Price;
-          if (originalComboPrice > comboPrice) {
-              comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
+  if (comboScheme && comboScheme.target) {
+      let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
+      if (targets.length >= 2) {
+          let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
+          cartItems.forEach(item => {
+              let n = String(getProp(item, "ProductName")).toLowerCase().trim();
+              if (n === targets[0]) { t1Qty += item.qty; t1Price = getNum(getProp(item, "DealerPrice")); }
+              if (n === targets[1]) { t2Qty += item.qty; t2Price = getNum(getProp(item, "DealerPrice")); }
+          });
+          
+          combosApplied = Math.min(t1Qty, t2Qty);
+          if (combosApplied > 0) {
+              const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
+              const comboPrice = match ? parseInt(match[1] || match[0]) : 400; 
+              const originalComboPrice = t1Price + t2Price;
+              if (originalComboPrice > comboPrice) {
+                  comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
+              }
           }
       }
   }
 
   const baseTotalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0);
   const totalAmount = baseTotalAmount - comboDiscountAmount;
-  // ------------------------------------
+  // ----------------------------------
 
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
@@ -1393,11 +1386,10 @@ function Cart(props) {
         {cartItems.length > 0 && (
           <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
             <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
-            <span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+            <span className="font-black text-lg text-gray-900">₹{baseTotalAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
         
-        {/* 🔥 NEW UI ALERT COMBO */}
         {combosApplied > 0 && comboDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
             <span className="font-black uppercase text-[10px] flex items-center gap-1">🔥 Combo Offer Applied ({combosApplied}x)</span>
