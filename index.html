@@ -1111,26 +1111,38 @@ function Cart(props) {
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
 
   const cartItems = Object.values(cart);
-  const totalAmount = cartItems.reduce((acc, item) => {
-    const itemPrice = getNum(getProp(item, "DealerPrice"));
-    return acc + (itemPrice * item.qty);
-  }, 0);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
-  useEffect(() => {
-    callAPI({ action: "getDiscounts" }).then(res => {
-      if (res && res.success && res.data.length > 0) {
-        setDiscounts(res.data);
+  // --- COMBO CART LOGIC ---
+  let comboDiscountAmount = 0;
+  let combosApplied = 0;
+  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO');
+  
+  if (comboScheme) {
+      let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
+      cartItems.forEach(item => {
+          let n = String(getProp(item, "ProductName")).toLowerCase();
+          let b = String(getProp(item, "Brand")).toLowerCase();
+          if (b.includes("velocity") || n.includes("velocity")) {
+             if (n.includes("wave") || n.includes("neckband")) { t1Qty += item.qty; t1Price = getNum(getProp(item, "DealerPrice")); }
+             if (n.includes("tws") || n.includes("pods") || n.includes("airpods")) { t2Qty += item.qty; t2Price = getNum(getProp(item, "DealerPrice")); }
+          }
+      });
+      
+      combosApplied = Math.min(t1Qty, t2Qty);
+      if (combosApplied > 0) {
+          const match = String(comboScheme.message).match(/₹(\d+)/);
+          const comboPrice = match ? parseInt(match[1]) : 400; // Auto-detect ₹400
+          const originalComboPrice = t1Price + t2Price;
+          if (originalComboPrice > comboPrice) {
+              comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
+          }
       }
-    }).catch(() => {});
-    
-    callAPI({ action: "getSchemes" }).then(res => {
-      if (res && res.success) {
-        setSchemes(res.data);
-      }
-    }).catch(() => {});
-  }, []);
+  }
 
+  const totalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0) - comboDiscountAmount;
+  // -------------------------
+      
   // 25 Pcs Target Cart Checker Animation
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) {
@@ -1319,6 +1331,22 @@ function Cart(props) {
           </div>
         )}
 
+        {/* EXISTING NET VALUE HTML */}
+        {cartItems.length > 0 && (
+          <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
+            <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
+            <span className="font-black text-lg text-gray-900">₹{totalAmount.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+
+        {/* --- COMBO DISCOUNT ALERT --- */}
+        {combosApplied > 0 && comboDiscountAmount > 0 && (
+          <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
+            <span className="font-black uppercase text-[10px] flex items-center gap-1">🔥 Combo Offer Applied ({combosApplied}x)</span>
+            <span className="font-black text-sm">-₹{comboDiscountAmount.toLocaleString('en-IN')}</span>
+          </div>
+        )}
+        
         {cartItems.length > 0 && bulkDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-2 text-green-700">
             <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
