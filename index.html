@@ -748,7 +748,29 @@ function Catalog(props) {
 
         var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
         var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
+      
+const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO');
 
+  const handleAddCombo = () => {
+    if (!comboScheme) return;
+    let p1 = products.find(p => {
+        let n = String(getProp(p, "ProductName")).toLowerCase();
+        return (n.includes("velocity") && (n.includes("wave") || n.includes("neckband")));
+    });
+    let p2 = products.find(p => {
+        let n = String(getProp(p, "ProductName")).toLowerCase();
+        return (n.includes("velocity") && (n.includes("tws") || n.includes("pods")));
+    });
+    
+    if (p1 && p2) {
+      updateQty(p1, 1);
+      updateQty(p2, 1);
+      if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+    } else {
+      alert("Combo items abhi stock me nahi hain ya sync ho rahe hain!");
+    }
+  };
+      
         const itemCode = String(getProp(activeVariant, "ItemCode") || "");
         const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
         const smartImg = getSmartImage(activeVariant);
