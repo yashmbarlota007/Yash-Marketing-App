@@ -281,30 +281,37 @@ function ContactFABs() {
   );
 }
 
-// 🛒 BOTTOM NAVIGATION BAR
+// 🛒 BOTTOM NAVIGATION BAR (UPDATED FOR REPLACEMENTS)
 function BottomNav({ view, setView, totalItems, customerMode }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-      <button onClick={() => setView('catalog')} className={`flex flex-col items-center w-1/4 ${view==='catalog'?'text-blue-900':'text-gray-400'}`}>
+      <button onClick={() => setView('catalog')} className={`flex flex-col items-center flex-1 ${view==='catalog'?'text-blue-900':'text-gray-400'}`}>
         <span className="text-xl mb-0.5">🏠</span>
         <span className="text-[10px] font-black">Home</span>
       </button>
       
       {!customerMode && (
-        <button onClick={() => setView('orders')} className={`flex flex-col items-center w-1/4 ${view==='orders'?'text-blue-900':'text-gray-400'}`}>
+        <button onClick={() => setView('orders')} className={`flex flex-col items-center flex-1 ${view==='orders'?'text-blue-900':'text-gray-400'}`}>
           <span className="text-xl mb-0.5">📦</span>
           <span className="text-[10px] font-black">Orders</span>
         </button>
       )}
 
       {!customerMode && (
-        <button onClick={() => setView('ledger')} className={`flex flex-col items-center w-1/4 ${view==='ledger'?'text-blue-900':'text-gray-400'}`}>
+        <button onClick={() => setView('ledger')} className={`flex flex-col items-center flex-1 ${view==='ledger'?'text-blue-900':'text-gray-400'}`}>
           <span className="text-xl mb-0.5">📖</span>
           <span className="text-[10px] font-black">Ledger</span>
         </button>
       )}
 
-      <button onClick={() => setView('cart')} className={`flex flex-col items-center w-1/4 relative ${view==='cart'?'text-blue-900':'text-gray-400'}`}>
+      {!customerMode && (
+        <button onClick={() => setView('replacements')} className={`flex flex-col items-center flex-1 ${view==='replacements'?'text-blue-900':'text-gray-400'}`}>
+          <span className="text-xl mb-0.5">♻️</span>
+          <span className="text-[10px] font-black">Replacement</span>
+        </button>
+      )}
+
+      <button onClick={() => setView('cart')} className={`flex flex-col items-center flex-1 relative ${view==='cart'?'text-blue-900':'text-gray-400'}`}>
         <span className="text-xl mb-0.5">🛒</span>
         {totalItems > 0 && (
           <span className="absolute -top-1 right-3 bg-red-600 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-white">
@@ -527,7 +534,7 @@ function App() {
           <button onClick={() => {
             const m = !customerMode;
             setCustomerMode(m);
-            if (m && (view === "ledger" || view === "orders")) handleSetView("catalog");
+            if (m && (view === "ledger" || view === "orders" || view === "replacements")) handleSetView("catalog");
             logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
           }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
             {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
@@ -542,6 +549,8 @@ function App() {
         <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
       ) : view === "ledger" ? (
         <LedgerView user={user} callAPI={callAPI} />
+      ) : view === "replacements" ? (
+        <ReplacementsView user={user} callAPI={callAPI} globalProps={globalProps} products={products} />
       ) : (
         <OrdersHistoryView user={user} callAPI={callAPI} />
       )}
@@ -572,6 +581,227 @@ function App() {
     </div>
   );
 }
+
+// ♻️ NEW REPLACEMENTS COMPONENT
+function ReplacementsView(props) {
+  var user = props.user;
+  var callAPI = props.callAPI;
+  var products = props.products || [];
+
+  const [activeTab, setActiveTab] = useState("track");
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [formLoading, setFormLoading] = useState(false);
+
+  // Form State
+  const [brand, setBrand] = useState("");
+  const [productName, setProductName] = useState("");
+  const [defectType, setDefectType] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [mediaData, setMediaData] = useState(null);
+
+  // Dynamic Dropdowns
+  const uniqueBrands = [...new Set(products.map(p => String(getProp(p, "Brand") || "").trim()).filter(b => b !== ""))].sort();
+  const filteredProducts = products.filter(p => String(getProp(p, "Brand") || "").trim() === brand);
+
+  useEffect(() => {
+    if (activeTab === "track") {
+      fetchTickets();
+    }
+  }, [activeTab]);
+
+  const fetchTickets = () => {
+    setLoading(true);
+    callAPI({ action: "getReplacements", phone: user.phone }).then(res => {
+      if (res && res.success) {
+        setTickets(res.data);
+      }
+      setLoading(false);
+    });
+  };
+
+  const handleMediaUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size should be less than 5MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setMediaData({
+          base64: ev.target.result.split(',')[1],
+          mimeType: file.type,
+          filename: file.name
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!brand || !productName || !defectType) return alert("Please fill Brand, Product Name, and Defect Type.");
+    if (!mediaData) return alert("Please upload a photo or video proof of the defect.");
+    
+    setFormLoading(true);
+    callAPI({
+      action: "raiseReplacement",
+      phone: user.phone,
+      shopName: user.shopName,
+      brand: brand,
+      productName: productName,
+      defectType: defectType,
+      remarks: remarks,
+      media: mediaData
+    }).then(res => {
+      setFormLoading(false);
+      if (res.success) {
+        alert("✅ Replacement Ticket Raised Successfully!\nTicket ID: " + res.ticketId);
+        setBrand(""); setProductName(""); setDefectType(""); setRemarks(""); setMediaData(null);
+        setActiveTab("track");
+      } else {
+        alert("Failed to raise ticket: " + res.message);
+      }
+    });
+  };
+
+  const getStatusColor = (status) => {
+    const s = String(status).toLowerCase();
+    if (s.includes("raised")) return "bg-red-500";
+    if (s.includes("inwarded")) return "bg-yellow-500";
+    if (s.includes("testing")) return "bg-blue-500";
+    if (s.includes("resolved") || s.includes("approved")) return "bg-green-500";
+    if (s.includes("rejected")) return "bg-gray-600";
+    return "bg-gray-300";
+  };
+
+  const getProgressPercent = (status) => {
+    const s = String(status).toLowerCase();
+    if (s.includes("raised")) return 25;
+    if (s.includes("inwarded")) return 50;
+    if (s.includes("testing")) return 75;
+    if (s.includes("resolved") || s.includes("approved") || s.includes("rejected")) return 100;
+    return 25;
+  };
+
+  return (
+    <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans">
+      <div className="flex justify-between bg-white rounded-xl shadow-sm border p-1 mb-4">
+        <button onClick={() => setActiveTab("track")} className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'track' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}>Track Tickets</button>
+        <button onClick={() => setActiveTab("new")} className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'new' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}>+ New Ticket</button>
+      </div>
+
+      {activeTab === "new" ? (
+        <div className="bg-white rounded-2xl shadow-sm border p-5 animate-fade-in">
+          <h2 className="font-black text-gray-800 text-lg mb-1">Raise Replacement</h2>
+          <p className="text-xs text-gray-400 mb-5 font-bold">Fast & transparent warranty claims.</p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">1. Select Brand</label>
+              <select value={brand} onChange={(e) => { setBrand(e.target.value); setProductName(""); }} className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500">
+                <option value="">-- Choose Brand --</option>
+                {uniqueBrands.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+
+            {brand && (
+              <div className="animate-fade-in">
+                <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">2. Select Product</label>
+                <select value={productName} onChange={(e) => setProductName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500">
+                  <option value="">-- Choose Item --</option>
+                  {filteredProducts.map(p => {
+                    const name = String(getProp(p, "ProductName") || "Unknown Item");
+                    return <option key={name} value={name}>{name}</option>;
+                  })}
+                </select>
+              </div>
+            )}
+
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">3. Defect Type</label>
+              <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500">
+                <option value="">-- Issue Type --</option>
+                <option value="Dead on Arrival (DOA)">Dead on Arrival (DOA)</option>
+                <option value="Battery Drain / Charging Issue">Battery Drain / Charging Issue</option>
+                <option value="Connectivity / Bluetooth Issue">Connectivity / Bluetooth Issue</option>
+                <option value="Audio / Sound Issue">Audio / Sound Issue</option>
+                <option value="Physical Damage (Transit)">Physical Damage (Transit)</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">4. Photo/Video Proof</label>
+              <div className="w-full bg-blue-50 border-2 border-dashed border-blue-200 p-4 rounded-xl text-center relative">
+                <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                <div className="text-blue-900 font-black text-sm">{mediaData ? "✅ Media Selected" : "📸 Tap to Upload Media"}</div>
+                <div className="text-[9px] text-blue-600 mt-1 font-bold">{mediaData ? mediaData.filename : "Required for fast approval (Max 5MB)"}</div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">5. Remarks (Optional)</label>
+              <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows="2" placeholder="Any specific details..." className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"></textarea>
+            </div>
+
+            <button onClick={handleSubmit} disabled={formLoading} className="w-full bg-blue-900 text-white font-black text-lg py-4 rounded-xl shadow-lg mt-2 active:scale-95 flex justify-center items-center">
+              {formLoading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "SUBMIT TICKET"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {loading ? (
+             <div className="flex justify-center p-10"><div className="border-4 border-blue-900 border-t-transparent w-8 h-8 rounded-full spinner"></div></div>
+          ) : tickets.length === 0 ? (
+            <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">No Replacement Tickets Found.</div>
+          ) : (
+            tickets.map((ticket, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-fade-in">
+                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-3">
+                  <div>
+                    <div className="text-[10px] text-gray-400 font-bold">{ticket.date}</div>
+                    <div className="font-black text-blue-900 text-xs mt-1">{ticket.ticketId}</div>
+                  </div>
+                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-md text-white uppercase tracking-wider ${getStatusColor(ticket.status)}`}>
+                    {ticket.status}
+                  </span>
+                </div>
+                
+                <div className="mb-4">
+                  <div className="text-[10px] bg-gray-100 text-gray-600 font-black px-2 py-0.5 rounded inline-block mb-1">{ticket.brand}</div>
+                  <h3 className="font-bold text-sm text-gray-800 leading-snug">{ticket.productName}</h3>
+                  <p className="text-[11px] text-red-600 font-bold mt-1">Issue: {ticket.defectType}</p>
+                </div>
+
+                <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <div className="flex justify-between text-[8px] font-black text-gray-400 uppercase tracking-wider mb-2">
+                    <span>Raised</span>
+                    <span>Inwarded</span>
+                    <span>Testing</span>
+                    <span>Resolved</span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                    <div className={`${getStatusColor(ticket.status)} h-full transition-all duration-500`} style={{ width: `${getProgressPercent(ticket.status)}%` }}></div>
+                  </div>
+                </div>
+
+                {(ticket.resolutionType || ticket.resolutionDetails) && (
+                   <div className="mt-3 bg-green-50 p-3 rounded-xl border border-green-100">
+                     <div className="text-[9px] text-green-700 font-black uppercase mb-1">Resolution ({ticket.resolutionType})</div>
+                     <div className="text-xs font-bold text-green-900">{ticket.resolutionDetails}</div>
+                   </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function LoginScreen(props) {
   var onLogin = props.onLogin;
