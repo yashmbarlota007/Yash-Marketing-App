@@ -14,6 +14,7 @@
 <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
@@ -44,6 +45,18 @@ to { opacity: 1; }
 }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 
+@keyframes pulseMic { 
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+}
+.mic-recording { 
+  animation: pulseMic 1.5s infinite; 
+  background-color: #ef4444 !important; 
+  color: white !important; 
+  border-color: #ef4444 !important; 
+}
+
 /* Clean Black and White PDF Styles */
 @media print {
 body { background: white !important; color: black !important; }
@@ -57,7 +70,7 @@ nav, button, .sticky, header, .z-50, .fixed, .shadow-2xl, .bg-blue-900 { display
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 // MASTER CONFIGURATIONS
 var cacheBypass = "?v=" + new Date().getTime();
@@ -272,7 +285,9 @@ function ContactFABs() {
   return (
     <div className="fixed bottom-[95px] right-4 flex flex-col gap-3 z-40">
       <a href={`https://wa.me/${OFFICE_NUMBER}?text=Hello%20Yash%20Marketing,%20Mujhe%20order%20ke%20baare%20me%20inquiry%20karni%20hai.`} target="_blank" className="w-12 h-12 bg-green-500 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
-        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
       </a>
       <a href={`tel:+${OFFICE_NUMBER}`} className="w-12 h-12 bg-blue-600 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
         <span className="text-xl text-white">📞</span>
@@ -281,7 +296,7 @@ function ContactFABs() {
   );
 }
 
-// 🛒 BOTTOM NAVIGATION BAR (UPDATED FOR REPLACEMENTS)
+// 🛒 BOTTOM NAVIGATION BAR (WITH REPLACEMENTS TAB)
 function BottomNav({ view, setView, totalItems, customerMode }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
@@ -482,7 +497,9 @@ function App() {
     handleSetView("catalog");
   };
 
-  if (!user) return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
+  if (!user) {
+    return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
+  }
 
   if (!isNotificationGranted) {
     return (
@@ -582,82 +599,216 @@ function App() {
   );
 }
 
-// ♻️ NEW REPLACEMENTS COMPONENT
+// 📸 HTML5 QR Code Scanner Modal Component
+function ScannerModal({ onScan, onClose }) {
+  useEffect(() => {
+    let html5QrCode;
+    try {
+      html5QrCode = new window.Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 100 } },
+        (decodedText) => {
+          html5QrCode.stop().then(() => { 
+            onScan(decodedText); 
+          }).catch(() => { 
+            onScan(decodedText); 
+          });
+        },
+        (err) => {}
+      ).catch(err => {
+        alert("Camera start failed: Please ensure permissions are granted.");
+        onClose();
+      });
+    } catch(e) {
+      alert("Scanner not loaded properly.");
+      onClose();
+    }
+    
+    return () => {
+      if(html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().catch(() => {});
+      }
+    };
+  }, []);
+  
+  return (
+    <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-fade-in">
+       <div className="p-4 flex justify-between items-center text-white bg-gray-900">
+          <span className="font-black uppercase text-sm">Scan Product Barcode</span>
+          <button onClick={onClose} className="font-black text-xl text-gray-300">✕</button>
+       </div>
+       <div className="flex-1 flex flex-col justify-center items-center p-4">
+          <div id="reader" className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl bg-black border-2 border-dashed border-gray-600"></div>
+          <p className="text-white text-center mt-6 text-xs font-bold bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm leading-relaxed">
+             Box pe jaha colour likha hota hai thik wahi pe jo barcode hai wo scan karo.
+          </p>
+       </div>
+    </div>
+  );
+}
+
+// ♻️ REPLACEMENTS COMPONENT WITH SCANNER & VOICE NOTES
 function ReplacementsView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
   var products = props.products || [];
 
-  const [activeTab, setActiveTab] = useState("track");
+  const [activeTab, setActiveTab] = useState("new"); // Force 'new' as default
   const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [warrantyRules, setWarrantyRules] = useState([]);
 
   // Form State
   const [brand, setBrand] = useState("");
-  const [productName, setProductName] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [productName, setProductName] = useState(""); // Exact matched product name
   const [defectType, setDefectType] = useState("");
   const [remarks, setRemarks] = useState("");
   const [mediaData, setMediaData] = useState(null);
+  
+  // Voice Note State
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioData, setAudioData] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
-  // Dynamic Dropdowns
+  // Scanner State
+  const [isScanning, setIsScanning] = useState(false);
+
   const uniqueBrands = [...new Set(products.map(p => String(getProp(p, "Brand") || "").trim()).filter(b => b !== ""))].sort();
-  const filteredProducts = products.filter(p => String(getProp(p, "Brand") || "").trim() === brand);
+  const filteredProducts = products.filter(p => 
+    String(getProp(p, "Brand") || "").trim() === brand &&
+    (productSearch === "" || 
+     String(getProp(p, "ProductName") || "").toLowerCase().includes(productSearch.toLowerCase()) || 
+     String(getProp(p, "ItemCode") || "").toLowerCase().includes(productSearch.toLowerCase()))
+  );
+
+  useEffect(() => {
+    callAPI({ action: "getWarrantyRules" }).then(res => {
+      if (res && res.success) {
+        setWarrantyRules(res.data);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (activeTab === "track") {
-      fetchTickets();
+      setLoading(true);
+      callAPI({ action: "getReplacements", phone: user.phone }).then(res => {
+        if (res && res.success) {
+          setTickets(res.data);
+        }
+        setLoading(false);
+      });
     }
   }, [activeTab]);
 
-  const fetchTickets = () => {
-    setLoading(true);
-    callAPI({ action: "getReplacements", phone: user.phone }).then(res => {
-      if (res && res.success) {
-        setTickets(res.data);
-      }
-      setLoading(false);
-    });
+  const handleScanSuccess = (decodedText) => {
+    setIsScanning(false);
+    setProductSearch(decodedText);
+    const exactMatch = filteredProducts.find(p => 
+      String(getProp(p, "ItemCode")).toLowerCase() === decodedText.toLowerCase() || 
+      String(getProp(p, "ProductName")).toLowerCase() === decodedText.toLowerCase()
+    );
+    if(exactMatch) {
+      setProductName(String(getProp(exactMatch, "ProductName")));
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => { 
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data); 
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setAudioData({ 
+            base64: ev.target.result.split(',')[1], 
+            mimeType: 'audio/webm', 
+            filename: 'VoiceNote.webm' 
+          });
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      alert("Microphone permission denied or not supported on this browser.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
   };
 
   const handleMediaUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert("File size should be less than 5MB");
-        return;
+        return alert("File size should be less than 5MB");
       }
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setMediaData({
-          base64: ev.target.result.split(',')[1],
-          mimeType: file.type,
-          filename: file.name
-        });
+      reader.onload = (ev) => { 
+        setMediaData({ 
+          base64: ev.target.result.split(',')[1], 
+          mimeType: file.type, 
+          filename: file.name 
+        }); 
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleSubmit = () => {
-    if (!brand || !productName || !defectType) return alert("Please fill Brand, Product Name, and Defect Type.");
-    if (!mediaData) return alert("Please upload a photo or video proof of the defect.");
+    if (!brand || !productName || !defectType) {
+      return alert("Please fill Brand, Product Name, and Defect Type.");
+    }
+    if (!remarks.trim() && !audioData) {
+      return alert("Please explain the problem in Remarks, or record a Voice Note.");
+    }
+    if (!mediaData) {
+      return alert("Please upload a photo or video proof of the defect.");
+    }
     
     setFormLoading(true);
     callAPI({
-      action: "raiseReplacement",
-      phone: user.phone,
+      action: "raiseReplacement", 
+      phone: user.phone, 
       shopName: user.shopName,
-      brand: brand,
-      productName: productName,
+      brand: brand, 
+      productName: productName, 
       defectType: defectType,
-      remarks: remarks,
-      media: mediaData
+      remarks: remarks, 
+      media: mediaData, 
+      audio: audioData
     }).then(res => {
       setFormLoading(false);
       if (res.success) {
         alert("✅ Replacement Ticket Raised Successfully!\nTicket ID: " + res.ticketId);
-        setBrand(""); setProductName(""); setDefectType(""); setRemarks(""); setMediaData(null);
+        setBrand(""); 
+        setProductSearch(""); 
+        setProductName(""); 
+        setDefectType(""); 
+        setRemarks(""); 
+        setMediaData(null); 
+        setAudioData(null);
         setActiveTab("track");
       } else {
         alert("Failed to raise ticket: " + res.message);
@@ -686,30 +837,82 @@ function ReplacementsView(props) {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans">
+      {isScanning && <ScannerModal onScan={handleScanSuccess} onClose={() => setIsScanning(false)} />}
+      
       <div className="flex justify-between bg-white rounded-xl shadow-sm border p-1 mb-4">
-        <button onClick={() => setActiveTab("track")} className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'track' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}>Track Tickets</button>
-        <button onClick={() => setActiveTab("new")} className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'new' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}>+ New Ticket</button>
+        <button 
+          onClick={() => setActiveTab("new")} 
+          className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'new' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}
+        >
+          + New Ticket
+        </button>
+        <button 
+          onClick={() => setActiveTab("track")} 
+          className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'track' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}
+        >
+          Track Tickets
+        </button>
       </div>
 
       {activeTab === "new" ? (
         <div className="bg-white rounded-2xl shadow-sm border p-5 animate-fade-in">
           <h2 className="font-black text-gray-800 text-lg mb-1">Raise Replacement</h2>
-          <p className="text-xs text-gray-400 mb-5 font-bold">Fast & transparent warranty claims.</p>
+          <p className="text-xs text-gray-400 mb-4 font-bold">Fast & transparent warranty claims.</p>
+
+          {warrantyRules.length > 0 && (
+             <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl mb-5">
+               <h3 className="text-[10px] font-black text-amber-900 uppercase tracking-wider mb-2">⚠️ Warranty Guidelines</h3>
+               <ul className="text-[10px] text-amber-800 font-bold space-y-1.5 list-disc pl-4">
+                 {warrantyRules.map((rule, i) => (
+                   <li key={i}>{rule}</li>
+                 ))}
+               </ul>
+             </div>
+          )}
 
           <div className="space-y-4">
             <div>
               <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">1. Select Brand</label>
-              <select value={brand} onChange={(e) => { setBrand(e.target.value); setProductName(""); }} className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500">
+              <select 
+                value={brand} 
+                onChange={(e) => { 
+                  setBrand(e.target.value); 
+                  setProductSearch(""); 
+                  setProductName(""); 
+                }} 
+                className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+              >
                 <option value="">-- Choose Brand --</option>
-                {uniqueBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                {uniqueBrands.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
               </select>
             </div>
 
             {brand && (
               <div className="animate-fade-in">
-                <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">2. Select Product</label>
-                <select value={productName} onChange={(e) => setProductName(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500">
-                  <option value="">-- Choose Item --</option>
+                <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">2. Select Product (Search or Scan)</label>
+                <div className="flex gap-2 mb-2">
+                  <input 
+                    type="text" 
+                    placeholder="Type product name or scan..." 
+                    value={productSearch} 
+                    onChange={(e) => setProductSearch(e.target.value)} 
+                    className="flex-1 bg-gray-50 p-3 rounded-xl border outline-none font-bold text-xs text-gray-800 focus:border-blue-500" 
+                  />
+                  <button 
+                    onClick={() => setIsScanning(true)} 
+                    className="bg-blue-900 text-white px-4 rounded-xl font-black text-sm active:scale-95 shadow-sm flex items-center justify-center"
+                  >
+                    📷 SCAN
+                  </button>
+                </div>
+                <select 
+                  value={productName} 
+                  onChange={(e) => setProductName(e.target.value)} 
+                  className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+                >
+                  <option value="">-- Select from list --</option>
                   {filteredProducts.map(p => {
                     const name = String(getProp(p, "ProductName") || "Unknown Item");
                     return <option key={name} value={name}>{name}</option>;
@@ -720,7 +923,11 @@ function ReplacementsView(props) {
 
             <div>
               <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">3. Defect Type</label>
-              <select value={defectType} onChange={(e) => setDefectType(e.target.value)} className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500">
+              <select 
+                value={defectType} 
+                onChange={(e) => setDefectType(e.target.value)} 
+                className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+              >
                 <option value="">-- Issue Type --</option>
                 <option value="Dead on Arrival (DOA)">Dead on Arrival (DOA)</option>
                 <option value="Battery Drain / Charging Issue">Battery Drain / Charging Issue</option>
@@ -732,30 +939,78 @@ function ReplacementsView(props) {
             </div>
 
             <div>
-              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">4. Photo/Video Proof</label>
-              <div className="w-full bg-blue-50 border-2 border-dashed border-blue-200 p-4 rounded-xl text-center relative">
-                <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                <div className="text-blue-900 font-black text-sm">{mediaData ? "✅ Media Selected" : "📸 Tap to Upload Media"}</div>
-                <div className="text-[9px] text-blue-600 mt-1 font-bold">{mediaData ? mediaData.filename : "Required for fast approval (Max 5MB)"}</div>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">4. Remarks & Problem Explaination <span className="text-red-500">*</span></label>
+              <textarea 
+                value={remarks} 
+                onChange={(e) => setRemarks(e.target.value)} 
+                rows="2" 
+                placeholder="Write exactly what is not working..." 
+                className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500 mb-2"
+              ></textarea>
+              
+              <div className="flex items-center gap-3">
+                 <button 
+                    onMouseDown={startRecording} 
+                    onMouseUp={stopRecording} 
+                    onTouchStart={startRecording} 
+                    onTouchEnd={stopRecording}
+                    className={`flex items-center justify-center w-12 h-12 rounded-full shadow-md transition-all select-none ${isRecording ? 'mic-recording' : 'bg-gray-100 text-gray-600 border border-gray-300'}`}
+                 >
+                    🎙️
+                 </button>
+                 <div className="text-[10px] text-gray-500 font-bold leading-tight flex-1">
+                    {isRecording ? (
+                      <span className="text-red-600 animate-pulse">Recording... Release to stop.</span>
+                    ) : audioData ? (
+                      <span className="text-green-600">✅ Voice Note Recorded. Hold Mic to Re-record.</span>
+                    ) : (
+                      "Hold Mic to record Voice Note if you can't type."
+                    )}
+                 </div>
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">5. Remarks (Optional)</label>
-              <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows="2" placeholder="Any specific details..." className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"></textarea>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">5. Photo/Video Proof <span className="text-red-500">*</span></label>
+              <div className="w-full bg-blue-50 border-2 border-dashed border-blue-200 p-4 rounded-xl text-center relative">
+                <input 
+                  type="file" 
+                  accept="image/*,video/*" 
+                  onChange={handleMediaUpload} 
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                />
+                <div className="text-blue-900 font-black text-sm">
+                  {mediaData ? "✅ Media Selected" : "📸 Tap to Upload Media"}
+                </div>
+                <div className="text-[9px] text-blue-600 mt-1 font-bold">
+                  {mediaData ? mediaData.filename : "Box and defect picture required (Max 5MB)"}
+                </div>
+              </div>
             </div>
 
-            <button onClick={handleSubmit} disabled={formLoading} className="w-full bg-blue-900 text-white font-black text-lg py-4 rounded-xl shadow-lg mt-2 active:scale-95 flex justify-center items-center">
-              {formLoading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "SUBMIT TICKET"}
+            <button 
+              onClick={handleSubmit} 
+              disabled={formLoading} 
+              className="w-full bg-blue-900 text-white font-black text-lg py-4 rounded-xl shadow-lg mt-2 active:scale-95 flex justify-center items-center"
+            >
+              {formLoading ? (
+                <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
+              ) : (
+                "SUBMIT TICKET"
+              )}
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           {loading ? (
-             <div className="flex justify-center p-10"><div className="border-4 border-blue-900 border-t-transparent w-8 h-8 rounded-full spinner"></div></div>
+             <div className="flex justify-center p-10">
+               <div className="border-4 border-blue-900 border-t-transparent w-8 h-8 rounded-full spinner"></div>
+             </div>
           ) : tickets.length === 0 ? (
-            <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">No Replacement Tickets Found.</div>
+            <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
+              No Replacement Tickets Found.
+            </div>
           ) : (
             tickets.map((ticket, idx) => (
               <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 animate-fade-in">
@@ -770,7 +1025,9 @@ function ReplacementsView(props) {
                 </div>
                 
                 <div className="mb-4">
-                  <div className="text-[10px] bg-gray-100 text-gray-600 font-black px-2 py-0.5 rounded inline-block mb-1">{ticket.brand}</div>
+                  <div className="text-[10px] bg-gray-100 text-gray-600 font-black px-2 py-0.5 rounded inline-block mb-1">
+                    {ticket.brand}
+                  </div>
                   <h3 className="font-bold text-sm text-gray-800 leading-snug">{ticket.productName}</h3>
                   <p className="text-[11px] text-red-600 font-bold mt-1">Issue: {ticket.defectType}</p>
                 </div>
@@ -783,14 +1040,21 @@ function ReplacementsView(props) {
                     <span>Resolved</span>
                   </div>
                   <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
-                    <div className={`${getStatusColor(ticket.status)} h-full transition-all duration-500`} style={{ width: `${getProgressPercent(ticket.status)}%` }}></div>
+                    <div 
+                      className={`${getStatusColor(ticket.status)} h-full transition-all duration-500`} 
+                      style={{ width: `${getProgressPercent(ticket.status)}%` }}
+                    ></div>
                   </div>
                 </div>
 
                 {(ticket.resolutionType || ticket.resolutionDetails) && (
                    <div className="mt-3 bg-green-50 p-3 rounded-xl border border-green-100">
-                     <div className="text-[9px] text-green-700 font-black uppercase mb-1">Resolution ({ticket.resolutionType})</div>
-                     <div className="text-xs font-bold text-green-900">{ticket.resolutionDetails}</div>
+                     <div className="text-[9px] text-green-700 font-black uppercase mb-1">
+                       Resolution ({ticket.resolutionType})
+                     </div>
+                     <div className="text-xs font-bold text-green-900">
+                       {ticket.resolutionDetails}
+                     </div>
                    </div>
                 )}
               </div>
@@ -802,13 +1066,11 @@ function ReplacementsView(props) {
   );
 }
 
-
 function LoginScreen(props) {
   var onLogin = props.onLogin;
   var callAPI = props.callAPI;
   var loading = props.loading;
   var setLoading = props.setLoading;
-
   const [phone, setPhone] = useState("");
 
   const handleLogin = function() {
@@ -819,11 +1081,6 @@ function LoginScreen(props) {
       if (res.success) {
         var dealerData = { phone: phone, shopName: res.shopName };
         localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
-        fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify({ action: "logEvent", phone: dealerData.phone, shopName: dealerData.shopName, event: "Login Success", details: "App Opened" }),
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        }).catch(function(e) {});
         onLogin(dealerData);
       } else {
         alert(res.message);
@@ -834,12 +1091,31 @@ function LoginScreen(props) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center font-sans">
       <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-900">
-        <img src={LOGO_URL} className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" />
+        <img 
+          src={LOGO_URL} 
+          className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" 
+        />
         <h2 className="text-3xl font-black mb-1 text-gray-900">Yash Marketing</h2>
-        <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">Authorized Dealer Portal</p>
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" placeholder="MOBILE NO." />
-        <button onClick={handleLogin} disabled={loading} className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center">
-          {loading ? <div className="border-4 border-white border-t-transparent w-7 h-7 rounded-full spinner"></div> : "SECURE LOGIN"}
+        <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">
+          Authorized Dealer Portal
+        </p>
+        <input 
+          type="tel" 
+          value={phone} 
+          onChange={(e) => setPhone(e.target.value)} 
+          className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" 
+          placeholder="MOBILE NO." 
+        />
+        <button 
+          onClick={handleLogin} 
+          disabled={loading} 
+          className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center"
+        >
+          {loading ? (
+            <div className="border-4 border-white border-t-transparent w-7 h-7 rounded-full spinner"></div>
+          ) : (
+            "SECURE LOGIN"
+          )}
         </button>
       </div>
     </div>
@@ -855,7 +1131,7 @@ function Catalog(props) {
   var setProducts = props.setProducts;
   var setView = props.setView;
   var globalProps = props.globalProps;
-
+  
   const [loading, setLoading] = useState(products.length === 0);
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -868,113 +1144,98 @@ function Catalog(props) {
 
   useEffect(() => {
     if (products.length === 0) {
-      callAPI({ action: "getProducts" }).then(res => {
-        if (res && res.success) setProducts(res.data);
-        else alert("Data Error: Please check Sheet");
-        setLoading(false);
+      callAPI({ action: "getProducts" }).then(res => { 
+        if (res && res.success) {
+          setProducts(res.data);
+        } 
+        setLoading(false); 
       });
     }
-    callAPI({ action: "getDiscounts" }).then(res => {
+    callAPI({ action: "getDiscounts" }).then(res => { 
       if (res && res.success && res.data.length > 0) {
         setDiscounts(res.data);
-      }
+      } 
     }).catch(() => {});
-    
-    callAPI({ action: "getSchemes" }).then(res => {
+    callAPI({ action: "getSchemes" }).then(res => { 
       if (res && res.success) {
         setSchemes(res.data);
-      }
+      } 
     }).catch(() => {});
   }, []);
 
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
-  
-  const totalAmount = cartItems.reduce((a, b) => {
-    const itemPrice = getNum(getProp(b, "DealerPrice"));
-    return a + (itemPrice * b.qty);
-  }, 0) - (function(){
+  const totalAmount = cartItems.reduce((a, b) => a + (getNum(getProp(b, "DealerPrice")) * b.qty), 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
     cartItems.forEach(i => {
       let n = String(getProp(i, "ProductName")).toLowerCase().trim();
       if (n === "velocity neckband wave") { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
       if (n === "velocity airpods tws pods") { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
     });
-    let combos = Math.min(nQty, pQty);
-    let stPrice = nPrice + pPrice;
-    return (combos > 0 && stPrice > 400) ? (stPrice - 400) * combos : 0;
+    return (Math.min(nQty, pQty) > 0 && (nPrice + pPrice) > 400) ? ((nPrice + pPrice) - 400) * Math.min(nQty, pQty) : 0;
   })();
 
   useEffect(() => {
-    if (totalItems >= 25 && !celebrated25Pcs) {
+    if (totalItems >= 25 && !celebrated25Pcs) { 
       if (window.confetti) {
         window.confetti({ 
           particleCount: 250, 
           spread: 100, 
           origin: { y: 0.5 }, 
           colors: ['#ff0055', '#00ffcc', '#ffcc00', '#33ff33'] 
-        });
+        }); 
       }
-      setCelebrated25Pcs(true);
+      setCelebrated25Pcs(true); 
     } else if (totalItems < 25) {
       setCelebrated25Pcs(false);
     }
   }, [totalItems]);
 
   useEffect(() => {
-    var sortedDiscounts = [...discounts]
-    .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
-    .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-    .sort((a, b) => a.minAmount - b.minAmount);
-
+    var sortedDiscounts = [...discounts].map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) })).filter(d => !isNaN(d.minAmount) && !isNaN(d.percent)).sort((a, b) => a.minAmount - b.minAmount);
     var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
     var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
 
     if (totalAmount >= tier2Min) {
-      if (!celebratedTiers.tier2) {
+      if (!celebratedTiers.tier2) { 
         if (window.confetti) {
-          window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+          window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); 
         }
-        setCelebratedTiers(prev => Object.assign({}, prev, { tier2: true }));
+        setCelebratedTiers(prev => ({...prev, tier2: true })); 
       }
     } else if (totalAmount >= tier1Min) {
-      if (!celebratedTiers.tier1) {
+      if (!celebratedTiers.tier1) { 
         if (window.confetti) {
           window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        }
-        setCelebratedTiers(prev => Object.assign({}, prev, { tier1: true }));
+        } 
+        setCelebratedTiers(prev => ({...prev, tier1: true })); 
       }
       if (celebratedTiers.tier2) {
-        setCelebratedTiers(prev => Object.assign({}, prev, { tier2: false }));
+        setCelebratedTiers(prev => ({...prev, tier2: false }));
       }
-    } else {
+    } else { 
       if (celebratedTiers.tier1 || celebratedTiers.tier2) {
-        setCelebratedTiers({ tier1: false, tier2: false });
+        setCelebratedTiers({ tier1: false, tier2: false }); 
       }
     }
   }, [totalAmount, discounts]);
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+  const handleSearchChange = (e) => setSearchQuery(e.target.value);
+  
+  const openCategory = (type) => { 
+    window.history.pushState({ modal: 'category' }, ''); 
+    setSelectedType(type); 
   };
-
-  const openCategory = (type) => {
-    window.history.pushState({ modal: 'category' }, '');
-    setSelectedType(type);
-  };
-
-  const openProductModal = (p) => {
-    window.history.pushState({ modal: 'product' }, '');
-    setSelectedProduct(p);
+  
+  const openProductModal = (p) => { 
+    window.history.pushState({ modal: 'product' }, ''); 
+    setSelectedProduct(p); 
   };
 
   useEffect(() => {
-    const handlePop = (e) => {
-      if (selectedProduct) {
-        setSelectedProduct(null);
-      } else if (selectedType) {
-        setSelectedType(null);
-      }
+    const handlePop = (e) => { 
+      if (selectedProduct) setSelectedProduct(null); 
+      else if (selectedType) setSelectedType(null); 
     };
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
@@ -985,28 +1246,24 @@ function Catalog(props) {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
     if (!itemCode) return;
-
-    const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
-    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
-
-    const stockVal = getNum(getProp(product, "Stock"));
-    const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
-    const newQty = currentQty + change;
     
+    const stockVal = getNum(getProp(product, "Stock"));
+    const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
+    
+    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + change;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
-
+    
     if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
-    if (newQty <= 0) delete updated[itemCode];
-    else updated[itemCode] = Object.assign({}, product, { qty: newQty });
+    if (newQty <= 0) {
+      delete updated[itemCode]; 
+    } else {
+      updated[itemCode] = Object.assign({}, product, { qty: newQty });
+    }
     setCart(updated);
   };
 
-  // 🔥 EXACT TARGET DETECTION FOR BANNER
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
-  
-  let comboP1 = null;
-  let comboP2 = null;
-  
+  let comboP1 = null, comboP2 = null;
   if (comboScheme && comboScheme.target) {
       let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
       if (targets.length >= 2) {
@@ -1014,156 +1271,163 @@ function Catalog(props) {
           comboP2 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[1]);
       }
   }
-
+  
   const handleAddCombo = () => {
     if (comboP1 && comboP2) {
       let updated = Object.assign({}, cart);
       
-      const itemCode1 = String(getProp(comboP1, "ItemCode") || "");
-      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
+      const itemCode1 = String(getProp(comboP1, "ItemCode"));
+      const itemCode2 = String(getProp(comboP2, "ItemCode"));
       
-      const itemCode2 = String(getProp(comboP2, "ItemCode") || "");
+      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
       updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 1 });
       
       setCart(updated);
-      if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+      if (window.confetti) {
+        window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+      }
     } else {
-      alert("Combo Error: Sheet me jo Target Name diya hai ('" + comboScheme.target + "') us naam ka product 'Products' sheet me nahi mila.");
+      alert("Combo Error: Target product not found.");
     }
   };
 
-  if (loading) return <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900"><div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div><p className="font-bold">Syncing Inventory...</p></div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+        <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+        <p className="font-bold">Syncing Inventory...</p>
+      </div>
+    );
+  }
 
-  const inStockFlat = products.filter(p => {
-    const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
-    const isAlwaysLive = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
-    const stockVal = getNum(getProp(p, "Stock"));
-    return (stockVal > 0) || isAlwaysLive;
-  });
-
+  const inStockFlat = products.filter(p => (getNum(getProp(p, "Stock")) > 0) || String(getProp(p, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(p, "Brand") || "").toUpperCase().includes("VELOCITY"));
   const inStockProducts = groupProductsByVariant(inStockFlat);
 
   const renderProducts = (productList) => (
     <div className="p-4 grid grid-cols-2 gap-4">
       {productList.map((p, idx) => {
         var name = String(getProp(p, "ProductName") || "Premium Item");
-        var brand = String(getProp(p, "Brand") || "Premium");
-        var type = String(getProp(p, "Type") || "Accessories");
-
         var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
         var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
-
-        const itemCode = String(getProp(activeVariant, "ItemCode") || "");
-        const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
+        
+        const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
         const smartImg = getSmartImage(activeVariant);
-
         const mrpVal = getNum(getProp(activeVariant, "MRP"));
         const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
         const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
-        const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
-
-        const isValidPrice = dealerVal > 0;
-        const displayPrice = isValidPrice ? `₹${dealerVal}` : "Contact Us";
-
+        
         const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
-        const activeBrandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
-        const isAlwaysLiveBrand = activeBrandStr.includes("HIKVISION") || activeBrandStr.includes("VELOCITY");
-        const stockVal = getNum(getProp(activeVariant, "Stock"));
-        const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+        const showOnOrder = (String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("VELOCITY")) && getNum(getProp(activeVariant, "Stock")) <= 0;
 
         return (
-          <div key={`${activeItemCode || Math.random()}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
-            
+          <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
             {isNewItem && (
-              <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce select-none">✨ NEW</span>
+              <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
+                ✨ NEW
+              </span>
             )}
-            
             {showOnOrder && !isNewItem && (
-              <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse select-none border border-orange-400">⏳ ON ORDER</span>
+              <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                ⏳ ON ORDER
+              </span>
             )}
-
             {!isNewItem && !showOnOrder && totalItems >= 25 && (
-              <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10 select-none">25+ Target Unlocked</span>
+              <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10">
+                25+ Target Unlocked
+              </span>
             )}
             
             <div className="mt-1 cursor-pointer" onClick={() => openProductModal(p)}>
               {smartImg ? (
-                <img
-                  src={smartImg}
-                  className="h-32 w-full object-contain mb-2 p-1"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
-                  }}
-                />
+                <img 
+                  src={smartImg} 
+                  className="h-32 w-full object-contain mb-2 p-1" 
+                  onError={(e) => { 
+                    e.target.onerror=null; 
+                    e.target.src="https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true"; 
+                  }} 
+                /> 
               ) : (
                 <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
               )}
               <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{name}</h3>
             </div>
-
+            
             {p.isGrouped && (
               <div className="flex flex-wrap gap-1 mt-1 mb-2">
-                {p.variants.map(v => {
-                  const vItemCode = String(getProp(v, "ItemCode") || "");
-                  return (
-                    <button
-                      key={vItemCode || Math.random()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        var nextActives = Object.assign({}, activeVariants);
-                        nextActives[String(getProp(p, "ItemCode") || "")] = vItemCode;
-                        setActiveVariants(nextActives);
-                      }}
-                      className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                    >
-                      {v.capacity}
-                    </button>
-                  );
-                })}
+                {p.variants.map(v => (
+                  <button 
+                    key={String(getProp(v, "ItemCode"))} 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setActiveVariants(prev => ({...prev, [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) })); 
+                    }} 
+                    className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                  >
+                    {v.capacity}
+                  </button>
+                ))}
               </div>
             )}
 
             <div className="mt-1">
               {!globalProps.customerMode ? (
                 <div>
-                  {hasDiscount && isValidPrice ? (
+                  {hasDiscount && dealerVal > 0 ? (
                     <div className="flex items-center gap-1.5 mb-1">
                       <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{mrpVal}</span>
-                      <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+                      <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">
+                        {Math.round(((mrpVal - dealerVal) / mrpVal) * 100)}% OFF
+                      </span>
                     </div>
-                  ) : (
-                    mrpVal > 0 && (
-                      <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{mrpVal}</div>
-                    )
+                  ) : ( 
+                    mrpVal > 0 && <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{mrpVal}</div> 
                   )}
-                  <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">{displayPrice}</div>
-
-                  {isValidPrice && (
+                  
+                  <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">
+                    {dealerVal > 0 ? `₹${dealerVal}` : "Contact Us"}
+                  </div>
+                  
+                  {dealerVal > 0 && (
                     currentQty > 0 ? (
                       <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                        <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} 
+                          className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm"
+                        >
+                          -
+                        </button>
                         <span className="font-black text-blue-900">{currentQty}</span>
-                        <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
+                          className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm"
+                        >
+                          +
+                        </button>
                       </div>
                     ) : (
-                      <button onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
+                        className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm"
+                      >
                         {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
                       </button>
                     )
                   )}
                 </div>
               ) : (
-                <button onClick={(e) => {
-                  e.stopPropagation();
-                  const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${brand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
-                  if (navigator.share) {
-                    navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
-                  } else {
-                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
-                  }
-                  globalProps.logSpyData("Shared Product Image", String(getProp(activeVariant, "ItemCode") || ""));
-                }} className="w-full bg-green-600 hover:bg-green-700 text-white text-[11px] font-black py-3 rounded-xl shadow-sm flex items-center justify-center gap-1">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${String(getProp(activeVariant, "Brand"))}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}`;
+                    if (navigator.share) {
+                      navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
+                    } else {
+                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
+                    }
+                  }} 
+                  className="w-full bg-green-600 text-white text-[11px] font-black py-3 rounded-xl flex items-center justify-center gap-1 shadow-sm"
+                >
                   📲 SHARE PHOTO
                 </button>
               )}
@@ -1174,88 +1438,31 @@ function Catalog(props) {
     </div>
   );
 
-  const handleShareCategory = () => {
-    const categoryProducts = inStockProducts.filter(p => {
-      const pType = String(getProp(p, "Type") || "");
-      return pType === selectedType;
-    });
-    let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
-
-    categoryProducts.slice(0, 15).forEach((p, idx) => {
-      const cleanPhotoUrl = getSmartImage(p);
-      const features = String(getProp(p, "Features") || "");
-      const featuresExcerpt = (features !== "") ? `\n⚡ *Specs:* ${features.split(" | ").slice(0,2).join(", ")}` : "";
-      const name = String(getProp(p, "ProductName") || "");
-      const mrp = getNum(getProp(p, "MRP"));
-      const dealerPrice = getNum(getProp(p, "DealerPrice"));
-
-      if (globalProps.customerMode) {
-        shareText += `${idx + 1}. *${name}*\n💰 Offer Price: ₹${mrp}${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
-      } else {
-        shareText += `${idx + 1}. *${name}*\n💰 Dealer Price: ₹${dealerPrice} (MRP: ₹${mrp})${featuresExcerpt}\n🔗 Photo: ${cleanPhotoUrl}\n\n`;
-      }
-    });
-    shareText += `Ask for the best bulk deals today!`;
-
-    if (navigator.share) {
-      navigator.share({ title: `${selectedType} Catalog`, text: shareText }).catch(() => {});
-    } else {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
-    }
-    globalProps.logSpyData("Shared Category", selectedType);
-  };
-
-  const searchBarUI = (
-    <div className="p-3 bg-white flex items-center border-b">
-      <input
-        type="text"
-        placeholder="Search products, brands..."
-        value={searchQuery}
-        onChange={handleSearchChange}
-        className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border border-gray-200 focus:border-blue-300 transition-colors"
-      />
-      {searchQuery && (
-        <button onClick={() => setSearchQuery("")} className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl">✕</button>
-      )}
-    </div>
-  );
-
   let mainContent;
-
   if (searchQuery.trim() !== "") {
-    const safeQuery = searchQuery.toLowerCase();
-    const searchResults = inStockProducts.filter(p => {
-      const pName = String(getProp(p, "ProductName") || "").toLowerCase();
-      const pBrand = String(getProp(p, "Brand") || "").toLowerCase();
-      return pName.includes(safeQuery) || pBrand.includes(safeQuery);
-    });
-    mainContent = searchResults.length > 0 ? renderProducts(searchResults) : <div className="p-8 text-center font-bold text-gray-400">No products found.</div>;
+    mainContent = renderProducts(inStockProducts.filter(p => 
+      String(getProp(p, "ProductName") || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+      String(getProp(p, "Brand") || "").toLowerCase().includes(searchQuery.toLowerCase())
+    ));
   } else if (!selectedType) {
-    const priorityOrder = [
-      "SMART WATCH", "AIRPODS", "NECKBAND", "POWERBANK",
-      "CABLE", "CHARGER", "HEADPHONE", "MEMORY CARD", "PENDRIVE"
-    ];
-
-    const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || "")).filter(Boolean))].sort((a, b) => {
-      const indexA = priorityOrder.indexOf(a.toUpperCase().trim());
-      const indexB = priorityOrder.indexOf(b.toUpperCase().trim());
-
-      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-      if (indexA !== -1) return -1;
-      if (indexB !== -1) return 1;
-      return a.localeCompare(b);
-    });
-
+    const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || "")).filter(Boolean))].sort();
     mainContent = (
       <div className="p-4">
         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
         <div className="grid grid-cols-2 gap-4">
           {types.map(type => {
-            const coverProduct = inStockFlat.find(p => String(getProp(p, "Type") || "") === type);
-            const cover = coverProduct ? getSmartImage(coverProduct) : null;
+            const cover = getSmartImage(inStockFlat.find(p => String(getProp(p, "Type") || "") === type));
             return (
-              <div key={type} onClick={() => openCategory(type)} className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40">
-                {cover ? <img src={cover} className="h-16 object-contain mb-3" /> : <div className="text-3xl mb-3">📦</div>}
+              <div 
+                key={type} 
+                onClick={() => openCategory(type)} 
+                className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40"
+              >
+                {cover ? (
+                  <img src={cover} className="h-16 object-contain mb-3" /> 
+                ) : (
+                  <div className="text-3xl mb-3">📦</div>
+                )}
                 <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
               </div>
             );
@@ -1264,21 +1471,37 @@ function Catalog(props) {
       </div>
     );
   } else {
-    const filteredProducts = inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType).sort((a, b) => {
-      const priceA = getNum(getProp(a, "DealerPrice"));
-      const priceB = getNum(getProp(b, "DealerPrice"));
-      return priceB - priceA;
-    });
-    
     mainContent = (
       <div>
         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
-          <button onClick={() => window.history.back()} className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm">← Categories</button>
+          <button 
+            onClick={() => window.history.back()} 
+            className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm"
+          >
+            ← Categories
+          </button>
           <span className="font-black text-gray-800">{selectedType}</span>
-
-          <button onClick={handleShareCategory} className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md active:scale-95 flex items-center gap-1">📲 SHARE LIST</button>
+          <button 
+            onClick={() => {
+              let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
+              inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType).slice(0, 15).forEach((p, idx) => {
+                shareText += `${idx + 1}. *${String(getProp(p, "ProductName") || "")}*\n💰 Price: ₹${getNum(getProp(p, globalProps.customerMode ? "MRP" : "DealerPrice"))}\n🔗 Photo: ${getSmartImage(p)}\n\n`;
+              });
+              if (navigator.share) {
+                navigator.share({ title: `${selectedType} Catalog`, text: shareText }).catch(() => {});
+              } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+              }
+            }} 
+            className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md flex items-center gap-1 active:scale-95"
+          >
+            📲 SHARE LIST
+          </button>
         </div>
-        {renderProducts(filteredProducts)}
+        {renderProducts(
+          inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType)
+          .sort((a,b) => getNum(getProp(b, "DealerPrice")) - getNum(getProp(a, "DealerPrice")))
+        )}
       </div>
     );
   }
@@ -1290,23 +1513,29 @@ function Catalog(props) {
           <React.Fragment>
             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
             {totalItems >= 25 && (
-              <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase tracking-widest border-b border-green-700 shadow-md animate-bounce">
-                🎉 Target 25 Pcs Met! Extra Bumper Reward Live! 🎁
+              <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase border-b border-green-700 animate-bounce shadow-sm">
+                🎉 Target 25 Pcs Met! Bumper Reward Live! 🎁
               </div>
             )}
-            
             {schemes.length > 0 && (
               <div className="bg-white">
                 {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
                   const progress = calculateSchemeProgress(cartItems, scheme);
                   return (
-                    <div key={`cat-scheme-${idx}`} className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}>
+                    <div key={idx} className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}>
                       <div className="flex justify-between items-end mb-1">
-                        <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>{scheme.message}</span>
-                        <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>{progress.current}/{progress.required}</span>
+                        <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>
+                          {scheme.message}
+                        </span>
+                        <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>
+                          {progress.current}/{progress.required}
+                        </span>
                       </div>
                       <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
-                        <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
+                        <div 
+                          className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all`} 
+                          style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                        ></div>
                       </div>
                     </div>
                   );
@@ -1315,36 +1544,63 @@ function Catalog(props) {
             )}
           </React.Fragment>
         )}
-        {searchBarUI}
+        <div className="p-3 bg-white flex items-center border-b">
+          <input 
+            type="text" 
+            placeholder="Search products, brands..." 
+            value={searchQuery} 
+            onChange={handleSearchChange} 
+            className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border focus:border-blue-300 transition-colors" 
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery("")} 
+              className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* --- COMBO BANNER UI EXACT MATCH FIX --- */}
       {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
           <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
               <div className="bg-indigo-950 rounded-3xl p-5 shadow-2xl relative overflow-hidden border border-indigo-800">
                   <div className="absolute top-0 right-0 bg-yellow-400 text-indigo-950 text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase">💡 How it works</div>
                   <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wide">🔥 Special Combo Offer</span>
-                  
-                  <h3 className="text-white font-black text-lg mt-3 leading-tight">{getProp(comboP1, "ProductName")} + {getProp(comboP2, "ProductName")}</h3>
+                  <h3 className="text-white font-black text-lg mt-3 leading-tight">
+                    {getProp(comboP1, "ProductName")} + {getProp(comboP2, "ProductName")}
+                  </h3>
                   <p className="text-indigo-200 text-[10px] font-bold mt-1.5">{comboScheme.message}</p>
                   
                   <div className="flex items-center justify-center gap-4 mt-5 mb-5 relative z-10">
-                      <div className="bg-white rounded-2xl w-20 h-20 flex flex-col items-center justify-center shadow-lg transform -rotate-2 relative overflow-hidden p-1.5">
-                          {getSmartImage(comboP1) ? <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" /> : <span className="text-3xl">📦</span>}
+                      <div className="bg-white rounded-2xl w-20 h-20 flex flex-col items-center justify-center shadow-lg transform -rotate-2 p-1.5">
+                        {getSmartImage(comboP1) ? (
+                          <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="text-3xl">📦</span>
+                        )}
                       </div>
                       <div className="bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center font-black text-indigo-900 text-sm shadow-xl z-20 shrink-0">+</div>
-                      <div className="bg-white rounded-2xl w-20 h-20 flex flex-col items-center justify-center shadow-lg transform rotate-2 relative overflow-hidden p-1.5">
-                          {getSmartImage(comboP2) ? <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" /> : <span className="text-3xl">📦</span>}
+                      <div className="bg-white rounded-2xl w-20 h-20 flex flex-col items-center justify-center shadow-lg transform rotate-2 p-1.5">
+                        {getSmartImage(comboP2) ? (
+                          <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="text-3xl">📦</span>
+                        )}
                       </div>
                   </div>
                   
                   <div className="flex justify-between items-center bg-white bg-opacity-10 p-3 rounded-2xl backdrop-blur-sm border border-white border-opacity-20">
                       <div>
-                          <div className="text-green-400 font-black text-3xl tracking-tighter">₹400</div>
-                          <div className="text-[7.5px] text-yellow-300 font-black tracking-wider uppercase">✨ EXTRA SAVINGS APPLIED!</div>
+                        <div className="text-green-400 font-black text-3xl tracking-tighter">₹400</div>
+                        <div className="text-[7.5px] text-yellow-300 font-black tracking-wider uppercase">✨ EXTRA SAVINGS APPLIED!</div>
                       </div>
-                      <button onClick={handleAddCombo} className="bg-green-500 hover:bg-green-400 text-indigo-950 font-black px-4 py-3 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex items-center gap-1.5 text-xs">
-                          🛒 ADD COMBO
+                      <button 
+                        onClick={handleAddCombo} 
+                        className="bg-green-500 hover:bg-green-400 text-indigo-950 font-black px-4 py-3 rounded-xl shadow-[0_0_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex items-center gap-1.5 text-xs"
+                      >
+                        🛒 ADD COMBO
                       </button>
                   </div>
               </div>
@@ -1352,17 +1608,16 @@ function Catalog(props) {
       )}
 
       {mainContent}
-
       {selectedProduct && (
-        <ProductDetailModal
-          product={selectedProduct}
-          onClose={() => window.history.back()}
-          cart={cart}
-          updateQty={updateQty}
-          user={user}
-          globalProps={globalProps}
-          activeVariants={activeVariants}
-          setActiveVariants={setActiveVariants}
+        <ProductDetailModal 
+          product={selectedProduct} 
+          onClose={() => window.history.back()} 
+          cart={cart} 
+          updateQty={updateQty} 
+          user={user} 
+          globalProps={globalProps} 
+          activeVariants={activeVariants} 
+          setActiveVariants={setActiveVariants} 
         />
       )}
     </div>
@@ -1376,7 +1631,7 @@ function Cart(props) {
   var setView = props.setView;
   var callAPI = props.callAPI;
   var globalProps = props.globalProps;
-
+  
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState([]); 
   const [paymentMode, setPaymentMode] = useState("");
@@ -1385,15 +1640,14 @@ function Cart(props) {
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
 
   useEffect(() => {
-    callAPI({ action: "getDiscounts" }).then(res => {
+    callAPI({ action: "getDiscounts" }).then(res => { 
       if (res && res.success && res.data.length > 0) {
-        setDiscounts(res.data);
+        setDiscounts(res.data); 
       }
     }).catch(() => {});
-    
-    callAPI({ action: "getSchemes" }).then(res => {
+    callAPI({ action: "getSchemes" }).then(res => { 
       if (res && res.success) {
-        setSchemes(res.data);
+        setSchemes(res.data); 
       }
     }).catch(() => {});
   }, []);
@@ -1401,9 +1655,7 @@ function Cart(props) {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
-  // --- EXACT MATCH SMART COMBO CART LOGIC ---
-  let comboDiscountAmount = 0;
-  let combosApplied = 0;
+  let comboDiscountAmount = 0, combosApplied = 0;
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   
   if (comboScheme && comboScheme.target) {
@@ -1415,14 +1667,13 @@ function Cart(props) {
               if (n === targets[0]) { t1Qty += item.qty; t1Price = getNum(getProp(item, "DealerPrice")); }
               if (n === targets[1]) { t2Qty += item.qty; t2Price = getNum(getProp(item, "DealerPrice")); }
           });
-          
           combosApplied = Math.min(t1Qty, t2Qty);
           if (combosApplied > 0) {
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
               const comboPrice = match ? parseInt(match[1] || match[0]) : 400; 
               const originalComboPrice = t1Price + t2Price;
               if (originalComboPrice > comboPrice) {
-                  comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
+                comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
               }
           }
       }
@@ -1430,35 +1681,29 @@ function Cart(props) {
 
   const baseTotalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0);
   const totalAmount = baseTotalAmount - comboDiscountAmount;
-  // ----------------------------------
 
   useEffect(() => {
-    if (totalItems >= 25 && !celebrated25Pcs) {
+    if (totalItems >= 25 && !celebrated25Pcs) { 
       if (window.confetti) {
-        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ['#ffc0cb', '#87ceeb', '#ffd700'] });
+        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ['#ffc0cb', '#87ceeb', '#ffd700'] }); 
       }
-      setCelebrated25Pcs(true);
+      setCelebrated25Pcs(true); 
     } else if (totalItems < 25) {
       setCelebrated25Pcs(false);
     }
   }, [totalItems]);
 
-  var sortedDiscountsDesc = [...discounts]
-  .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
-  .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-  .sort((a, b) => b.minAmount - a.minAmount);
-
+  var sortedDiscountsDesc = [...discounts].map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) })).filter(d => !isNaN(d.minAmount) && !isNaN(d.percent)).sort((a, b) => b.minAmount - a.minAmount);
   let bulkPercent = 0;
-  for (var i = 0; i < sortedDiscountsDesc.length; i++) {
-    if (totalAmount >= sortedDiscountsDesc[i].minAmount) {
-      bulkPercent = sortedDiscountsDesc[i].percent;
-      break;
-    }
+  for (var i = 0; i < sortedDiscountsDesc.length; i++) { 
+    if (totalAmount >= sortedDiscountsDesc[i].minAmount) { 
+      bulkPercent = sortedDiscountsDesc[i].percent; 
+      break; 
+    } 
   }
-
+  
   const bulkDiscountAmount = Math.round(totalAmount * (bulkPercent / 100));
   const afterBulkTotal = totalAmount - bulkDiscountAmount;
-
   const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
   const finalAmount = afterBulkTotal - upiDiscountAmount;
 
@@ -1466,12 +1711,12 @@ function Cart(props) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        setScreenshotData({
-          base64: ev.target.result.split(',')[1],
-          mimeType: file.type,
-          filename: file.name
-        });
+      reader.onload = (ev) => { 
+        setScreenshotData({ 
+          base64: ev.target.result.split(',')[1], 
+          mimeType: file.type, 
+          filename: file.name 
+        }); 
       };
       reader.readAsDataURL(file);
     }
@@ -1481,37 +1726,36 @@ function Cart(props) {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
     if (!itemCode) return;
-
-    const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
-    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
-
+    
+    const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
     const stockVal = getNum(getProp(product, "Stock"));
-    const currentQty = updated[itemCode] ? updated[itemCode].qty : 0;
-    const newQty = currentQty + change;
+    
+    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + change;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
-
+    
     if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
-    if (newQty <= 0) delete updated[itemCode];
-    else updated[itemCode] = Object.assign({}, product, { qty: newQty });
+    if (newQty <= 0) {
+      delete updated[itemCode]; 
+    } else {
+      updated[itemCode] = Object.assign({}, product, { qty: newQty });
+    }
     setCart(updated);
   };
 
   const handleCheckout = function() {
     if (!paymentMode) return alert("Please select Payment Mode!");
     if (paymentMode === 'UPI' && !screenshotData) return alert("Upload Payment Screenshot first!");
-    setLoading(true);
     
-    var itemsStr = cartItems.map(function(i) {
-      const itemName = String(getProp(i, "ProductName") || "Premium Item");
-      return itemName + " x" + i.qty;
+    setLoading(true);
+    var itemsStr = cartItems.map(function(i) { 
+      return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
     }).join(" | ");
-
+    
     let unlockedRewardsList = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO' && calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
     if (totalItems >= 25) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
     }
-    let rewardsCombinedStr = unlockedRewardsList.join(", ");
-
+    
     callAPI({
       action: "placeOrder",
       order: { 
@@ -1520,12 +1764,12 @@ function Cart(props) {
         items: itemsStr, 
         totalAmount: baseTotalAmount, 
         finalAmount: finalAmount, 
-        paymentMode: paymentMode,
+        paymentMode: paymentMode, 
         comboDiscount: comboDiscountAmount,
-        bulkDiscount: bulkDiscountAmount,
-        bulkPercent: bulkPercent,
+        bulkDiscount: bulkDiscountAmount, 
+        bulkPercent: bulkPercent, 
         upiDiscount: upiDiscountAmount,
-        rewards: rewardsCombinedStr,
+        rewards: unlockedRewardsList.join(", "), 
         screenshot: screenshotData
       }
     }).then(function(res) {
@@ -1533,7 +1777,7 @@ function Cart(props) {
       if (res.success) {
         alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nOrder ID: " + res.orderId + "\nFinal Amount: ₹" + finalAmount + "\n\n We will dispatch it shortly.");
         globalProps.logSpyData("Order Placed", "ID: " + res.orderId + ", Val: ₹" + finalAmount);
-        setCart({});
+        setCart({}); 
         setView("catalog");
       } else {
         alert("Order failed.");
@@ -1543,7 +1787,6 @@ function Cart(props) {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[150px] font-sans relative">
-      
       {totalItems >= 25 && (
         <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
            <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">🏆 25 PCS TARGET ACHIEVED</h4>
@@ -1555,9 +1798,14 @@ function Cart(props) {
         const progress = calculateSchemeProgress(cartItems, scheme);
         return (
           <div key={idx} className={`p-4 mb-4 rounded-2xl border-2 ${progress.isUnlocked ? 'bg-green-50 border-green-500 shadow-md' : 'bg-amber-50 border-amber-300'}`}>
-            <h4 className={`font-black text-xs uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-amber-900'}`}>{scheme.message}</h4>
+            <h4 className={`font-black text-xs uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-amber-900'}`}>
+              {scheme.message}
+            </h4>
             <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden border border-gray-300 shadow-inner">
-               <div className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-amber-500'} h-full transition-all duration-500`} style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}></div>
+               <div 
+                 className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-amber-500'} h-full transition-all duration-500`} 
+                 style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+               ></div>
             </div>
             <p className={`text-[10px] font-bold mt-1 ${progress.isUnlocked ? 'text-green-700' : 'text-gray-600'}`}>
               {progress.current}/{progress.required} items added. {progress.isUnlocked && "🎉 REWARD UNLOCKED: " + scheme.reward}
@@ -1571,7 +1819,12 @@ function Cart(props) {
           <div className="text-center py-12">
             <span className="text-4xl">🛒</span>
             <p className="font-black text-gray-400 mt-2 text-sm uppercase">Cart Khali Hai</p>
-            <button onClick={() => setView("catalog")} className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm">Catalog par jayein</button>
+            <button 
+              onClick={() => setView("catalog")} 
+              className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm"
+            >
+              Catalog par jayein
+            </button>
           </div>
         ) : (
           cartItems.map(item => {
@@ -1580,10 +1833,7 @@ function Cart(props) {
             var dealerPrice = getNum(getProp(item, "DealerPrice"));
             var itemCode = String(getProp(item, "ItemCode") || "");
             
-            var stockVal = getNum(getProp(item, "Stock"));
-            var activeBrandStr = String(getProp(item, "Brand") || "").toUpperCase();
-            var isAlwaysLiveBrand = activeBrandStr.includes("HIKVISION") || activeBrandStr.includes("VELOCITY");
-            var showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+            var showOnOrder = (String(getProp(item, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(item, "Brand") || "").toUpperCase().includes("VELOCITY")) && getNum(getProp(item, "Stock")) <= 0;
 
             return (
               <div key={itemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white relative">
@@ -1592,16 +1842,31 @@ function Cart(props) {
                 ) : (
                   <div className="w-12 h-12 bg-gray-50 rounded-lg border flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">No Img</div>
                 )}
-
                 <div className="flex-grow">
                   <h4 className="text-xs font-bold leading-tight line-clamp-2">{itemName}</h4>
-                  {showOnOrder && <span className="text-[8px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded uppercase font-black">On Order (Next Day)</span>}
+                  {showOnOrder && (
+                    <span className="text-[8px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded uppercase font-black">
+                      On Order (Next Day)
+                    </span>
+                  )}
                   
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
-                      <button onClick={() => updateQty(item, -1)} className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">-</button>
-                      <span className="font-black text-blue-900 text-xs px-2 min-w-[20px] text-center">{item.qty}</span>
-                      <button onClick={() => updateQty(item, 1)} className="bg-blue-900 text-white font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center">+</button>
+                      <button 
+                        onClick={() => updateQty(item, -1)} 
+                        className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center"
+                      >
+                        -
+                      </button>
+                      <span className="font-black text-blue-900 text-xs px-2 min-w-[20px] text-center">
+                        {item.qty}
+                      </span>
+                      <button 
+                        onClick={() => updateQty(item, 1)} 
+                        className="bg-blue-900 text-white font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center"
+                      >
+                        +
+                      </button>
                     </div>
                     <div className="font-black text-gray-900 text-xs text-right">
                       ₹{(dealerPrice * item.qty).toLocaleString('en-IN')}
@@ -1626,24 +1891,24 @@ function Cart(props) {
             <span className="font-black text-sm">-₹{comboDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
-
+        
         {cartItems.length > 0 && bulkDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-2 text-green-700">
             <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
             <span className="font-black text-sm">-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
-
+        
         {cartItems.length > 0 && paymentMode === 'UPI' && (
           <div className="flex justify-between items-center mt-2 text-green-700">
             <span className="font-black uppercase text-[10px]">UPI Discount (2%)</span>
             <span className="font-black text-sm">-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
-
+        
         {cartItems.length > 0 && totalItems >= 25 && (
           <div className="mt-2 text-blue-700 text-[10px] font-black uppercase flex items-center gap-1 bg-blue-50 p-2 rounded-xl border border-blue-100">
-             🎁 Unlocked: Target 25 Pcs Bumper Reward Package Included!
+            🎁 Unlocked: Target 25 Pcs Bumper Reward Package Included!
           </div>
         )}
       </div>
@@ -1652,38 +1917,53 @@ function Cart(props) {
         <React.Fragment>
           <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
           <div className="space-y-3">
-            <div onClick={() => setPaymentMode('COD')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+            <div 
+              onClick={() => setPaymentMode('COD')} 
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
+            >
               <div className="font-black text-gray-800">Cash On Delivery (COD)</div>
             </div>
 
-            <div onClick={() => setPaymentMode('UPI')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+            <div 
+              onClick={() => setPaymentMode('UPI')} 
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
+            >
               <div className="flex justify-between items-center">
                 <div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight">
-                  <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">PhonePe</span>
+                  <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">PhonePe</span> 
                   UPI (2% CASH DISCOUNT)
                 </div>
                 <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
               </div>
               {paymentMode === 'UPI' && (
                 <div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in" onClick={(e) => e.stopPropagation()}>
-                  <p className="text-xs font-bold mb-3">Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span></p>
-
+                  <p className="text-xs font-bold mb-3">
+                    Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span>
+                  </p>
                   <div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-2">
                     <img src={PHONEPE_QR_URL} className="w-48 h-48 object-contain mx-auto" alt="PhonePe UPI Barcode" />
-                    <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">PhonePe QR</div>
+                    <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      PhonePe QR
+                    </div>
                   </div>
-
                   <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
                     UPI NO: {OFFICE_NUMBER}
                   </div>
-
                   <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
-                  <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="text-[10px] block mx-auto text-purple-900 font-black" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleScreenshotUpload} 
+                    className="text-[10px] block mx-auto text-purple-900 font-black" 
+                  />
                 </div>
               )}
             </div>
             
-            <div onClick={() => setPaymentMode('DAILY')} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}>
+            <div 
+              onClick={() => setPaymentMode('DAILY')} 
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
+            >
               <div className="font-black text-purple-900">Daily Collection (Auto-Pay)</div>
               {paymentMode === 'DAILY' && (
                 <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-purple-100">
@@ -1702,7 +1982,11 @@ function Cart(props) {
               <span className="font-black text-gray-800 text-lg">Final Amount</span>
               <span className="text-blue-900 text-2xl font-black">₹{finalAmount.toLocaleString('en-IN')}</span>
             </div>
-            <button onClick={handleCheckout} disabled={loading} className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}>
+            <button 
+              onClick={handleCheckout} 
+              disabled={loading} 
+              className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}
+            >
               {loading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "CONFIRM ORDER"}
             </button>
           </div>
@@ -1715,7 +1999,7 @@ function Cart(props) {
 function LedgerView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
-
+  
   const [ledgerData, setLedgerData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -1730,18 +2014,19 @@ function LedgerView(props) {
     });
   }, []);
 
-  if (loading) return (
-    <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
-      <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
-      <p className="font-bold">Generating Ledger Statement...</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+        <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+        <p className="font-bold">Generating Ledger Statement...</p>
+      </div>
+    );
+  }
 
-  let totalDebit = 0;
-  let totalCredit = 0;
-  ledgerData.forEach(item => {
-    totalDebit += item.debit || 0;
-    totalCredit += item.credit || 0;
+  let totalDebit = 0, totalCredit = 0;
+  ledgerData.forEach(item => { 
+    totalDebit += item.debit || 0; 
+    totalCredit += item.credit || 0; 
   });
   const netBalance = totalDebit - totalCredit;
 
@@ -1750,7 +2035,6 @@ function LedgerView(props) {
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
         <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
         <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
-
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-red-50 p-3 rounded-xl border border-red-100">
             <div className="text-[9px] text-red-600 font-bold uppercase">Total Bills</div>
@@ -1782,7 +2066,9 @@ function LedgerView(props) {
                   {item.vchType && (
                     <div className="flex gap-1.5 mt-1.5 font-sans">
                       <span className="bg-gray-100 text-gray-600 font-bold text-[8px] px-1.5 py-0.5 rounded uppercase">{item.vchType}</span>
-                      {item.vchNo && <span className="bg-blue-50 text-blue-600 font-bold text-[8px] px-1.5 py-0.5 rounded">No: {item.vchNo}</span>}
+                      {item.vchNo && (
+                        <span className="bg-blue-50 text-blue-600 font-bold text-[8px] px-1.5 py-0.5 rounded">No: {item.vchNo}</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1804,8 +2090,10 @@ function LedgerView(props) {
           })
         )}
       </div>
-
-      <button onClick={() => window.print()} className="w-full bg-blue-900 text-white font-black py-4 rounded-2xl shadow-lg mt-6 flex items-center justify-center gap-1.5 active:scale-95">
+      <button 
+        onClick={() => window.print()} 
+        className="w-full bg-blue-900 text-white font-black py-4 rounded-2xl shadow-lg mt-6 flex items-center justify-center gap-1.5 active:scale-95"
+      >
         📥 DOWNLOAD LEDGER PDF
       </button>
     </div>
@@ -1815,6 +2103,7 @@ function LedgerView(props) {
 function OrdersHistoryView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
+  
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState(null); 
@@ -1822,7 +2111,7 @@ function OrdersHistoryView(props) {
   useEffect(() => {
     callAPI({ action: "getDealerOrders", phone: user.phone }).then(res => {
       if (res && res.success) {
-        setOrders(res.data);
+        setOrders(res.data); 
       } else {
         alert(res.message || "Orders history fetch failed.");
       }
@@ -1834,23 +2123,28 @@ function OrdersHistoryView(props) {
     if(!url || typeof url !== 'string') return null;
     const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
     const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (dMatch) return dMatch[1];
-    if (idMatch) return idMatch[1];
+    if (dMatch) return dMatch[1]; 
+    if (idMatch) return idMatch[1]; 
     return null;
   };
 
-  if (loading) return (
-    <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
-      <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
-      <p className="font-bold">Generating Order History...</p>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+        <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
+        <p className="font-bold">Generating Order History...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans relative">
       <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
+      
       {orders.length === 0 ? (
-        <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">Koi order record nahi mila.</div>
+        <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
+          Koi order record nahi mila.
+        </div>
       ) : (
         <div className="space-y-4">
           {orders.map((ord, idx) => {
@@ -1862,11 +2156,7 @@ function OrdersHistoryView(props) {
                     <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
                     <div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
                   </div>
-                  <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                    ord.status === "Delivered" ? "bg-green-100 text-green-700" :
-                    ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" :
-                    "bg-amber-100 text-amber-700"
-                  }`}>
+                  <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${ord.status === "Delivered" ? "bg-green-100 text-green-700" : ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
                     {ord.status || "Pending"}
                   </span>
                 </div>
@@ -1877,25 +2167,27 @@ function OrdersHistoryView(props) {
                         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
                             {ord.attachments.map((att, i) => {
                                 const fileId = getFileId(att.url);
-                                
                                 let icon = "📄";
                                 if(att.type === 'image' || att.label.toLowerCase().includes("screenshot")) icon = "📸";
                                 if(att.type === 'audio') icon = "🎧";
                                 if(att.type === 'rating') icon = "⭐";
                                 
                                 return (
-                                    <div key={i} 
-                                        onClick={() => setZoomedMedia({ ...att, fileId })}
-                                        className="min-w-[70px] w-[70px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                                    <div 
+                                      key={i} 
+                                      onClick={() => setZoomedMedia({ ...att, fileId })} 
+                                      className="min-w-[70px] w-[70px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
                                     >
                                         <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm relative">
                                             {att.type === 'rating' ? (
-                                                <span className="text-xl font-black text-amber-500">{att.url}</span>
+                                              <span className="text-xl font-black text-amber-500">{att.url}</span>
                                             ) : (
-                                                <span className="text-2xl opacity-80">{icon}</span>
+                                              <span className="text-2xl opacity-80">{icon}</span>
                                             )}
                                         </div>
-                                        <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">{att.label}</span>
+                                        <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">
+                                          {att.label}
+                                        </span>
                                     </div>
                                 );
                             })}
@@ -1908,7 +2200,9 @@ function OrdersHistoryView(props) {
                   <div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
                     {itemsList.map((it, i) => (
                       <div key={i} className="flex justify-between items-center py-0.5">
-                        <span className={it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward") ? "text-green-600 font-black" : ""}>• {it.trim()}</span>
+                        <span className={it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward") ? "text-green-600 font-black" : ""}>
+                          • {it.trim()}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -1921,7 +2215,9 @@ function OrdersHistoryView(props) {
                   </div>
                   <div className="text-right">
                     <div className="text-[9px] text-gray-400 font-black uppercase">Total Amount</div>
-                    <div className="text-base font-black text-blue-900">₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}</div>
+                    <div className="text-base font-black text-blue-900">
+                      ₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1932,10 +2228,13 @@ function OrdersHistoryView(props) {
 
       {zoomedMedia && (
          <div className="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
-            <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50">✕</button>
+            <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50">
+              ✕
+            </button>
+            
             <div className="text-white font-black mb-4 uppercase tracking-wider text-center flex flex-col gap-1">
-                <span>{zoomedMedia.label}</span>
-                <span className="text-[9px] text-gray-400">Secure Viewer</span>
+              <span>{zoomedMedia.label}</span>
+              <span className="text-[9px] text-gray-400">Secure Viewer</span>
             </div>
             
             {zoomedMedia.type === 'rating' ? (
@@ -1947,9 +2246,9 @@ function OrdersHistoryView(props) {
             ) : zoomedMedia.fileId ? (
                 <div className="w-full h-[65vh] max-w-sm bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative border border-gray-800" onClick={(e) => e.stopPropagation()}>
                     <iframe 
-                        src={`https://drive.google.com/file/d/${zoomedMedia.fileId}/preview`} 
-                        className="w-full h-full border-0" 
-                        allow="autoplay"
+                      src={`https://drive.google.com/file/d/${zoomedMedia.fileId}/preview`} 
+                      className="w-full h-full border-0" 
+                      allow="autoplay"
                     ></iframe>
                 </div>
             ) : (
@@ -1957,13 +2256,18 @@ function OrdersHistoryView(props) {
                     <span className="text-5xl">🔗</span>
                     <h3 className="text-white font-black text-lg text-center">External Link</h3>
                     <p className="text-gray-400 text-xs font-bold text-center mb-2">Click below to open the file securely.</p>
-                    <a href={zoomedMedia.url} target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm">
-                        OPEN FILE ↗
+                    <a 
+                      href={zoomedMedia.url} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm"
+                    >
+                      OPEN FILE ↗
                     </a>
                 </div>
             )}
             <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
-                Tap anywhere outside to close preview.
+              Tap anywhere outside to close preview.
             </p>
          </div>
       )}
@@ -1980,7 +2284,7 @@ function ProductDetailModal(props) {
   var globalProps = props.globalProps;
   var activeVariants = props.activeVariants;
   var setActiveVariants = props.setActiveVariants;
-
+  
   var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
   var activeVariant = product.variants ? product.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || product : product;
 
@@ -1995,23 +2299,24 @@ function ProductDetailModal(props) {
   useEffect(() => {
     const list = [];
     const mainImg = getSmartImage(activeVariant);
+    
     if (mainImg) {
       list.push(mainImg);
     }
-
+    
     var allVariants = product.variants || [product];
     allVariants.forEach(function(v) {
       var vMoreImages = String(getProp(v, "MoreImages") || "");
       if (vMoreImages && vMoreImages.trim() !== "") {
         var extraImages = vMoreImages.split(" | ").map(img => img.trim());
-        extraImages.forEach(function(img) {
+        extraImages.forEach(function(img) { 
           if (img !== "" && list.indexOf(img) === -1) {
-            list.push(img);
+            list.push(img); 
           }
         });
       }
     });
-
+    
     if (list.length === 0) {
       list.push("https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true");
     }
@@ -2022,8 +2327,10 @@ function ProductDetailModal(props) {
   var activeFeatures = String(getProp(activeVariant, "Features") || "");
   if (activeFeatures && activeFeatures.trim() !== "") {
     const parsed = activeFeatures.split(" | ").map(f => f.trim());
-    parsed.forEach(f => {
-      if (f !== "") featuresList.push(f);
+    parsed.forEach(f => { 
+      if (f !== "") {
+        featuresList.push(f); 
+      }
     });
   }
 
@@ -2031,14 +2338,9 @@ function ProductDetailModal(props) {
   const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
   const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
   const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
-
-  const handleNextImage = () => {
-    setCurrentImgIndex((prev) => (prev + 1) % imagesList.length);
-  };
-
-  const handlePrevImage = () => {
-    setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
-  };
+  
+  const handleNextImage = () => setCurrentImgIndex((prev) => (prev + 1) % imagesList.length);
+  const handlePrevImage = () => setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
 
   if (imagesList.length === 0) return null;
 
@@ -2048,55 +2350,71 @@ function ProductDetailModal(props) {
   var activeStock = String(getProp(activeVariant, "Stock") || "Available");
 
   const isAlwaysLiveBrand = activeBrand.toUpperCase().includes("HIKVISION") || activeBrand.toUpperCase().includes("VELOCITY");
-  const stockValInt = getNum(activeStock);
-  const showOnOrder = isAlwaysLiveBrand && stockValInt <= 0;
+  const showOnOrder = isAlwaysLiveBrand && getNum(activeStock) <= 0;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
       <div className="absolute inset-0" onClick={onClose}></div>
       <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10 font-sans">
-
         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3 cursor-pointer" onClick={onClose}></div>
-
-        <button onClick={onClose} className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20">✕</button>
+        <button 
+          onClick={onClose} 
+          className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20"
+        >
+          ✕
+        </button>
 
         <div className="overflow-y-auto no-scrollbar pb-32">
           <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
-            <img
-              src={imagesList[currentImgIndex]}
-              className="h-72 max-w-full object-contain"
-              onError={(e) => {
-                if (imagesList.length > 1) {
-                  const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex);
-                  setImagesList(updatedList);
-                  setCurrentImgIndex(0);
-                } else {
-                  e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true";
-                }
-              }}
+            <img 
+              src={imagesList[currentImgIndex]} 
+              className="h-72 max-w-full object-contain" 
+              onError={(e) => { 
+                if (imagesList.length > 1) { 
+                  const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex); 
+                  setImagesList(updatedList); 
+                  setCurrentImgIndex(0); 
+                } else { 
+                  e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true"; 
+                } 
+              }} 
             />
-
             {imagesList.length > 1 && (
               <React.Fragment>
-                <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">←</button>
-                <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50">→</button>
-
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} 
+                  className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50"
+                >
+                  ←
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleNextImage(); }} 
+                  className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50"
+                >
+                  →
+                </button>
                 <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
-                  {imagesList.map((_, idx) => {
-                    const varItemCode = String(getProp(product.variants[idx] || {}, "ItemCode") || "");
-                    return (
-                      <div key={varItemCode || idx} className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}></div>
-                    );
-                  })}
+                  {imagesList.map((_, idx) => ( 
+                    <div 
+                      key={idx} 
+                      className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}
+                    ></div> 
+                  ))}
                 </div>
               </React.Fragment>
             )}
           </div>
 
           <div className="p-5">
-            <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">{activeBrand}</span>
-            <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">{activeName}</h2>
-            <p className="text-xs text-gray-400 font-bold mt-1 uppercase">Category: {activeType}</p>
+            <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+              {activeBrand}
+            </span>
+            <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">
+              {activeName}
+            </h2>
+            <p className="text-xs text-gray-400 font-bold mt-1 uppercase">
+              Category: {activeType}
+            </p>
 
             {product.isGrouped && (
               <div className="mt-4">
@@ -2105,13 +2423,13 @@ function ProductDetailModal(props) {
                   {product.variants.map(v => {
                     const vItemCode = String(getProp(v, "ItemCode") || "");
                     return (
-                      <button
-                        key={vItemCode || Math.random()}
-                        onClick={() => {
-                          var nextActives = Object.assign({}, activeVariants);
-                          nextActives[String(getProp(product, "ItemCode") || "")] = vItemCode;
-                          setActiveVariants(nextActives);
-                        }}
+                      <button 
+                        key={vItemCode || Math.random()} 
+                        onClick={() => { 
+                          var nextActives = Object.assign({}, activeVariants); 
+                          nextActives[String(getProp(product, "ItemCode") || "")] = vItemCode; 
+                          setActiveVariants(nextActives); 
+                        }} 
                         className={`text-xs font-black px-3.5 py-2 rounded-xl border transition-all ${vItemCode === activeItemCode ? 'bg-blue-900 text-white border-blue-900 shadow-md' : 'bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100'}`}
                       >
                         {v.capacity}
@@ -2130,11 +2448,12 @@ function ProductDetailModal(props) {
                   {hasDiscount && (
                     <React.Fragment>
                       <span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{mrpVal}</span>
-                      <span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">{discountPercent}% OFF</span>
+                      <span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">
+                        {discountPercent}% OFF
+                      </span>
                     </React.Fragment>
                   )}
                 </div>
-                
                 <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
                   <span>{showOnOrder ? '⏳' : '📦'}</span> 
                   {showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${activeStock} units`}
@@ -2150,14 +2469,16 @@ function ProductDetailModal(props) {
             <div className="mt-6">
               <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">Product Key Highlights</h3>
               {featuresList.length === 0 ? (
-                <p className="text-xs text-gray-500 font-bold italic leading-relaxed">High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.</p>
+                <p className="text-xs text-gray-500 font-bold italic leading-relaxed">
+                  High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.
+                </p>
               ) : (
                 <ul className="space-y-2.5">
-                  {featuresList.map((f, i) => (
+                  {featuresList.map((f, i) => ( 
                     <li key={i} className="text-xs text-gray-700 font-bold flex items-start gap-2 leading-snug">
                       <span className="text-green-600 text-sm leading-none mt-0.5">⚡</span>
                       <span>{f}</span>
-                    </li>
+                    </li> 
                   ))}
                 </ul>
               )}
@@ -2170,32 +2491,49 @@ function ProductDetailModal(props) {
             <React.Fragment>
               <div>
                 <div className="text-[9px] uppercase font-black text-gray-400">Total Selection ({activeVariant.capacity})</div>
-                <div className="font-black text-lg text-gray-900 leading-none mt-0.5">₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}</div>
+                <div className="font-black text-lg text-gray-900 leading-none mt-0.5">
+                  ₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}
+                </div>
               </div>
-
               <div className="w-1/2">
                 {currentQty > 0 ? (
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                    <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-10 h-10 rounded-lg shadow-sm">-</button>
+                    <button 
+                      onClick={() => updateQty(activeVariant, -1)} 
+                      className="bg-white text-blue-900 font-black w-10 h-10 rounded-lg shadow-sm"
+                    >
+                      -
+                    </button>
                     <span className="font-black text-blue-900 text-lg">{currentQty}</span>
-                    <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm">+</button>
+                    <button 
+                      onClick={() => updateQty(activeVariant, 1)} 
+                      className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm"
+                    >
+                      +
+                    </button>
                   </div>
                 ) : (
-                  <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95">
+                  <button 
+                    onClick={() => updateQty(activeVariant, 1)} 
+                    className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95"
+                  >
                     {showOnOrder ? "Add To Order (Next Day)" : "Add To Order"}
                   </button>
                 )}
               </div>
             </React.Fragment>
           ) : (
-            <button onClick={() => {
-              const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeBrand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}\n\nAsk for the best price today!`;
-              if (navigator.share) {
-                navigator.share({ title: activeName, text: shareText, url: imagesList[0] }).catch(() => {});
-              } else {
-                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + imagesList[0])}`, '_blank');
-              }
-            }} className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-1.5 active:scale-95">
+            <button 
+              onClick={() => {
+                const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeBrand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}`;
+                if (navigator.share) {
+                  navigator.share({ title: activeName, text: shareText, url: imagesList[0] }).catch(() => {});
+                } else {
+                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + imagesList[0])}`, '_blank');
+                }
+              }} 
+              className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-1.5 active:scale-95"
+            >
               📲 SHARE PHOTO WITH DEALER
             </button>
           )}
@@ -2204,24 +2542,34 @@ function ProductDetailModal(props) {
 
       {isZoomed && (
         <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
-          <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">✕</button>
-
+          <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">
+            ✕
+          </button>
           {imagesList.length > 1 && (
             <div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
-              <button onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">←</button>
-              <button onClick={(e) => { e.stopPropagation(); handleNextImage(); }} className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40">→</button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} 
+                className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40"
+              >
+                ←
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleNextImage(); }} 
+                className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40"
+              >
+                →
+              </button>
             </div>
           )}
-
-          <img
-            src={imagesList[currentImgIndex]}
-            className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out"
-            style={{ transform: 'scale(' + zoomScale + ')' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25);
-            }}
-            alt="Zoomed Product"
+          <img 
+            src={imagesList[currentImgIndex]} 
+            className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out" 
+            style={{ transform: 'scale(' + zoomScale + ')' }} 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              setZoomScale(zoomScale === 1.25 ? 2.2 : 1.25); 
+            }} 
+            alt="Zoomed Product" 
           />
           <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
             Tap image to Zoom In / Out. Use arrows to change photos.
