@@ -63,12 +63,12 @@ const { useState, useEffect, useRef } = React;
 // MASTER CONFIGURATIONS
 var cacheBypass = "?v=" + new Date().getTime();
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwFix8VAOaJhCH1iqlVnyJTvc6oVvoPruBHZGvOgJXxyyZAiof1bAj9n0jq21y8jGM_Ew/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzmsQSqrAi8bkGogOqylI_1O5vsTll9c5tEiV_8ptGrp2nXBjC362yZwOUlBqBUcFzMTg/exec";
 const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3a8a&color=fff&size=256&rounded=true&bold=true";
 const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
 const OFFICE_NUMBER = "918378811922"; 
 
-// 🛡️ BULLETPROOF NUMBER PARSER
+// BULLETPROOF NUMBER PARSER
 const getNum = (val) => {
   if (val === undefined || val === null || val === "") return 0;
   const clean = String(val).replace(/,/g, '').replace(/[^\d.-]/g, '');
@@ -268,7 +268,7 @@ function calculateSchemeProgress(cartItems, scheme) {
   };
 }
 
-// 📞 FLOATING CONTACT BUTTONS
+// FLOATING CONTACT BUTTONS
 function ContactFABs() {
   return (
     <div className="fixed bottom-[95px] right-4 flex flex-col gap-3 z-40">
@@ -284,7 +284,7 @@ function ContactFABs() {
   );
 }
 
-// 🛒 BOTTOM NAVIGATION BAR (WITH REPLACEMENTS)
+// BOTTOM NAVIGATION BAR
 function BottomNav({ view, setView, totalItems, customerMode }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
@@ -369,7 +369,7 @@ function App() {
     }
   };
 
-  // ✅ SSO LOGIC INTEGRATION (Auto Login via Vercel URL Params)
+  // SSO LOGIC INTEGRATION
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -448,12 +448,11 @@ function App() {
 
   const globalProps = { logSpyData, customerMode };
 
-  // 🚀 BULLETPROOF API CALLER WITH BLIND SUCCESS FALLBACK FOR UPLOADS
+  // BULLETPROOF API CALLER
   const callAPI = async function(payload) {
     const isHeavyUpload = payload.media || payload.screenshot;
     try {
       if (isHeavyUpload) {
-        // Blind submit: 'no-cors' sends data perfectly but ignores response to avoid iframe blocks
         fetch(API_URL, {
           method: 'POST',
           mode: 'no-cors',
@@ -461,14 +460,12 @@ function App() {
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
         
-        // Instant success to keep UI running
         return { 
           success: true, 
           ticketId: "TKT-" + Math.floor(1000 + Math.random() * 9000),
           orderId: "YM-" + Math.floor(1000 + Math.random() * 9000)
         };
       } else {
-        // Normal API for regular lightweight fetches
         const response = await fetch(API_URL, {
           method: 'POST',
           body: JSON.stringify(payload),
@@ -526,7 +523,6 @@ function App() {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   
-  // 🔥 EXACT TARGET DETECTION LOGIC FOR APP BOTTOM BAR
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * b.qty);
@@ -604,7 +600,7 @@ function App() {
   );
 }
 
-// 📸 HTML5 QR Code Scanner Modal Component
+// HTML5 QR Code Scanner Modal Component
 function ScannerModal({ onScan, onClose }) {
   useEffect(() => {
     let html5QrCode;
@@ -653,7 +649,7 @@ function ScannerModal({ onScan, onClose }) {
   );
 }
 
-// ♻️ REPLACEMENTS COMPONENT (SIMPLIFIED & UNCOMPRESSED UPLOAD)
+// REPLACEMENTS COMPONENT
 function ReplacementsView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
@@ -685,7 +681,6 @@ function ReplacementsView(props) {
   useEffect(() => {
     if (activeTab === "track") {
       setLoading(true);
-      // Fetch normal string data via standard API flow
       fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action: "getReplacements", phone: user.phone }),
@@ -717,7 +712,6 @@ function ReplacementsView(props) {
       return alert("Please upload a valid photo. Videos and voice notes are disabled to ensure fast uploads.");
     }
 
-    // Direct Uncompressed Upload
     const reader = new FileReader();
     reader.onload = (ev) => { 
       setMediaData({ 
@@ -765,7 +759,6 @@ function ReplacementsView(props) {
     });
   };
 
-  // Zomato Style Tracking Core Logic
   const getStatusColor = (status) => {
     const s = String(status).toLowerCase();
     if (s.includes("raised") || s.includes("pending")) return "bg-blue-500";
@@ -949,7 +942,6 @@ function ReplacementsView(props) {
                   <p className="text-[11px] text-red-600 font-bold mt-1">Issue: {ticket.defectType}</p>
                 </div>
 
-                {/* Zomato-Style Live Tracker UI */}
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-4">
                   <div className="flex justify-between text-[7px] font-black text-gray-400 uppercase tracking-wider mb-2 text-center">
                     <span className="w-1/5">Raised</span>
@@ -998,7 +990,6 @@ function LoginScreen(props) {
   const handleLogin = function() {
     if (phone.length < 10) return alert("Enter 10-digit number");
     setLoading(true);
-    // Explicitly bypass 'no-cors' logic via normal fetch for login
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "verifyDealer", phone: phone }),
@@ -1074,7 +1065,6 @@ function Catalog(props) {
 
   useEffect(() => {
     if (products.length === 0) {
-      // Normal fetch for catalog to ensure data returns correctly
       fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ action: "getProducts" }),
@@ -1579,7 +1569,6 @@ function Cart(props) {
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
 
   useEffect(() => {
-    // Normal fetch for non-payload tasks
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getDiscounts" }),
@@ -1729,7 +1718,7 @@ function Cart(props) {
         setCart({}); 
         setView("catalog");
       } else {
-        alert("Order completed. We will process it shortly."); // Blind success assumption
+        alert("Order completed. We will process it shortly.");
         setCart({}); 
         setView("catalog");
       }
@@ -1955,7 +1944,6 @@ function LedgerView(props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Normal fetch since no payload is attached
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getLedger", phone: user.phone }),
@@ -2065,7 +2053,6 @@ function OrdersHistoryView(props) {
   const [zoomedMedia, setZoomedMedia] = useState(null); 
 
   useEffect(() => {
-    // Normal fetch since no payload is attached
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getDealerOrders", phone: user.phone }),
