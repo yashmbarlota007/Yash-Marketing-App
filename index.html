@@ -279,6 +279,36 @@ function calculateSchemeProgress(cartItems, scheme) {
     isUnlocked: currentQty >= getNum(scheme.minQty)
   };
 }
+  // 📸 UNIVERSAL IMAGE COMPRESSION HELPER (Reduces 5MB to 150KB)
+const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height && width > maxWidth) {
+        height *= maxWidth / width;
+        width = maxWidth;
+      } else if (height > width && height > maxHeight) {
+        width *= maxHeight / height;
+        height = maxHeight;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      callback(dataUrl.split(',')[1]); 
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+};
 
 // 📞 FLOATING CONTACT BUTTONS
 function ContactFABs() {
@@ -760,9 +790,11 @@ function ReplacementsView(props) {
 
   const handleMediaUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (!file) return;
+
+    if (file.type.startsWith('video/')) {
       if (file.size > 5 * 1024 * 1024) {
-        return alert("File size should be less than 5MB");
+        return alert("Video size should be less than 5MB");
       }
       const reader = new FileReader();
       reader.onload = (ev) => { 
@@ -773,6 +805,17 @@ function ReplacementsView(props) {
         }); 
       };
       reader.readAsDataURL(file);
+    } else if (file.type.startsWith('image/')) {
+      // Apply Compression for Photos automatically
+      compressImage(file, 1200, 1200, 0.7, (compressedBase64) => {
+        setMediaData({
+          base64: compressedBase64,
+          mimeType: 'image/jpeg',
+          filename: 'compressed_' + file.name
+        });
+      });
+    } else {
+      alert("Please upload a valid image or video.");
     }
   };
 
@@ -1709,16 +1752,18 @@ function Cart(props) {
 
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => { 
-        setScreenshotData({ 
-          base64: ev.target.result.split(',')[1], 
-          mimeType: file.type, 
-          filename: file.name 
-        }); 
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    if (file.type.startsWith('image/')) {
+      compressImage(file, 800, 800, 0.7, (compressedBase64) => {
+        setScreenshotData({
+          base64: compressedBase64,
+          mimeType: 'image/jpeg',
+          filename: 'payment_proof.jpg'
+        });
+      });
+    } else {
+      alert("Please upload a valid image file for the screenshot.");
     }
   };
 
