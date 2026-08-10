@@ -790,13 +790,14 @@ function ReplacementsView(props) {
     }
   };
 
- const handleMediaUpload = (e) => {
+const handleMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (file.type.startsWith('video/')) {
-      if (file.size > 5 * 1024 * 1024) {
-        return alert("Video size should be less than 5MB");
+      // 🛑 STRICT 2MB LIMIT FOR VIDEOS
+      if (file.size > 2 * 1024 * 1024) {
+        return alert("🚨 VIDEO TOO LARGE!\nVideo size must be less than 2MB to prevent upload failures. Please record a shorter video or upload a clear Photo instead.");
       }
       const reader = new FileReader();
       reader.onload = (ev) => { 
@@ -808,7 +809,7 @@ function ReplacementsView(props) {
       };
       reader.readAsDataURL(file);
     } else if (file.type.startsWith('image/')) {
-      // ⚡ Hyper-compressing to 600x600 @ 40% quality
+      // ⚡ Hyper-compressing photos to 600x600 @ 40% quality
       compressImage(file, 600, 600, 0.4, (compressedBase64) => {
         setMediaData({
           base64: compressedBase64,
@@ -820,7 +821,6 @@ function ReplacementsView(props) {
       alert("Please upload a valid image or video.");
     }
   };
-
   const handleSubmit = () => {
     if (!brand || !productName || !defectType) {
       return alert("Please fill Brand, Product Name, and Defect Type.");
