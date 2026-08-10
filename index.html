@@ -45,18 +45,6 @@ to { opacity: 1; }
 }
 .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 
-@keyframes pulseMic { 
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 
-  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
-}
-.mic-recording { 
-  animation: pulseMic 1.5s infinite; 
-  background-color: #ef4444 !important; 
-  color: white !important; 
-  border-color: #ef4444 !important; 
-}
-
 /* Clean Black and White PDF Styles */
 @media print {
 body { background: white !important; color: black !important; }
@@ -80,7 +68,7 @@ const LOGO_URL = "https://ui-avatars.com/api/?name=Yash+Marketing&background=1e3
 const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
 const OFFICE_NUMBER = "918378811922"; 
 
-// 🛡️ BULLETPROOF NUMBER PARSER (Crash Preventer)
+// 🛡️ BULLETPROOF NUMBER PARSER
 const getNum = (val) => {
   if (val === undefined || val === null || val === "") return 0;
   const clean = String(val).replace(/,/g, '').replace(/[^\d.-]/g, '');
@@ -280,7 +268,7 @@ function calculateSchemeProgress(cartItems, scheme) {
   };
 }
 
-// 📸 HYPER-COMPRESSION HELPER (Reduces images to ~30KB for iframe safety)
+// 📸 HYPER-COMPRESSION HELPER (Reduces images to ~30KB for flawless upload)
 const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
   const reader = new FileReader();
   reader.onload = (event) => {
@@ -304,7 +292,6 @@ const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       
-      // Outputting at hyper-compressed JPEG quality
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
       callback(dataUrl.split(',')[1]); 
     };
@@ -451,6 +438,7 @@ function App() {
 
   useEffect(() => {
     if (user) {
+      // Using simple fetch for non-payload requests
       fetch(API_URL + cacheBypass, {
         method: 'POST',
         body: JSON.stringify({ action: "getAnnouncements" }),
@@ -495,39 +483,43 @@ function App() {
 
   const globalProps = { logSpyData, customerMode };
 
-  // 🚀 ULTIMATE API CALLER (WITH IFRAME BREAKOUT FALLBACK)
-  const callAPI = async function(payload, attempt = 1) {
-    try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        credentials: 'omit' // Crucial: Tries to bypass Safari/Chrome strict iframe cookie blocks
-      });
-      return await response.json();
-    } catch (e) {
-      if (attempt < 3) { 
-        console.warn("Upload interrupted, retrying...", attempt);
-        await new Promise(r => setTimeout(r, 1500));
-        return callAPI(payload, attempt + 1);
-      }
+  // 🚀 BULLETPROOF API CALLER (Replaces fetch with old-school XHR to bypass tracking blocks)
+  const callAPI = function(payload, attempt = 1) {
+    return new Promise((resolve) => {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", API_URL, true);
       
-      // 🛑 INTELLIGENT IFRAME ESCAPE HATCH
-      if (window.self !== window.top) {
-        const breakout = confirm(
-          "🚨 BROWSER SECURITY BLOCK 🚨\n\n" +
-          "Your mobile browser is restricting image uploads inside this embedded staff screen.\n\n" +
-          "Click 'OK' to instantly open Yash Marketing in a secure, direct tab where your upload will work perfectly."
-        );
-        if (breakout) {
-          window.open(window.location.href, "_blank");
+      // Plain text prevents CORS preflight triggers
+      xhr.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+      
+      xhr.onload = function() {
+        if (xhr.status === 200 || xhr.status === 201) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch (e) {
+            resolve({ success: false, message: "Server response was invalid." });
+          }
+        } else {
+          handleError();
         }
-      } else {
-        alert("🚨 NETWORK ERROR:\nUpload failed. Please connect to a stronger Wi-Fi or 4G network and try again.");
+      };
+
+      xhr.onerror = handleError;
+
+      function handleError() {
+        if (attempt < 3) {
+          console.warn("Retrying API Call...", attempt);
+          setTimeout(() => {
+            callAPI(payload, attempt + 1).then(resolve);
+          }, 1500);
+        } else {
+          alert("🚨 NETWORK ERROR:\nUpload failed. Please try again or switch networks.");
+          resolve({ success: false, message: "Browser blocked the connection. Please try again." });
+        }
       }
-      
-      return { success: false, message: "Network Error: Check Internet" };
-    }
+
+      xhr.send(JSON.stringify(payload));
+    });
   };
 
   const handleRequestPermission = () => {
@@ -1051,6 +1043,7 @@ function ReplacementsView(props) {
     </div>
   );
 }
+
 function LoginScreen(props) {
   var onLogin = props.onLogin;
   var callAPI = props.callAPI;
