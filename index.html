@@ -808,15 +808,8 @@ function ReplacementsView(props) {
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
-  };
 
-const handleMediaUpload = (e) => {
+  const handleMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
