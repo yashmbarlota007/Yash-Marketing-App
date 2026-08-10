@@ -752,7 +752,13 @@ function ReplacementsView(props) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // 🎙️ Force lowest quality audio codec to prevent massive payloads
+      const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                    ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 16000 } 
+                    : {};
+                    
+      const mediaRecorder = new MediaRecorder(stream, options);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
       
@@ -761,6 +767,34 @@ function ReplacementsView(props) {
           audioChunksRef.current.push(event.data); 
         }
       };
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        // 🛑 Hard stop on voice notes over 1.5MB
+        if (audioBlob.size > 1.5 * 1024 * 1024) {
+             alert("Voice note is too long. Please record a shorter message.");
+             setAudioData(null);
+             return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          setAudioData({ 
+            base64: ev.target.result.split(',')[1], 
+            mimeType: 'audio/webm', 
+            filename: 'VoiceNote.webm' 
+          });
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      alert("Microphone permission denied or not supported on this browser.");
+    }
+  };
       
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
