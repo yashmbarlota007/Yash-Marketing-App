@@ -800,27 +800,14 @@ function ReplacementsView(props) {
       alert("Microphone permission denied or not supported on this browser.");
     }
   };
-      
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          setAudioData({ 
-            base64: ev.target.result.split(',')[1], 
-            mimeType: 'audio/webm', 
-            filename: 'VoiceNote.webm' 
-          });
-        };
-        reader.readAsDataURL(audioBlob);
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      alert("Microphone permission denied or not supported on this browser.");
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
-
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
@@ -1072,6 +1059,7 @@ const handleMediaUpload = (e) => {
               </div>
             </div>
 
+            <button 
             <button 
               onClick={handleSubmit} 
               disabled={formLoading} 
