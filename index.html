@@ -279,7 +279,7 @@ function calculateSchemeProgress(cartItems, scheme) {
     isUnlocked: currentQty >= getNum(scheme.minQty)
   };
 }
-  // 📸 UNIVERSAL IMAGE COMPRESSION HELPER (Reduces 5MB to 150KB)
+ // 📸 HYPER-COMPRESSION HELPER (Reduces images to ~30KB for iframe safety)
 const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
   const reader = new FileReader();
   reader.onload = (event) => {
@@ -289,6 +289,7 @@ const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
       let width = img.width;
       let height = img.height;
 
+      // Aggressive downscaling
       if (width > height && width > maxWidth) {
         height *= maxWidth / width;
         width = maxWidth;
@@ -302,6 +303,7 @@ const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       
+      // Outputting at hyper-compressed JPEG quality
       const dataUrl = canvas.toDataURL('image/jpeg', quality);
       callback(dataUrl.split(',')[1]); 
     };
@@ -788,7 +790,7 @@ function ReplacementsView(props) {
     }
   };
 
-  const handleMediaUpload = (e) => {
+ const handleMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -806,8 +808,8 @@ function ReplacementsView(props) {
       };
       reader.readAsDataURL(file);
     } else if (file.type.startsWith('image/')) {
-      // Apply Compression for Photos automatically
-      compressImage(file, 1200, 1200, 0.7, (compressedBase64) => {
+      // ⚡ Hyper-compressing to 600x600 @ 40% quality
+      compressImage(file, 600, 600, 0.4, (compressedBase64) => {
         setMediaData({
           base64: compressedBase64,
           mimeType: 'image/jpeg',
@@ -1755,7 +1757,8 @@ function Cart(props) {
     if (!file) return;
 
     if (file.type.startsWith('image/')) {
-      compressImage(file, 800, 800, 0.7, (compressedBase64) => {
+      // ⚡ Hyper-compressing to 600x600 @ 40% quality
+      compressImage(file, 600, 600, 0.4, (compressedBase64) => {
         setScreenshotData({
           base64: compressedBase64,
           mimeType: 'image/jpeg',
