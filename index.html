@@ -701,31 +701,25 @@ function ScannerModal({ onScan, onClose }) {
   );
 }
 
-// ♻️ REPLACEMENTS COMPONENT WITH SCANNER & VOICE NOTES
+// ♻️ REPLACEMENTS COMPONENT (SIMPLIFIED DATA COLLECTION FORM)
 function ReplacementsView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
   var products = props.products || [];
 
-  const [activeTab, setActiveTab] = useState("new"); // Force 'new' as default
+  const [activeTab, setActiveTab] = useState("new");
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [warrantyRules, setWarrantyRules] = useState([]);
 
-  // Form State
+  // Basic Form State
   const [brand, setBrand] = useState("");
   const [productSearch, setProductSearch] = useState("");
-  const [productName, setProductName] = useState(""); // Exact matched product name
+  const [productName, setProductName] = useState(""); 
   const [defectType, setDefectType] = useState("");
   const [remarks, setRemarks] = useState("");
   const [mediaData, setMediaData] = useState(null);
-  
-  // Voice Note State
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioData, setAudioData] = useState(null);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
 
   // Scanner State
   const [isScanning, setIsScanning] = useState(false);
@@ -770,81 +764,12 @@ function ReplacementsView(props) {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // 🎙️ Force lowest quality audio codec to prevent massive payloads
-      const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-                    ? { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 16000 } 
-                    : {};
-                    
-      const mediaRecorder = new MediaRecorder(stream, options);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => { 
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data); 
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        
-        // 🛑 Hard stop on voice notes over 1.5MB
-        if (audioBlob.size > 1.5 * 1024 * 1024) {
-             alert("Voice note is too long. Please record a shorter message.");
-             setAudioData(null);
-             return;
-        }
-        
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          setAudioData({ 
-            base64: ev.target.result.split(',')[1], 
-            mimeType: 'audio/webm', 
-            filename: 'VoiceNote.webm' 
-          });
-        };
-        reader.readAsDataURL(audioBlob);
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      alert("Microphone permission denied or not supported on this browser.");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
   const handleMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.type.startsWith('video/')) {
-      // 🛑 STRICT 2MB LIMIT FOR VIDEOS
-      if (file.size > 2 * 1024 * 1024) {
-        return alert("🚨 VIDEO TOO LARGE!\nVideo size must be less than 2MB to prevent upload failures. Please record a shorter video or upload a clear Photo instead.");
-      }
-      const reader = new FileReader();
-      reader.onload = (ev) => { 
-        setMediaData({ 
-          base64: ev.target.result.split(',')[1], 
-          mimeType: file.type, 
-          filename: file.name 
-        }); 
-      };
-      reader.readAsDataURL(file);
-    } else if (file.type.startsWith('image/')) {
-      // ⚡ Hyper-compressing photos to 600x600 @ 40% quality
+    if (file.type.startsWith('image/')) {
+      // ⚡ Hyper-compressing photos to 600x600 @ 40% quality for iframe safety
       compressImage(file, 600, 600, 0.4, (compressedBase64) => {
         setMediaData({
           base64: compressedBase64,
@@ -853,7 +778,7 @@ function ReplacementsView(props) {
         });
       });
     } else {
-      alert("Please upload a valid image or video.");
+      alert("Please upload a valid image. Videos are not allowed.");
     }
   };
 
@@ -861,11 +786,11 @@ function ReplacementsView(props) {
     if (!brand || !productName || !defectType) {
       return alert("Please fill Brand, Product Name, and Defect Type.");
     }
-    if (!remarks.trim() && !audioData) {
-      return alert("Please explain the problem in Remarks, or record a Voice Note.");
+    if (!remarks.trim()) {
+      return alert("Please explain the problem in Remarks.");
     }
     if (!mediaData) {
-      return alert("Please upload a photo or video proof of the defect.");
+      return alert("Please upload a photo proof of the defect/box.");
     }
     
     setFormLoading(true);
@@ -877,11 +802,10 @@ function ReplacementsView(props) {
       productName: productName, 
       defectType: defectType,
       remarks: remarks, 
-      media: mediaData, 
-      audio: audioData
+      media: mediaData
     }).then(res => {
       setFormLoading(false);
-      if (res.success) {
+      if (res && res.success) {
         alert("✅ Replacement Ticket Raised Successfully!\nTicket ID: " + res.ticketId);
         setBrand(""); 
         setProductSearch(""); 
@@ -889,10 +813,9 @@ function ReplacementsView(props) {
         setDefectType(""); 
         setRemarks(""); 
         setMediaData(null); 
-        setAudioData(null);
         setActiveTab("track");
       } else {
-        alert("Failed to raise ticket: " + res.message);
+        alert("Failed to raise ticket. Please check your internet and try again.");
       }
     });
   };
@@ -1024,47 +947,26 @@ function ReplacementsView(props) {
               <textarea 
                 value={remarks} 
                 onChange={(e) => setRemarks(e.target.value)} 
-                rows="2" 
+                rows="3" 
                 placeholder="Write exactly what is not working..." 
                 className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500 mb-2"
               ></textarea>
-              
-              <div className="flex items-center gap-3">
-                 <button 
-                    onMouseDown={startRecording} 
-                    onMouseUp={stopRecording} 
-                    onTouchStart={startRecording} 
-                    onTouchEnd={stopRecording}
-                    className={`flex items-center justify-center w-12 h-12 rounded-full shadow-md transition-all select-none ${isRecording ? 'mic-recording' : 'bg-gray-100 text-gray-600 border border-gray-300'}`}
-                 >
-                    🎙️
-                 </button>
-                 <div className="text-[10px] text-gray-500 font-bold leading-tight flex-1">
-                    {isRecording ? (
-                      <span className="text-red-600 animate-pulse">Recording... Release to stop.</span>
-                    ) : audioData ? (
-                      <span className="text-green-600">✅ Voice Note Recorded. Hold Mic to Re-record.</span>
-                    ) : (
-                      "Hold Mic to record Voice Note if you can't type."
-                    )}
-                 </div>
-              </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">5. Photo/Video Proof <span className="text-red-500">*</span></label>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">5. Photo Proof <span className="text-red-500">*</span></label>
               <div className="w-full bg-blue-50 border-2 border-dashed border-blue-200 p-4 rounded-xl text-center relative">
                 <input 
                   type="file" 
-                  accept="image/*,video/*" 
+                  accept="image/*" 
                   onChange={handleMediaUpload} 
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
                 />
                 <div className="text-blue-900 font-black text-sm">
-                  {mediaData ? "✅ Media Selected" : "📸 Tap to Upload Media"}
+                  {mediaData ? "✅ Photo Selected" : "📸 Tap to Upload Photo"}
                 </div>
                 <div className="text-[9px] text-blue-600 mt-1 font-bold">
-                  {mediaData ? mediaData.filename : "Box and defect picture required (Max 5MB)"}
+                  {mediaData ? mediaData.filename : "Clear defect/box picture required"}
                 </div>
               </div>
             </div>
@@ -1077,7 +979,7 @@ function ReplacementsView(props) {
               {formLoading ? (
                 <React.Fragment>
                   <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner mb-1"></div>
-                  <span className="text-[10px] uppercase tracking-widest text-blue-200 mt-1">Uploading... Do not close app</span>
+                  <span className="text-[10px] uppercase tracking-widest text-blue-200 mt-1">Uploading...</span>
                 </React.Fragment>
               ) : (
                 "SUBMIT TICKET"
@@ -1149,7 +1051,6 @@ function ReplacementsView(props) {
     </div>
   );
 }
-
 function LoginScreen(props) {
   var onLogin = props.onLogin;
   var callAPI = props.callAPI;
