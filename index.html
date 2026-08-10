@@ -279,7 +279,8 @@ function calculateSchemeProgress(cartItems, scheme) {
     isUnlocked: currentQty >= getNum(scheme.minQty)
   };
 }
- // 📸 HYPER-COMPRESSION HELPER (Reduces images to ~30KB for iframe safety)
+
+// 📸 HYPER-COMPRESSION HELPER (Reduces images to ~30KB for iframe safety)
 const compressImage = (file, maxWidth, maxHeight, quality, callback) => {
   const reader = new FileReader();
   reader.onload = (event) => {
@@ -494,39 +495,41 @@ function App() {
 
   const globalProps = { logSpyData, customerMode };
 
- // 🚀 BULLETPROOF API CALLER (Replaces fetch with XHR to bypass iframe security blocks)
-  const callAPI = function(payload, attempt = 1) {
-    return new Promise((resolve) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", API_URL, true);
+  // 🚀 ULTIMATE API CALLER (WITH IFRAME BREAKOUT FALLBACK)
+  const callAPI = async function(payload, attempt = 1) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        credentials: 'omit' // Crucial: Tries to bypass Safari/Chrome strict iframe cookie blocks
+      });
+      return await response.json();
+    } catch (e) {
+      if (attempt < 3) { 
+        console.warn("Upload interrupted, retrying...", attempt);
+        await new Promise(r => setTimeout(r, 1500));
+        return callAPI(payload, attempt + 1);
+      }
       
-      // Using pure text/plain bypasses strict CORS preflight checks in iframes
-      xhr.setRequestHeader("Content-Type", "text/plain");
-
-      xhr.onload = function() {
-        try {
-          resolve(JSON.parse(xhr.responseText));
-        } catch(e) {
-          resolve({ success: false, message: "Invalid server response." });
+      // 🛑 INTELLIGENT IFRAME ESCAPE HATCH
+      if (window.self !== window.top) {
+        const breakout = confirm(
+          "🚨 BROWSER SECURITY BLOCK 🚨\n\n" +
+          "Your mobile browser is restricting image uploads inside this embedded staff screen.\n\n" +
+          "Click 'OK' to instantly open Yash Marketing in a secure, direct tab where your upload will work perfectly."
+        );
+        if (breakout) {
+          window.open(window.location.href, "_blank");
         }
-      };
-
-      xhr.onerror = function() {
-        if (attempt < 3) {
-          console.warn("Iframe blocked the redirect. Retrying via alternative channel...", attempt);
-          setTimeout(() => {
-            callAPI(payload, attempt + 1).then(resolve);
-          }, 1500);
-        } else {
-          alert("🚨 UPLOAD BLOCKED BY BROWSER:\nYour browser's security settings blocked the file transfer inside this embedded window.\n\nPlease refresh and try again.");
-          resolve({ success: false, message: "Upload blocked." });
-        }
-      };
-
-      // XHR handles massive string bodies natively much better than fetch
-      xhr.send(JSON.stringify(payload));
-    });
+      } else {
+        alert("🚨 NETWORK ERROR:\nUpload failed. Please connect to a stronger Wi-Fi or 4G network and try again.");
+      }
+      
+      return { success: false, message: "Network Error: Check Internet" };
+    }
   };
+
   const handleRequestPermission = () => {
     if (window.Notification) {
       Notification.requestPermission().then(permission => {
@@ -853,6 +856,7 @@ function ReplacementsView(props) {
       alert("Please upload a valid image or video.");
     }
   };
+
   const handleSubmit = () => {
     if (!brand || !productName || !defectType) {
       return alert("Please fill Brand, Product Name, and Defect Type.");
@@ -1065,7 +1069,7 @@ function ReplacementsView(props) {
               </div>
             </div>
 
-           <button 
+            <button 
               onClick={handleSubmit} 
               disabled={formLoading} 
               className="w-full bg-blue-900 text-white font-black text-lg py-4 rounded-xl shadow-lg mt-2 active:scale-95 flex flex-col justify-center items-center"
@@ -2607,7 +2611,8 @@ function ProductDetailModal(props) {
             </React.Fragment>
           ) : (
             <button 
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${activeName} (${activeVariant.capacity})\n⚡ *Brand:* ${activeBrand}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}`;
                 if (navigator.share) {
                   navigator.share({ title: activeName, text: shareText, url: imagesList[0] }).catch(() => {});
