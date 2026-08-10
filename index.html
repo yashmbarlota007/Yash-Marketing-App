@@ -1001,7 +1001,7 @@ function LoginScreen(props) {
         localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
         onLogin(dealerData);
       } else {
-        alert(res?.message || "Invalid Number");
+        alert((res && res.message) ? res.message : "Invalid Number"); // <--- FIXED LINE
       }
     }).catch(() => {
       setLoading(false);
