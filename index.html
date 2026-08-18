@@ -268,10 +268,12 @@ function calculateSchemeProgress(cartItems, scheme) {
   };
 }
 
-// FLOATING CONTACT BUTTONS
-function ContactFABs() {
+// FLOATING CONTACT BUTTONS (Auto-hidden on cart view to prevent overlap with Checkout)
+function ContactFABs(props) {
+  var view = props.view;
+  if (view === 'cart') return null;
   return (
-    <div className="fixed bottom-[95px] right-4 flex flex-col gap-3 z-40">
+    <div className="fixed bottom-[95px] right-4 flex flex-col gap-3 z-30">
       <a href={`https://wa.me/${OFFICE_NUMBER}?text=Hello%20Yash%20Marketing,%20Mujhe%20order%20ke%20baare%20me%20inquiry%20karni%20hai.`} target="_blank" className="w-12 h-12 bg-green-500 rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform border-2 border-white">
         <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -573,7 +575,7 @@ function App() {
         <OrdersHistoryView user={user} callAPI={callAPI} />
       )}
 
-      <ContactFABs />
+      <ContactFABs view={view} />
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
 
       {view === "catalog" && totalItems > 0 && !customerMode && (
@@ -781,7 +783,7 @@ function ReplacementsView(props) {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans">
       {isScanning && <ScannerModal onScan={handleScanSuccess} onClose={() => setIsScanning(false)} />}
       
       <div className="flex justify-between bg-white rounded-xl shadow-sm border p-1 mb-4">
@@ -1001,7 +1003,7 @@ function LoginScreen(props) {
         localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
         onLogin(dealerData);
       } else {
-        alert((res && res.message) ? res.message : "Invalid Number"); // <--- FIXED LINE
+        alert((res && res.message) ? res.message : "Invalid Number");
       }
     }).catch(() => {
       setLoading(false);
@@ -1080,7 +1082,7 @@ function Catalog(props) {
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     }).then(r => r.json()).then(res => { 
-      if (res && res.success && res.data.length > 0) setDiscounts(res.data);
+      if (res && res.success && res.data.length > 0) setDiscounts(res.data); 
     }).catch(() => {});
 
     fetch(API_URL, {
@@ -1088,7 +1090,7 @@ function Catalog(props) {
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     }).then(r => r.json()).then(res => { 
-      if (res && res.success) setSchemes(res.data);
+      if (res && res.success) setSchemes(res.data); 
     }).catch(() => {});
   }, []);
 
@@ -1232,8 +1234,9 @@ function Catalog(props) {
   const inStockFlat = products.filter(p => (getNum(getProp(p, "Stock")) > 0) || String(getProp(p, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(p, "Brand") || "").toUpperCase().includes("VELOCITY"));
   const inStockProducts = groupProductsByVariant(inStockFlat);
 
+  // FIX 1: pb-[140px] added so last 2 items are fully scrollable and easily clickable
   const renderProducts = (productList) => (
-    <div className="p-4 grid grid-cols-2 gap-4">
+    <div className="p-4 pb-[140px] grid grid-cols-2 gap-4">
       {productList.map((p, idx) => {
         var name = String(getProp(p, "ProductName") || "Premium Item");
         var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
@@ -1376,7 +1379,7 @@ function Catalog(props) {
   } else if (!selectedType) {
     const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || "")).filter(Boolean))].sort();
     mainContent = (
-      <div className="p-4">
+      <div className="p-4 pb-[140px]">
         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
         <div className="grid grid-cols-2 gap-4">
           {types.map(type => {
@@ -1590,6 +1593,7 @@ function Cart(props) {
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
   let comboDiscountAmount = 0, combosApplied = 0;
+  let singleComboEffectivePrice = 400; 
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   
   if (comboScheme && comboScheme.target) {
@@ -1604,10 +1608,10 @@ function Cart(props) {
           combosApplied = Math.min(t1Qty, t2Qty);
           if (combosApplied > 0) {
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
-              const comboPrice = match ? parseInt(match[1] || match[0]) : 400; 
+              singleComboEffectivePrice = match ? parseInt(match[1] || match[0]) : 400; 
               const originalComboPrice = t1Price + t2Price;
-              if (originalComboPrice > comboPrice) {
-                comboDiscountAmount = (originalComboPrice - comboPrice) * combosApplied;
+              if (originalComboPrice > singleComboEffectivePrice) {
+                comboDiscountAmount = (originalComboPrice - singleComboEffectivePrice) * combosApplied;
               }
           }
       }
@@ -1615,6 +1619,10 @@ function Cart(props) {
 
   const baseTotalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0);
   const totalAmount = baseTotalAmount - comboDiscountAmount;
+
+  // FIX 2: Combo items are excluded from Bulk and UPI calculations. Bulk & UPI will only apply on non-combo amounts
+  const totalComboValue = combosApplied * singleComboEffectivePrice;
+  const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) { 
@@ -1636,10 +1644,10 @@ function Cart(props) {
     } 
   }
   
-  const bulkDiscountAmount = Math.round(totalAmount * (bulkPercent / 100));
-  const afterBulkTotal = totalAmount - bulkDiscountAmount;
-  const upiDiscountAmount = paymentMode === 'UPI' ? Math.round(afterBulkTotal * 0.02) : 0;
-  const finalAmount = afterBulkTotal - upiDiscountAmount;
+  const bulkDiscountAmount = nonComboAmount > 0 ? Math.round(nonComboAmount * (bulkPercent / 100)) : 0;
+  const nonComboAfterBulk = nonComboAmount - bulkDiscountAmount;
+  const upiDiscountAmount = (paymentMode === 'UPI' && nonComboAfterBulk > 0) ? Math.round(nonComboAfterBulk * 0.02) : 0;
+  const finalAmount = totalComboValue + (nonComboAfterBulk - upiDiscountAmount);
 
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
@@ -1726,7 +1734,7 @@ function Cart(props) {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-[150px] font-sans relative">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[180px] font-sans relative">
       {totalItems >= 25 && (
         <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
            <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">🏆 25 PCS TARGET ACHIEVED</h4>
@@ -1834,14 +1842,14 @@ function Cart(props) {
         
         {cartItems.length > 0 && bulkDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-2 text-green-700">
-            <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%)</span>
+            <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%) (Non-Combo)</span>
             <span className="font-black text-sm">-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
         
-        {cartItems.length > 0 && paymentMode === 'UPI' && (
+        {cartItems.length > 0 && paymentMode === 'UPI' && upiDiscountAmount > 0 && (
           <div className="flex justify-between items-center mt-2 text-green-700">
-            <span className="font-black uppercase text-[10px]">UPI Discount (2%)</span>
+            <span className="font-black uppercase text-[10px]">UPI Discount (2%) (Non-Combo)</span>
             <span className="font-black text-sm">-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
@@ -1856,7 +1864,7 @@ function Cart(props) {
       {cartItems.length > 0 && (
         <React.Fragment>
           <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
-          <div className="space-y-3">
+          <div className="space-y-3 mb-8">
             <div 
               onClick={() => setPaymentMode('COD')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
@@ -1871,7 +1879,7 @@ function Cart(props) {
               <div className="flex justify-between items-center">
                 <div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight">
                   <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">PhonePe</span> 
-                  UPI (2% CASH DISCOUNT)
+                  UPI (2% CASH DISCOUNT ON NON-COMBO)
                 </div>
                 <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
               </div>
@@ -1913,19 +1921,20 @@ function Cart(props) {
             </div>
           </div>
 
-          <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t p-5 rounded-t-3xl shadow-2xl z-40">
+          {/* FIX 3: Clean, elevated fixed bottom bar that displays subtotal and final amount without overlap */}
+          <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4 rounded-t-3xl shadow-[0_-10px_25px_rgba(0,0,0,0.1)] z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
               <span>Subtotal</span>
-              <span className="line-through font-mono">₹{(totalAmount + comboDiscountAmount).toLocaleString('en-IN')}</span>
+              <span className="line-through font-mono">₹{baseTotalAmount.toLocaleString('en-IN')}</span>
             </div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-3">
               <span className="font-black text-gray-800 text-lg">Final Amount</span>
               <span className="text-blue-900 text-2xl font-black">₹{finalAmount.toLocaleString('en-IN')}</span>
             </div>
             <button 
               onClick={handleCheckout} 
               disabled={loading} 
-              className={`w-full text-white font-black text-lg py-4 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}
+              className={`w-full text-white font-black text-base py-3.5 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}
             >
               {loading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "CONFIRM ORDER"}
             </button>
