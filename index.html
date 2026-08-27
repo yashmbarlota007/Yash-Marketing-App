@@ -1725,7 +1725,7 @@ function Cart(props) {
     setCart(updated);
   };
 
-  const handleCheckout = function() {
+    const handleCheckout = function() {
     if (!paymentMode) return alert("Please select Payment Mode!");
     if (paymentMode === 'UPI' && !screenshotData) return alert("Upload Payment Screenshot first!");
     
@@ -1739,7 +1739,8 @@ function Cart(props) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
     }
     
-      callAPI({
+    // 🟢 CORRECTED API CALL FORMAT
+    callAPI({
       action: "placeOrder",
       order: { 
         phone: user.phone, 
@@ -1753,11 +1754,9 @@ function Cart(props) {
         bulkPercent: bulkPercent, 
         upiDiscount: upiDiscountAmount,
         rewards: unlockedRewardsList.join(", "), 
-        remarks: orderRemarks, // 🟢 NAYI LINE: Backend ko comment bhejne ke liye
+        remarks: orderRemarks,
         screenshot: screenshotData
       }
-    })
-
     }).then(function(res) {
       setLoading(false);
       if (res && res.success) {
