@@ -294,6 +294,12 @@ function BottomNav({ view, setView, totalItems, customerMode }) {
         <span className="text-xl mb-0.5">🏠</span>
         <span className="text-[10px] font-black">Home</span>
       </button>
+
+      {/* 🟢 NAYA OFFERS TAB BUTTON */}
+      <button onClick={() => setView('offers')} className={`flex flex-col items-center flex-1 ${view==='offers'?'text-blue-900':'text-gray-400'}`}>
+        <span className="text-xl mb-0.5">🎁</span>
+        <span className="text-[10px] font-black">Offers</span>
+      </button>
       
       {!customerMode && (
         <button onClick={() => setView('orders')} className={`flex flex-col items-center flex-1 ${view==='orders'?'text-blue-900':'text-gray-400'}`}>
@@ -563,10 +569,12 @@ function App() {
         </div>
       </div>
       
-      {view === "catalog" ? (
+    {view === "catalog" ? (
         <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
       ) : view === "cart" ? (
         <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
+      ) : view === "offers" ? (
+        <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} />
       ) : view === "ledger" ? (
         <LedgerView user={user} callAPI={callAPI} />
       ) : view === "replacements" ? (
