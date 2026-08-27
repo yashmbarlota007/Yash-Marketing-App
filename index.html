@@ -1566,10 +1566,12 @@ function Cart(props) {
   
   const [loading, setLoading] = useState(false);
   const [schemes, setSchemes] = useState([]); 
-  const [paymentMode, setPaymentMode] = useState("");
+   const [paymentMode, setPaymentMode] = useState("");
   const [screenshotData, setScreenshotData] = useState(null);
   const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
+  const [orderRemarks, setOrderRemarks] = useState(""); // 🟢 NAYI LINE: Comments hold karne ke liye
+
 
   useEffect(() => {
     fetch(API_URL, {
@@ -1702,7 +1704,7 @@ function Cart(props) {
       unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
     }
     
-    callAPI({
+      callAPI({
       action: "placeOrder",
       order: { 
         phone: user.phone, 
@@ -1716,8 +1718,11 @@ function Cart(props) {
         bulkPercent: bulkPercent, 
         upiDiscount: upiDiscountAmount,
         rewards: unlockedRewardsList.join(", "), 
+        remarks: orderRemarks, // 🟢 NAYI LINE: Backend ko comment bhejne ke liye
         screenshot: screenshotData
       }
+    })
+
     }).then(function(res) {
       setLoading(false);
       if (res && res.success) {
@@ -1920,7 +1925,17 @@ function Cart(props) {
               )}
             </div>
           </div>
-
+          {/* 🟢 NAYA BLOCK: Optional Comments Box */}
+          <div className="mt-4 mb-8">
+            <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 Add Order Remarks (Optional)</h3>
+            <textarea
+              value={orderRemarks}
+              onChange={(e) => setOrderRemarks(e.target.value)}
+              placeholder="Koi specific instruction ya request hai toh yahan likhein..."
+              className="w-full bg-white p-4 rounded-2xl border-2 border-gray-200 focus:border-blue-600 outline-none font-bold text-xs text-gray-700 shadow-sm transition-all"
+              rows="2"
+            ></textarea>
+          </div>
           {/* FIX 3: Clean, elevated fixed bottom bar that displays subtotal and final amount without overlap */}
           <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4 rounded-t-3xl shadow-[0_-10px_25px_rgba(0,0,0,0.1)] z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
