@@ -1371,10 +1371,19 @@ function Catalog(props) {
     const stockVal = getNum(getProp(product, "Stock"));
     const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
     
-    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + change;
+    // 🟢 NAYA LOGIC: Check karo ki kya product cable hai
+    const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
+    const prodType = String(getProp(product, "Type") || "").toLowerCase();
+    const isCable = prodName.includes("cable") || prodType.includes("cable");
+    
+    // Agar cable hai toh jump 5 ka hoga, warna 1 ka
+    const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
+    
+    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
     
     if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
+    
     if (newQty <= 0) {
       delete updated[itemCode]; 
     } else {
@@ -1904,7 +1913,15 @@ function Cart(props) {
     const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
     const stockVal = getNum(getProp(product, "Stock"));
     
-    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + change;
+    // 🟢 NAYA LOGIC: Check karo ki kya product cable hai
+    const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
+    const prodType = String(getProp(product, "Type") || "").toLowerCase();
+    const isCable = prodName.includes("cable") || prodType.includes("cable");
+    
+    // Agar cable hai toh jump 5 ka hoga, warna 1 ka
+    const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
+    
+    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
     
     if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
