@@ -1495,14 +1495,18 @@ function Catalog(props) {
         </div>
       </div>
 
-      {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
+          {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
           <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
               {(() => {
+                // 🟢 FIX: Combo price yahan dynamically define kiya gaya hai taaki crash na ho
+                const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
+                const comboPrice = match ? parseInt(match[1] || match[0]) : 400;
+
                 // Calculate individual and total savings
                 const p1Price = getNum(getProp(comboP1, "DealerPrice"));
                 const p2Price = getNum(getProp(comboP2, "DealerPrice"));
                 const originalTotal = p1Price + p2Price;
-                const savingsAmt = originalTotal > singleComboEffectivePrice ? originalTotal - singleComboEffectivePrice : 0;
+                const savingsAmt = originalTotal > comboPrice ? originalTotal - comboPrice : 0;
                 const savingsPct = originalTotal > 0 ? Math.round((savingsAmt / originalTotal) * 100) : 0;
 
                 return (
@@ -1551,7 +1555,7 @@ function Catalog(props) {
                               <span className="text-[11px] text-gray-400 font-black line-through">₹{originalTotal}</span>
                             </div>
                             <div className="flex items-baseline gap-1">
-                              <span className="text-green-600 font-black text-3xl tracking-tighter">₹{singleComboEffectivePrice}</span>
+                              <span className="text-green-600 font-black text-3xl tracking-tighter">₹{comboPrice}</span>
                             </div>
                             <div className="text-[9px] text-green-700 font-black tracking-wider uppercase mt-1 bg-green-100 inline-block px-1.5 py-0.5 rounded">
                               ✨ YOU SAVE ₹{savingsAmt} ({savingsPct}%)
@@ -1572,6 +1576,7 @@ function Catalog(props) {
               })()}
           </div>
       )}
+
 
 
       {mainContent}
