@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Yash Marketing</title>
+<meta name="apple-mobile-web-app-title" content="Yash Marketing">
+<meta name="application-name" content="Yash Marketing">
+<link rel="icon" href="https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_VUpH4G6yRPwhc03t&sz=w180">
+<link rel="apple-touch-icon" href="https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_VUpH4G6yRPwhc03t&sz=w180">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+await OneSignal.init({
+appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
+});
+});
+</script>
+
+<!-- Module 2: CSS Styles -->
+<?!= include('Styles'); ?>
+
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+<div id="root"></div>
+
+<!-- MAIN REACT ENGINE -->
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// Modules Injection
+<?!= include('ConfigHelpers'); ?>
+<?!= include('SharedUI'); ?>
+<?!= include('ViewOffers'); ?>
+<?!= include('ViewReplacements'); ?>
+<?!= include('ViewLedgerHistory'); ?>
+<?!= include('ViewCatalog'); ?>
+<?!= include('ViewCart'); ?>
+<?!= include('AppMain'); ?>
+
+</script>
+</body>
+</html>
