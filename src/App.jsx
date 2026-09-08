@@ -1,0 +1,343 @@
+import React, { useState, useEffect } from 'react';
+import { API_URL, LOGO_URL, cacheBypass, getNum, getProp } from './utils/helpers';
+import { Catalog } from './components/Catalog';
+import { Cart } from './components/Cart';
+import OffersView from './components/Offers';
+import { LedgerView, OrdersHistoryView } from './components/Ledger';
+import ReplacementsView from './components/Replacements';
+import { BottomNav, ContactFABs } from './components/SharedUI';
+
+function LoginScreen(props) {
+  var onLogin = props.onLogin;
+  var callAPI = props.callAPI;
+  var loading = props.loading;
+  var setLoading = props.setLoading;
+  const [phone, setPhone] = useState("");
+
+  const handleLogin = function() {
+    if (phone.length < 10) return alert("Enter 10-digit number");
+    setLoading(true);
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "verifyDealer", phone: phone }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).then(function(res) {
+      setLoading(false);
+      if (res && res.success) {
+        var dealerData = { phone: phone, shopName: res.shopName };
+        localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+        onLogin(dealerData);
+      } else {
+        alert((res && res.message) ? res.message : "Invalid Number");
+      }
+    }).catch(() => {
+      setLoading(false);
+      alert("Network Error during Login.");
+    });
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6 text-center font-sans">
+      <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-900">
+        <img 
+          src={LOGO_URL} 
+          className="w-24 h-24 mx-auto mb-4 rounded-full border-4 border-gray-50 shadow-lg" 
+          alt="Logo"
+        />
+        <h2 className="text-3xl font-black mb-1 text-gray-900">Yash Marketing</h2>
+        <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">
+          Authorized Dealer Portal
+        </p>
+        <input 
+          type="tel" 
+          value={phone} 
+          onChange={(e) => setPhone(e.target.value)} 
+          className="w-full bg-gray-50 p-4 rounded-xl mb-6 text-center font-black text-xl outline-none border border-gray-200" 
+          placeholder="MOBILE NO." 
+        />
+        <button 
+          onClick={handleLogin} 
+          disabled={loading} 
+          className="w-full bg-blue-900 text-white font-black text-lg p-4 rounded-2xl active:scale-95 shadow-lg flex justify-center"
+        >
+          {loading ? (
+            <div className="border-4 border-white border-t-transparent w-7 h-7 rounded-full spinner"></div>
+          ) : (
+            "SECURE LOGIN"
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState("catalog");
+  const [products, setProducts] = useState([]);
+
+  const [cart, setCart] = useState(() => {
+    try {
+      const savedCart = localStorage.getItem("yashDealerCart");
+      return savedCart ? JSON.parse(savedCart) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [customerMode, setCustomerMode] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  const [showNotice, setShowNotice] = useState(false);
+  const [isNotificationGranted, setIsNotificationGranted] = useState(true);
+
+  useEffect(() => {
+    window.history.replaceState({ page: 'catalog' }, '');
+    const handlePopState = (e) => {
+      if (e.state && e.state.page) {
+        setView(e.state.page);
+      } else {
+        setView('catalog');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleSetView = (newView) => {
+    if (newView !== view) {
+      window.history.pushState({ page: newView }, '');
+      setView(newView);
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const portalEmpId = urlParams.get('empId');
+
+      if (portalEmpId && portalEmpId.trim() !== "") {
+        const dealerData = { phone: "SSO_" + portalEmpId, shopName: "Staff Portal (" + portalEmpId + ")" };
+        localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+        setUser(dealerData);
+      } else {
+        const savedUser = localStorage.getItem("yashDealerSession");
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("yashDealerCart", JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    if (window.Notification) {
+      if (Notification.permission !== "granted") {
+        setIsNotificationGranted(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetch(API_URL + cacheBypass, {
+        method: 'POST',
+        body: JSON.stringify({ action: "getAnnouncements" }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      })
+      .then(r => r.json())
+      .then(res => {
+        let parsedData = [];
+        if (res && res.success && Array.isArray(res.data)) {
+          parsedData = res.data;
+        } else if (res && Array.isArray(res.data)) {
+          parsedData = res.data;
+        } else if (Array.isArray(res)) {
+          parsedData = res;
+        }
+
+        if (parsedData.length > 0) {
+          setAnnouncements(parsedData);
+          setShowNotice(true);
+        } else {
+          setShowNotice(false);
+        }
+      }).catch((e) => {
+        var defaultMsg = [{
+          title: "Welcome to Yash Marketing",
+          message: "Naye schemes aur bulk order discount live hain. Kisi bhi inquiry ke liye direct WhatsApp par contact karein."
+        }];
+        setAnnouncements(defaultMsg);
+        setShowNotice(true);
+      });
+    }
+  }, [user]);
+
+  const logSpyData = (eventName, detailsStr) => {
+    var details = detailsStr || "";
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: eventName, details: details }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).catch(e => console.log("Silent Log Failed"));
+  };
+
+  const globalProps = { logSpyData, customerMode };
+
+  const callAPI = async function(payload) {
+    const isHeavyUpload = payload.media || payload.screenshot;
+    try {
+      if (isHeavyUpload) {
+        fetch(API_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        
+        return { 
+          success: true, 
+          ticketId: "TKT-" + Math.floor(1000 + Math.random() * 9000),
+          orderId: "YM-" + Math.floor(1000 + Math.random() * 9000)
+        };
+      } else {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        return await response.json();
+      }
+    } catch (e) {
+      alert("🚨 NETWORK ERROR: Please check your internet connection.");
+      return { success: false, message: "Network Error" };
+    }
+  };
+
+  const handleRequestPermission = () => {
+    if (window.Notification) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          setIsNotificationGranted(true);
+        } else {
+          alert("App use karne ke liye Permission allow karna compulsory hai!");
+        }
+      });
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("yashDealerSession");
+    localStorage.removeItem("yashDealerCart");
+    setUser(null);
+    setCart({});
+    handleSetView("catalog");
+  };
+
+  if (!user) {
+    return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} />;
+  }
+
+  if (!isNotificationGranted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
+        <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
+          <span className="text-5xl animate-bounce inline-block">🔔</span>
+          <h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
+          <p className="text-xs font-semibold text-gray-500 mt-4 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
+            Yash Marketing Portal ka use karne ke liye Push Notification allow karna compulsory hai. Isse aapko naye schemes, payments aur order updates instantly mobile screen par milenge.
+          </p>
+          <button onClick={handleRequestPermission} className="w-full bg-red-600 text-white font-black text-md py-4 rounded-xl mt-6 shadow-lg active:scale-95">
+            ENABLE NOTIFICATIONS NOW
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const cartItems = Object.values(cart);
+  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+  
+  const totalAmount = cartItems.reduce((a, b) => {
+    const itemPrice = getNum(getProp(b, "DealerPrice"));
+    return a + (itemPrice * b.qty);
+  }, 0) - (function(){
+    let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
+    cartItems.forEach(i => {
+      let n = String(getProp(i, "ProductName")).toLowerCase().trim();
+      if (n === "velocity neckband wave") { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
+      if (n === "velocity airpods tws pods") { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
+    });
+    let combos = Math.min(nQty, pQty);
+    let stPrice = nPrice + pPrice;
+    return (combos > 0 && stPrice > 400) ? (stPrice - 400) * combos : 0;
+  })();
+
+  return (
+    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
+      <div className="bg-blue-900 text-white p-4 sticky top-0 z-40 flex justify-between items-center shadow-md">
+        <div>
+          <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
+            <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" alt="Logo" />
+            Yash Marketing <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v4.0</span>
+          </h1>
+          <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
+        </div>
+        <div className="flex gap-1.5 items-center">
+          <button onClick={() => {
+            const m = !customerMode;
+            setCustomerMode(m);
+            if (m && (view === "ledger" || view === "orders" || view === "replacements")) handleSetView("catalog");
+            logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
+          }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
+            {customerMode ? "👥 CUSTOMER" : "💼 DEALER"}
+          </button>
+          <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
+        </div>
+      </div>
+      
+    {view === "catalog" ? (
+        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
+      ) : view === "cart" ? (
+        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
+      ) : view === "offers" ? (
+        <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} />
+      ) : view === "ledger" ? (
+        <LedgerView user={user} callAPI={callAPI} />
+      ) : view === "replacements" ? (
+        <ReplacementsView user={user} callAPI={callAPI} globalProps={globalProps} products={products} />
+      ) : (
+        <OrdersHistoryView user={user} callAPI={callAPI} />
+      )}
+
+      <ContactFABs view={view} />
+      <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
+
+      {view === "catalog" && totalItems > 0 && !customerMode && (
+         <div className="fixed bottom-[80px] left-4 right-4 max-w-md mx-auto bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-30 opacity-95">
+           <div>
+             <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
+             <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')}</div>
+           </div>
+           <button onClick={() => handleSetView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
+         </div>
+      )}
+
+      {user && showNotice && announcements.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm border-t-8 border-amber-600 shadow-2xl relative text-center animate-slide-up">
+            <span className="text-4xl">🔔</span>
+            <h2 className="text-xl font-black text-gray-900 mt-3">{announcements[0].title}</h2>
+            <p className="text-sm font-semibold text-gray-600 mt-4 leading-relaxed bg-gray-50 p-4 rounded-2xl border border-gray-100">{announcements[0].message}</p>
+            <button onClick={() => setShowNotice(false)} className="w-full bg-amber-600 text-white font-black text-md py-3.5 rounded-xl mt-6 shadow-lg active:scale-95">GOT IT, THANKYOU!</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
