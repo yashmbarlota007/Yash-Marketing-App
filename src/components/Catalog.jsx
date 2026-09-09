@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL, getNum, getProp, getSmartImage, groupProductsByVariant, calculateSchemeProgress } from '../utils/helpers';
+import { 
+  API_URL, 
+  getNum, 
+  getProp, 
+  getSmartImage, 
+  groupProductsByVariant, 
+  calculateSchemeProgress 
+} from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
 
 export function Catalog(props) {
@@ -16,13 +23,16 @@ export function Catalog(props) {
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+  const [discounts, setDiscounts] = useState([
+    { minAmount: 10000, percent: 1 }, 
+    { minAmount: 20000, percent: 1.5 }
+  ]);
   const [schemes, setSchemes] = useState([]); 
   const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [activeVariants, setActiveVariants] = useState({});
   
-  // 🟢 NAYE STATES: FILTERS KE LIYE
+  // NAYE STATES: FILTERS KE LIYE
   const [brandFilter, setBrandFilter] = useState("");
   const [sortFilter, setSortFilter] = useState("");
 
@@ -32,37 +42,59 @@ export function Catalog(props) {
         method: 'POST',
         body: JSON.stringify({ action: "getProducts" }),
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-      }).then(r => r.json()).then(res => { 
-        if (res && res.success) setProducts(res.data);
+      })
+      .then(r => r.json())
+      .then(res => { 
+        if (res && res.success && Array.isArray(res.data)) {
+          setProducts(res.data);
+        }
         setLoading(false); 
-      }).catch(() => setLoading(false));
+      })
+      .catch(() => setLoading(false));
     }
     
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => { 
-      if (res && res.success && res.data.length > 0) setDiscounts(res.data); 
-    }).catch(() => {});
+    })
+    .then(r => r.json())
+    .then(res => { 
+      if (res && res.success && res.data.length > 0) {
+        setDiscounts(res.data); 
+      }
+    })
+    .catch(() => {});
 
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => { 
-      if (res && res.success) setSchemes(res.data); 
-    }).catch(() => {});
+    })
+    .then(r => r.json())
+    .then(res => { 
+      if (res && res.success) {
+        setSchemes(res.data); 
+      }
+    })
+    .catch(() => {});
   }, []);
 
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+  
   const totalAmount = cartItems.reduce((a, b) => a + (getNum(getProp(b, "DealerPrice")) * b.qty), 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
     cartItems.forEach(i => {
       let n = String(getProp(i, "ProductName")).toLowerCase().trim();
-      if (n === "velocity neckband wave") { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
-      if (n === "velocity airpods tws pods") { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
+      if (n === "velocity neckband wave") { 
+        nQty += i.qty; 
+        nPrice = getNum(getProp(i, "DealerPrice")); 
+      }
+      if (n === "velocity airpods tws pods") { 
+        pQty += i.qty; 
+        pPrice = getNum(getProp(i, "DealerPrice")); 
+      }
     });
     return (Math.min(nQty, pQty) > 0 && (nPrice + pPrice) > 400) ? ((nPrice + pPrice) - 400) * Math.min(nQty, pQty) : 0;
   })();
@@ -81,10 +113,14 @@ export function Catalog(props) {
     } else if (totalItems < 25) {
       setCelebrated25Pcs(false);
     }
-  }, [totalItems]);
+  }, [totalItems, celebrated25Pcs]);
 
   useEffect(() => {
-    var sortedDiscounts = [...discounts].map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) })).filter(d => !isNaN(d.minAmount) && !isNaN(d.percent)).sort((a, b) => a.minAmount - b.minAmount);
+    var sortedDiscounts = [...discounts]
+      .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
+      .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+      .sort((a, b) => a.minAmount - b.minAmount);
+      
     var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
     var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
 
@@ -99,7 +135,7 @@ export function Catalog(props) {
       if (!celebratedTiers.tier1) { 
         if (window.confetti) {
           window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        } 
+        }
         setCelebratedTiers(prev => ({...prev, tier1: true })); 
       }
       if (celebratedTiers.tier2) {
@@ -110,14 +146,15 @@ export function Catalog(props) {
         setCelebratedTiers({ tier1: false, tier2: false }); 
       }
     }
-  }, [totalAmount, discounts]);
+  }, [totalAmount, discounts, celebratedTiers]);
 
-  const handleSearchChange = (e) => setSearchQuery(e.target.value);
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
   
   const openCategory = (type) => { 
     window.history.pushState({ modal: 'category' }, ''); 
     setSelectedType(type); 
-    // Reset filters when opening a new category
     setBrandFilter("");
     setSortFilter("");
   };
@@ -129,11 +166,12 @@ export function Catalog(props) {
 
   useEffect(() => {
     const handlePop = (e) => { 
-      if (selectedProduct) setSelectedProduct(null); 
-      else if (selectedType) {
+      if (selectedProduct) {
+        setSelectedProduct(null); 
+      } else if (selectedType) { 
         setSelectedType(null); 
-        setBrandFilter("");
-        setSortFilter("");
+        setBrandFilter(""); 
+        setSortFilter(""); 
       }
     };
     window.addEventListener('popstate', handlePop);
@@ -154,11 +192,12 @@ export function Catalog(props) {
     const isCable = prodName.includes("cable") || prodType.includes("cable");
     
     const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
-    
     const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
     
-    if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
+    if (newQty > maxLimit && maxLimit > 0) {
+      return alert("Maximum stock limit reached!");
+    }
     
     if (newQty <= 0) {
       delete updated[itemCode]; 
@@ -170,7 +209,6 @@ export function Catalog(props) {
 
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   let comboP1 = null, comboP2 = null;
-  
   let p1Price = 0, p2Price = 0, originalTotal = 0, savingsAmt = 0, savingsPct = 0, comboPrice = 400;
 
   if (comboScheme && comboScheme.target) {
@@ -186,7 +224,6 @@ export function Catalog(props) {
               
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
               comboPrice = match ? parseInt(match[1] || match[0]) : 400;
-              
               savingsAmt = originalTotal > comboPrice ? originalTotal - comboPrice : 0;
               savingsPct = originalTotal > 0 ? Math.round((savingsAmt / originalTotal) * 100) : 0;
           }
@@ -196,7 +233,6 @@ export function Catalog(props) {
   const handleAddCombo = () => {
     if (comboP1 && comboP2) {
       let updated = Object.assign({}, cart);
-      
       const itemCode1 = String(getProp(comboP1, "ItemCode"));
       const itemCode2 = String(getProp(comboP2, "ItemCode"));
       
@@ -221,161 +257,218 @@ export function Catalog(props) {
     );
   }
 
-  const inStockFlat = products.filter(p => (getNum(getProp(p, "Stock")) > 0) || String(getProp(p, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(p, "Brand") || "").toUpperCase().includes("VELOCITY"));
-  const inStockProducts = groupProductsByVariant(inStockFlat);
+  // Smart Render Function
+  const renderProducts = (productList) => {
+    const groupedList = groupProductsByVariant(productList);
+    
+    return (
+      <div className="p-4 pb-[140px] grid grid-cols-2 gap-4">
+        {groupedList.map((p, idx) => {
+          var name = String(getProp(p, "ProductName") || "Premium Item");
+          var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
+                               (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+          var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
+          
+          const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
+          const smartImg = getSmartImage(activeVariant);
+          const mrpVal = getNum(getProp(activeVariant, "MRP"));
+          const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
+          const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
+          const stockVal = getNum(getProp(activeVariant, "Stock"));
+          
+          const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
+          const isAlwaysLiveBrand = String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("VELOCITY");
+          
+          const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+          const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
-  const renderProducts = (productList) => (
-    <div className="p-4 pb-[140px] grid grid-cols-2 gap-4">
-      {productList.map((p, idx) => {
-        var name = String(getProp(p, "ProductName") || "Premium Item");
-        var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
-        var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
-        
-        const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
-        const smartImg = getSmartImage(activeVariant);
-        const mrpVal = getNum(getProp(activeVariant, "MRP"));
-        const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
-        const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
-        
-        const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
-        const showOnOrder = (String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("VELOCITY")) && getNum(getProp(activeVariant, "Stock")) <= 0;
-
-        return (
-          <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden">
-            {isNewItem && (
-              <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
-                ✨ NEW
-              </span>
-            )}
-            {showOnOrder && !isNewItem && (
-              <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
-                ⏳ ON ORDER
-              </span>
-            )}
-            {!isNewItem && !showOnOrder && totalItems >= 25 && (
-              <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10">
-                25+ Target Unlocked
-              </span>
-            )}
-            
-            <div className="mt-1 cursor-pointer" onClick={() => openProductModal(p)}>
-              {smartImg ? (
-                <img 
-                  src={smartImg} 
-                  className="h-32 w-full object-contain mb-2 p-1" 
-                  onError={(e) => { 
-                    e.target.onerror=null; 
-                    e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>';
-                  }} 
-                  alt={name}
-                /> 
-              ) : (
-                <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
+          return (
+            <div 
+              key={`${activeItemCode}-${idx}`} 
+              className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden"
+            >
+              {isNewItem && (
+                <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
+                  ✨ NEW
+                </span>
               )}
-              <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">{name}</h3>
-            </div>
-            
-            {p.isGrouped && (
-              <div className="flex flex-wrap gap-1 mt-1 mb-2">
-                {p.variants.map(v => (
-                  <button 
-                    key={String(getProp(v, "ItemCode"))} 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setActiveVariants(prev => ({...prev, [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) })); 
+              
+              {showOnOrder && !isNewItem && (
+                <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                  ⏳ ON ORDER
+                </span>
+              )}
+              
+              {!isNewItem && !showOnOrder && totalItems >= 25 && !isOutOfStock && (
+                <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10">
+                  25+ Target
+                </span>
+              )}
+              
+              {isOutOfStock && (
+                <div className="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                  <span className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded uppercase shadow-lg transform -rotate-12 border border-red-800">
+                    Out of Stock
+                  </span>
+                </div>
+              )}
+              
+              <div 
+                className="mt-1 cursor-pointer" 
+                onClick={() => openProductModal(p)}
+              >
+                {smartImg ? (
+                  <img 
+                    src={smartImg} 
+                    className={`h-32 w-full object-contain mb-2 p-1 ${isOutOfStock ? 'grayscale opacity-50' : ''}`} 
+                    onError={(e) => { 
+                      e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
                     }} 
-                    className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                  >
-                    {v.capacity}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-1">
-              {!globalProps.customerMode ? (
-                <div>
-                  {hasDiscount && dealerVal > 0 ? (
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{mrpVal}</span>
-                      <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">
-                        {Math.round(((mrpVal - dealerVal) / mrpVal) * 100)}% OFF
-                      </span>
-                    </div>
-                  ) : ( 
-                    mrpVal > 0 && <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">MRP: ₹{mrpVal}</div> 
-                  )}
-                  
-                  <div className="font-black text-lg text-blue-950 mb-2 tracking-tight">
-                    {dealerVal > 0 ? `₹${dealerVal}` : "Contact Us"}
+                    alt={name} 
+                  /> 
+                ) : (
+                  <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">
+                    No Image
                   </div>
-                  
-                  {dealerVal > 0 && (
-                    currentQty > 0 ? (
-                      <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} 
-                          className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm"
-                        >
-                          -
+                )}
+                <h3 className={`font-bold text-xs leading-snug line-clamp-2 h-8 ${isOutOfStock ? 'text-gray-400' : ''}`}>
+                  {name}
+                </h3>
+              </div>
+              
+              {p.isGrouped && (
+                <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
+                  {p.variants.map(v => (
+                    <button 
+                      key={String(getProp(v, "ItemCode"))} 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setActiveVariants(prev => ({
+                          ...prev, 
+                          [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) 
+                        })); 
+                      }} 
+                      className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                    >
+                      {v.capacity}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-1 relative z-20">
+                {!globalProps.customerMode ? (
+                  <div>
+                    {hasDiscount && dealerVal > 0 ? (
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[10px] text-gray-400 font-bold line-through tracking-tight">MRP: ₹{mrpVal}</span>
+                        <span className="text-[9px] bg-green-100 text-green-700 font-black px-1.5 py-0.5 rounded shadow-sm">
+                          {Math.round(((mrpVal - dealerVal) / mrpVal) * 100)}% OFF
+                        </span>
+                      </div>
+                    ) : ( 
+                      mrpVal > 0 && (
+                        <div className="text-[10px] text-gray-400 font-bold line-through tracking-tight mb-1">
+                          MRP: ₹{mrpVal}
+                        </div>
+                      )
+                    )}
+                    
+                    <div className={`font-black text-lg mb-2 tracking-tight ${isOutOfStock ? 'text-gray-400' : 'text-blue-950'}`}>
+                      {dealerVal > 0 ? `₹${dealerVal}` : "Contact Us"}
+                    </div>
+                    
+                    {dealerVal > 0 && (
+                      isOutOfStock ? (
+                        <button disabled className="w-full bg-gray-100 text-gray-400 text-[11px] font-bold py-3 rounded-xl shadow-sm cursor-not-allowed">
+                          OUT OF STOCK
                         </button>
-                        <span className="font-black text-blue-900">{currentQty}</span>
+                      ) : currentQty > 0 ? (
+                        <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} 
+                            className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm"
+                          >
+                            -
+                          </button>
+                          <span className="font-black text-blue-900">{currentQty}</span>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
+                            className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
                         <button 
                           onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
-                          className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm"
+                          className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm"
                         >
-                          +
+                          {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
                         </button>
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
-                        className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm"
-                      >
-                        {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
-                      </button>
-                    )
-                  )}
-                </div>
-              ) : (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${String(getProp(activeVariant, "Brand"))}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}`;
-                    if (navigator.share) {
-                      navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
-                    } else {
-                      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
-                    }
-                  }} 
-                  className="w-full bg-green-600 text-white text-[11px] font-black py-3 rounded-xl flex items-center justify-center gap-1 shadow-sm"
-                >
-                  📲 SHARE PHOTO
-                </button>
-              )}
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const shareText = `🔥 Check out this item at our store!\n\n📦 *Product:* ${name} (${activeVariant.capacity})\n⚡ *Brand:* ${String(getProp(activeVariant, "Brand"))}\n\n🏢 *Dealer:* ${user ? user.shopName : ''}\n📞 *Contact:* ${user ? user.phone : ''}`;
+                      if (navigator.share) {
+                        navigator.share({ title: name, text: shareText, url: smartImg }).catch(() => {});
+                      } else {
+                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + "\nImage: " + smartImg)}`, '_blank');
+                      }
+                    }} 
+                    className="w-full bg-green-600 text-white text-[11px] font-black py-3 rounded-xl flex items-center justify-center gap-1 shadow-sm"
+                  >
+                    📲 SHARE PHOTO
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+          );
+        })}
+      </div>
+    );
+  };
 
   let mainContent;
-  if (searchQuery.trim() !== "") {
-    mainContent = renderProducts(inStockProducts.filter(p => 
+  
+  if (!loading && products.length === 0) {
+    mainContent = (
+      <div className="flex flex-col items-center justify-center p-8 mt-10 text-center animate-fade-in">
+        <span className="text-5xl mb-4">📭</span>
+        <h3 className="font-black text-gray-800 text-lg mb-2">Inventory Sync Failed</h3>
+        <p className="text-xs text-gray-500 font-bold mb-6">Database se items fetch nahi ho paaye. Please refresh manually.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-blue-900 text-white text-xs font-black px-6 py-3 rounded-xl shadow-md active:scale-95"
+        >
+          🔄 FORCE REFRESH
+        </button>
+      </div>
+    );
+  } else if (searchQuery.trim() !== "") {
+    mainContent = renderProducts(products.filter(p => 
       String(getProp(p, "ProductName") || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
       String(getProp(p, "Brand") || "").toLowerCase().includes(searchQuery.toLowerCase())
     ));
   } else if (!selectedType) {
-    const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || "")).filter(Boolean))].sort();
+    const types = [...new Set(products.map(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim()).filter(Boolean))].sort();
+    
     mainContent = (
       <div className="p-4 pb-[140px]">
         <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+        {types.length === 0 && !loading && (
+           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
+             Categories found empty.
+           </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           {types.map(type => {
-            const cover = getSmartImage(inStockFlat.find(p => String(getProp(p, "Type") || "") === type));
-            // 🟢 NAYA LOGIC 1: Live category product count calculation
-            const categoryCount = inStockProducts.filter(p => String(getProp(p, "Type") || "") === type).length;
+            const cover = getSmartImage(products.find(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type));
+            const categoryCount = products.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type).length;
             
             return (
               <div 
@@ -390,7 +483,6 @@ export function Catalog(props) {
                 )}
                 <h3 className="font-extrabold text-sm text-center truncate w-full text-gray-800 flex items-center justify-center gap-1.5">
                   {type} 
-                  {/* 🟢 Render Count Badge */}
                   <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-blue-100">
                     {categoryCount}
                   </span>
@@ -402,18 +494,13 @@ export function Catalog(props) {
       </div>
     );
   } else {
-    // 🟢 NAYA LOGIC 2: Dynamic Filters Engine
-    let displayProducts = inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType);
-    
-    // Extract unique brands specific to the opened category
+    let displayProducts = products.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === selectedType);
     const categoryBrands = [...new Set(displayProducts.map(p => String(getProp(p, "Brand") || "").trim()).filter(Boolean))].sort();
 
-    // Apply Brand Filter
     if (brandFilter) {
       displayProducts = displayProducts.filter(p => String(getProp(p, "Brand") || "").trim() === brandFilter);
     }
-
-    // Apply Sorting Filter
+    
     if (sortFilter === "low") {
       displayProducts.sort((a,b) => getNum(getProp(a, "DealerPrice")) - getNum(getProp(b, "DealerPrice")));
     } else if (sortFilter === "high") {
@@ -424,22 +511,27 @@ export function Catalog(props) {
       <div>
         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
           <button 
-            onClick={() => {
-              window.history.back();
-              setBrandFilter("");
-              setSortFilter("");
+            onClick={() => { 
+              window.history.back(); 
+              setBrandFilter(""); 
+              setSortFilter(""); 
             }} 
             className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm"
           >
             ← Categories
           </button>
-          <span className="font-black text-gray-800">{selectedType}</span>
+          
+          <span className="font-black text-gray-800">
+            {selectedType}
+          </span>
+          
           <button 
             onClick={() => {
               let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
               displayProducts.slice(0, 15).forEach((p, idx) => {
                 shareText += `${idx + 1}. *${String(getProp(p, "ProductName") || "")}*\n💰 Price: ₹${getNum(getProp(p, globalProps.customerMode ? "MRP" : "DealerPrice"))}\n🔗 Photo: ${getSmartImage(p)}\n\n`;
               });
+              
               if (navigator.share) {
                 navigator.share({ title: `${selectedType} Catalog`, text: shareText }).catch(() => {});
               } else {
@@ -448,24 +540,25 @@ export function Catalog(props) {
             }} 
             className="font-black text-xs text-white bg-green-600 px-3.5 py-2.5 rounded-xl shadow-md flex items-center gap-1 active:scale-95"
           >
-            📲 SHARE LIST
+            📲 SHARE
           </button>
         </div>
 
-        {/* 🟢 NEW DYNAMIC FILTER BAR UI */}
         <div className="bg-white px-4 py-3 border-b flex gap-3 overflow-x-auto no-scrollbar shadow-sm">
            <select 
              value={brandFilter} 
-             onChange={e => setBrandFilter(e.target.value)}
+             onChange={e => setBrandFilter(e.target.value)} 
              className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
            >
              <option value="">All Brands</option>
-             {categoryBrands.map(b => <option key={b} value={b}>{b}</option>)}
+             {categoryBrands.map(b => (
+               <option key={b} value={b}>{b}</option>
+             ))}
            </select>
            
            <select 
              value={sortFilter} 
-             onChange={e => setSortFilter(e.target.value)}
+             onChange={e => setSortFilter(e.target.value)} 
              className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
            >
              <option value="">Sort by Price</option>
@@ -474,7 +567,9 @@ export function Catalog(props) {
            </select>
         </div>
 
-        {displayProducts.length > 0 ? renderProducts(displayProducts) : (
+        {displayProducts.length > 0 ? (
+          renderProducts(displayProducts)
+        ) : (
           <div className="text-center p-8 text-gray-400 font-bold text-sm mt-10">
             No products found for this filter.
           </div>
@@ -489,17 +584,22 @@ export function Catalog(props) {
         {totalItems > 0 && !globalProps.customerMode && (
           <React.Fragment>
             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+            
             {totalItems >= 25 && (
               <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase border-b border-green-700 animate-bounce shadow-sm">
                 🎉 Target 25 Pcs Met! Bumper Reward Live! 🎁
               </div>
             )}
+            
             {schemes.length > 0 && (
               <div className="bg-white">
                 {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
                   const progress = calculateSchemeProgress(cartItems, scheme);
                   return (
-                    <div key={idx} className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}>
+                    <div 
+                      key={idx} 
+                      className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}
+                    >
                       <div className="flex justify-between items-end mb-1">
                         <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>
                           {scheme.message}
@@ -521,6 +621,7 @@ export function Catalog(props) {
             )}
           </React.Fragment>
         )}
+        
         <div className="p-3 bg-white flex items-center border-b">
           <input 
             type="text" 
@@ -540,69 +641,94 @@ export function Catalog(props) {
         </div>
       </div>
 
-         {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
-          <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
-              <div className="bg-gradient-to-br from-indigo-950 via-blue-900 to-indigo-950 rounded-3xl p-1 shadow-2xl relative overflow-hidden border border-indigo-800">
-                <div className="bg-indigo-950 rounded-[22px] p-4 relative overflow-hidden">
-                  
-                  <div className="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest animate-pulse shadow-md z-20">
-                    ⚡ Limited Time Deal
-                  </div>
-                  
-                  <span className="bg-yellow-400 text-indigo-950 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wide inline-block mb-3">
-                    🔥 EXCLUSIVE COMBO
-                  </span>
-                  
-                  <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
-                      <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
-                        <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
-                          {getSmartImage(comboP1) ? <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" alt="Combo 1" /> : "📦"}
-                        </div>
-                        <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">{getProp(comboP1, "ProductName")}</div>
-                        <div className="text-red-300 text-[10px] font-bold line-through">₹{p1Price}</div>
+      {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
+        <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
+            <div className="bg-gradient-to-br from-indigo-950 via-blue-900 to-indigo-950 rounded-3xl p-1 shadow-2xl relative overflow-hidden border border-indigo-800">
+              <div className="bg-indigo-950 rounded-[22px] p-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest animate-pulse shadow-md z-20">
+                  ⚡ Limited Time Deal
+                </div>
+                <span className="bg-yellow-400 text-indigo-950 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wide inline-block mb-3">
+                  🔥 EXCLUSIVE COMBO
+                </span>
+                
+                <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
+                    <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
+                      <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
+                        {getSmartImage(comboP1) ? (
+                          <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" alt="Combo 1" /> 
+                        ) : (
+                          "📦"
+                        )}
                       </div>
+                      <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">
+                        {getProp(comboP1, "ProductName")}
+                      </div>
+                      <div className="text-red-300 text-[10px] font-bold line-through">
+                        ₹{p1Price}
+                      </div>
+                    </div>
 
-                      <div className="bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center font-black text-indigo-900 text-sm shadow-xl z-20 shrink-0 border-2 border-indigo-950">+</div>
-                      
-                      <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
-                        <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
-                          {getSmartImage(comboP2) ? <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" alt="Combo 2" /> : "📦"}
-                        </div>
-                        <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">{getProp(comboP2, "ProductName")}</div>
-                        <div className="text-red-300 text-[10px] font-bold line-through">₹{p2Price}</div>
+                    <div className="bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center font-black text-indigo-900 text-sm shadow-xl z-20 shrink-0 border-2 border-indigo-950">
+                      +
+                    </div>
+                    
+                    <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
+                      <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
+                        {getSmartImage(comboP2) ? (
+                          <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" alt="Combo 2" /> 
+                        ) : (
+                          "📦"
+                        )}
                       </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-2xl p-3 shadow-inner flex justify-between items-center relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full blur-xl -mr-8 -mt-8"></div>
-                      
-                      <div className="z-10">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Original:</span>
-                          <span className="text-[11px] text-gray-400 font-black line-through">₹{originalTotal}</span>
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-green-600 font-black text-3xl tracking-tighter">₹{comboPrice}</span>
-                        </div>
-                        <div className="text-[9px] text-green-700 font-black tracking-wider uppercase mt-1 bg-green-100 inline-block px-1.5 py-0.5 rounded">
-                          ✨ YOU SAVE ₹{savingsAmt} ({savingsPct}%)
-                        </div>
+                      <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">
+                        {getProp(comboP2, "ProductName")}
                       </div>
+                      <div className="text-red-300 text-[10px] font-bold line-through">
+                        ₹{p2Price}
+                      </div>
+                    </div>
+                </div>
+                
+                <div className="bg-white rounded-2xl p-3 shadow-inner flex justify-between items-center relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full blur-xl -mr-8 -mt-8"></div>
+                    
+                    <div className="z-10">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">
+                          Original:
+                        </span>
+                        <span className="text-[11px] text-gray-400 font-black line-through">
+                          ₹{originalTotal}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-green-600 font-black text-3xl tracking-tighter">
+                          ₹{comboPrice}
+                        </span>
+                      </div>
+                      <div className="text-[9px] text-green-700 font-black tracking-wider uppercase mt-1 bg-green-100 inline-block px-1.5 py-0.5 rounded">
+                        ✨ YOU SAVE ₹{savingsAmt} ({savingsPct}%)
+                      </div>
+                    </div>
 
-                      <button 
-                        onClick={handleAddCombo} 
-                        className="z-10 bg-gradient-to-r from-green-500 to-green-600 text-white font-black px-4 py-3 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex flex-col items-center text-xs border border-green-400"
-                      >
-                        <span>🛒 ADD COMBO</span>
-                        <span className="text-[7px] opacity-90 font-bold uppercase tracking-widest mt-0.5">Instant Discount</span>
-                      </button>
-                  </div>
+                    <button 
+                      onClick={handleAddCombo} 
+                      className="z-10 bg-gradient-to-r from-green-500 to-green-600 text-white font-black px-4 py-3 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex flex-col items-center text-xs border border-green-400"
+                    >
+                      <span>🛒 ADD COMBO</span>
+                      <span className="text-[7px] opacity-90 font-bold uppercase tracking-widest mt-0.5">
+                        Instant Discount
+                      </span>
+                    </button>
                 </div>
               </div>
-          </div>
+            </div>
+        </div>
       )}
 
       {mainContent}
+      
       {selectedProduct && (
         <ProductDetailModal 
           product={selectedProduct} 
@@ -629,7 +755,8 @@ export function ProductDetailModal(props) {
   var activeVariants = props.activeVariants;
   var setActiveVariants = props.setActiveVariants;
   
-  var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
+  var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || 
+                       (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
   var activeVariant = product.variants ? product.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || product : product;
 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
@@ -642,23 +769,51 @@ export function ProductDetailModal(props) {
 
   useEffect(() => {
     const list = [];
-    const mainImg = getSmartImage(activeVariant);
     
+    const formatImg = (url) => {
+      let cleanUrl = String(url).trim();
+      if (cleanUrl.indexOf("//") === 0) {
+        cleanUrl = "https:" + cleanUrl;
+      }
+      if (cleanUrl.includes("drive.google.com")) {
+        let fileId = "";
+        const dMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        const idMatch = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        
+        if (dMatch) fileId = dMatch[1];
+        else if (idMatch) fileId = idMatch[1];
+        
+        if (fileId) {
+          return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1000";
+        }
+      }
+      return cleanUrl;
+    };
+
+    const mainImg = getSmartImage(activeVariant);
     if (mainImg) {
       list.push(mainImg);
     }
     
     var allVariants = product.variants || [product];
     allVariants.forEach(function(v) {
-      var vMoreImages = String(getProp(v, "MoreImages") || "");
-      if (vMoreImages && vMoreImages.trim() !== "") {
-        var extraImages = vMoreImages.split(" | ").map(img => img.trim());
-        extraImages.forEach(function(img) { 
-          if (img !== "" && list.indexOf(img) === -1) {
-            list.push(img); 
-          }
-        });
-      }
+      Object.keys(v).forEach(key => {
+        const keyLower = key.toLowerCase();
+        if (keyLower.includes("image") || keyLower.includes("photo") || keyLower.includes("pic")) {
+           const val = String(v[key] || "").trim();
+           if (val) {
+              val.split("|").forEach(imgRaw => {
+                 const img = imgRaw.trim();
+                 if (img.startsWith("http") || img.includes("drive.google.com") || img.includes("meesho")) {
+                    const formatted = formatImg(img);
+                    if (list.indexOf(formatted) === -1) {
+                       list.push(formatted);
+                    }
+                 }
+              });
+           }
+        }
+      });
     });
     
     if (list.length === 0) {
@@ -690,17 +845,21 @@ export function ProductDetailModal(props) {
 
   var activeName = String(getProp(product, "ProductName") || "Premium Item");
   var activeBrand = String(getProp(activeVariant, "Brand") || "Premium");
-  var activeType = String(getProp(activeVariant, "Type") || "Accessories");
+  var activeType = String(getProp(activeVariant, "Type") || getProp(activeVariant, "Category") || "Accessories");
+  var stockVal = getNum(getProp(activeVariant, "Stock"));
   var activeStock = String(getProp(activeVariant, "Stock") || "Available");
 
   const isAlwaysLiveBrand = activeBrand.toUpperCase().includes("HIKVISION") || activeBrand.toUpperCase().includes("VELOCITY");
-  const showOnOrder = isAlwaysLiveBrand && getNum(activeStock) <= 0;
+  const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+  const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
       <div className="absolute inset-0" onClick={onClose}></div>
       <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden max-h-[88vh] flex flex-col animate-slide-up shadow-2xl relative z-10 font-sans">
+        
         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto my-3 cursor-pointer" onClick={onClose}></div>
+        
         <button 
           onClick={onClose} 
           className="absolute right-5 top-3 bg-gray-100 text-gray-700 font-extrabold w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:bg-gray-200 z-20"
@@ -709,21 +868,27 @@ export function ProductDetailModal(props) {
         </button>
 
         <div className="overflow-y-auto no-scrollbar pb-32">
-          <div className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" onClick={() => setIsZoomed(true)}>
+          <div 
+            className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" 
+            onClick={() => setIsZoomed(true)}
+          >
             <img 
               src={imagesList[currentImgIndex]} 
-              className="h-72 max-w-full object-contain" 
+              className={`h-72 max-w-full object-contain ${isOutOfStock ? 'grayscale opacity-50' : ''}`} 
               onError={(e) => { 
-                if (imagesList.length > 1) { 
-                  const updatedList = imagesList.filter((_, idx) => idx !== currentImgIndex); 
-                  setImagesList(updatedList); 
-                  setCurrentImgIndex(0); 
-                } else { 
-                  e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true"; 
-                } 
+                e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
               }} 
-              alt={activeName}
+              alt={activeName} 
             />
+            
+            {isOutOfStock && (
+               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 backdrop-blur-[1px]">
+                 <span className="bg-red-600 text-white text-lg font-black px-6 py-2 rounded uppercase shadow-2xl transform -rotate-12 border-2 border-red-800 tracking-widest">
+                   OUT OF STOCK
+                 </span>
+               </div>
+            )}
+            
             {imagesList.length > 1 && (
               <React.Fragment>
                 <button 
@@ -751,19 +916,23 @@ export function ProductDetailModal(props) {
           </div>
 
           <div className="p-5">
-            <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${isOutOfStock ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-900'}`}>
               {activeBrand}
             </span>
+            
             <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">
               {activeName}
             </h2>
+            
             <p className="text-xs text-gray-400 font-bold mt-1 uppercase">
               Category: {activeType}
             </p>
 
             {product.isGrouped && (
               <div className="mt-4">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Select Variant Size</h4>
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">
+                  Select Variant Size
+                </h4>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.map(v => {
                     const vItemCode = String(getProp(v, "ItemCode") || "");
@@ -787,32 +956,47 @@ export function ProductDetailModal(props) {
 
             {!globalProps.customerMode ? (
               <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">Dealer Price ({activeVariant.capacity})</div>
+                <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+                  Dealer Price ({activeVariant.capacity})
+                </div>
                 <div className="flex items-baseline gap-2.5 mt-1">
-                  <span className="text-3xl font-black text-blue-950">₹{dealerVal}</span>
-                  {hasDiscount && (
+                  <span className={`text-3xl font-black ${isOutOfStock ? 'text-gray-400 line-through' : 'text-blue-950'}`}>
+                    ₹{dealerVal}
+                  </span>
+                  
+                  {hasDiscount && !isOutOfStock && (
                     <React.Fragment>
-                      <span className="text-xs text-gray-400 line-through font-bold">MRP: ₹{mrpVal}</span>
+                      <span className="text-xs text-gray-400 line-through font-bold">
+                        MRP: ₹{mrpVal}
+                      </span>
                       <span className="text-[10px] bg-green-100 text-green-700 font-black px-2 py-0.5 rounded shadow-sm">
                         {discountPercent}% OFF
                       </span>
                     </React.Fragment>
                   )}
                 </div>
-                <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
-                  <span>{showOnOrder ? '⏳' : '📦'}</span> 
-                  {showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${activeStock} units`}
+                
+                <div className={`text-[10px] font-bold mt-2 flex items-center gap-1 ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
+                  <span>{isOutOfStock ? '🚫' : showOnOrder ? '⏳' : '📦'}</span> 
+                  {isOutOfStock ? "ITEM CURRENTLY OUT OF STOCK" : showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${activeStock} units`}
                 </div>
               </div>
             ) : (
               <div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
-                <div className="text-xs text-green-800 font-black uppercase tracking-wider">Offer MRP ({activeVariant.capacity})</div>
-                <div className="text-3xl font-black text-green-950 mt-1">₹{mrpVal || 'Contact store'}</div>
+                <div className="text-xs text-green-800 font-black uppercase tracking-wider">
+                  Offer MRP ({activeVariant.capacity})
+                </div>
+                <div className="text-3xl font-black text-green-950 mt-1">
+                  ₹{mrpVal || 'Contact store'}
+                </div>
               </div>
             )}
 
             <div className="mt-6">
-              <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">Product Key Highlights</h3>
+              <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">
+                Product Key Highlights
+              </h3>
+              
               {featuresList.length === 0 ? (
                 <p className="text-xs text-gray-500 font-bold italic leading-relaxed">
                   High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.
@@ -835,13 +1019,20 @@ export function ProductDetailModal(props) {
           {!globalProps.customerMode ? (
             <React.Fragment>
               <div>
-                <div className="text-[9px] uppercase font-black text-gray-400">Total Selection ({activeVariant.capacity})</div>
+                <div className="text-[9px] uppercase font-black text-gray-400">
+                  Total Selection ({activeVariant.capacity})
+                </div>
                 <div className="font-black text-lg text-gray-900 leading-none mt-0.5">
                   ₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}
                 </div>
               </div>
+              
               <div className="w-1/2">
-                {currentQty > 0 ? (
+                {isOutOfStock ? (
+                   <button disabled className="w-full bg-gray-200 text-gray-500 text-xs font-black py-4 rounded-xl cursor-not-allowed">
+                     OUT OF STOCK
+                   </button>
+                ) : currentQty > 0 ? (
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                     <button 
                       onClick={() => updateQty(activeVariant, -1)} 
@@ -887,10 +1078,14 @@ export function ProductDetailModal(props) {
       </div>
 
       {isZoomed && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" onClick={() => setIsZoomed(false)}>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" 
+          onClick={() => setIsZoomed(false)}
+        >
           <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">
             ✕
           </button>
+          
           {imagesList.length > 1 && (
             <div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
               <button 
@@ -907,6 +1102,7 @@ export function ProductDetailModal(props) {
               </button>
             </div>
           )}
+          
           <img 
             src={imagesList[currentImgIndex]} 
             className="max-h-[80vh] max-w-full object-contain transition-transform duration-300 ease-out" 
