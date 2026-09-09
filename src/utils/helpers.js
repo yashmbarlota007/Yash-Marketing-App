@@ -26,19 +26,27 @@ export function getProp(obj, propName) {
 export function getSmartImage(product) {
   if (!product) return null;
   var imageUrl = getProp(product, "ImageURL");
+  
   if (imageUrl && String(imageUrl).trim() !== "") {
     let url = String(imageUrl).trim();
     if (url.indexOf("//") === 0) {
       url = "https:" + url;
     }
+    
+    // 🟢 NAYA FIX: Google Drive Thumbnail API to bypass Google's block
     if (url.includes("drive.google.com")) {
       let fileId = "";
       const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
       const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      
       if (dMatch) fileId = dMatch[1];
       else if (idMatch) fileId = idMatch[1];
-      if (fileId) return "https://drive.google.com/uc?export=view&id=" + fileId;
+      
+      if (fileId) {
+        return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1000";
+      }
     }
+    
     return url;
   }
 
@@ -47,7 +55,7 @@ export function getSmartImage(product) {
   if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
   if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
   if (brand.indexOf("HIKVISION") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Hikvision_logo.svg/512px-Hikvision_logo.svg.png";
-  if (brand) return "https://ui-avatars.com/api/?name=" + encodeURIComponent(brand) + "&background=f3f4f6&color=1e3a8a&size=200&bold=true";
+  
   return null;
 }
 
@@ -58,7 +66,7 @@ export function groupProductsByVariant(flatList) {
   flatList.forEach(function(p) {
     var name = String(getProp(p, "ProductName") || "");
     var brand = String(getProp(p, "Brand") || "");
-    var type = String(getProp(p, "Type") || "");
+    var type = String(getProp(p, "Type") || getProp(p, "Category") || "");
     var itemCode = String(getProp(p, "ItemCode") || "");
 
     if (!name) {
@@ -122,7 +130,7 @@ export function calculateSchemeProgress(cartItems, scheme) {
   cartItems.forEach(item => {
     const itemName = String(getProp(item, "ProductName") || "").toLowerCase();
     const brand = String(getProp(item, "Brand") || "").toLowerCase();
-    const type = String(getProp(item, "Type") || "").toLowerCase();
+    const type = String(getProp(item, "Type") || getProp(item, "Category") || "").toLowerCase();
     const target = String(scheme.target || "").toLowerCase();
     
     if (scheme.type === "Product" && itemName.includes(target)) {
