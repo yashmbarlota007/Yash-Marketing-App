@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL, getNum, getProp, getSmartImage } from '../utils/helpers';
+import { API_URL, getNum, getProp, getSmartImage, calculateSchemeProgress } from '../utils/helpers';
 
 export default function OffersView(props) {
   var products = props.products || [];
@@ -9,6 +9,11 @@ export default function OffersView(props) {
 
   const [schemes, setSchemes] = useState([]);
   const [discounts, setDiscounts] = useState([]);
+  
+  // NAYE STATES: Modal aur Eligible Products ke liye
+  const [showProductsModal, setShowProductsModal] = useState(false);
+  const [activeSchemeProducts, setActiveSchemeProducts] = useState([]);
+  const [activeSchemeTitle, setActiveSchemeTitle] = useState("");
 
   useEffect(() => {
     fetch(API_URL, {
@@ -28,6 +33,62 @@ export default function OffersView(props) {
     }).catch(() => {});
   }, []);
 
+  const cartItems = Object.values(cart);
+
+  // Cart update function (Same as Catalog for accuracy)
+  const updateQty = (product, change) => {
+    const updated = Object.assign({}, cart);
+    const itemCode = String(getProp(product, "ItemCode") || "");
+    if (!itemCode) return;
+    
+    const stockVal = getNum(getProp(product, "Stock"));
+    const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
+    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+    
+    const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
+    const prodType = String(getProp(product, "Type") || "").toLowerCase();
+    const isCable = prodName.includes("cable") || prodType.includes("cable");
+    
+    const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
+    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
+    const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
+    
+    if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
+    if (newQty <= 0) delete updated[itemCode]; 
+    else updated[itemCode] = Object.assign({}, product, { qty: newQty });
+    
+    setCart(updated);
+  };
+
+  // View Items Modal Logic
+  const handleViewItems = (scheme) => {
+    const target = String(scheme.target || "").toLowerCase();
+    let eligibleProducts = [];
+
+    // Filter logic based on Scheme Type
+    if (String(scheme.type).toUpperCase().includes("BRAND")) {
+      eligibleProducts = products.filter(p => String(getProp(p, "Brand") || "").toLowerCase().includes(target));
+    } else {
+      eligibleProducts = products.filter(p => String(getProp(p, "ProductName") || "").toLowerCase().includes(target) || String(getProp(p, "Type") || "").toLowerCase().includes(target));
+    }
+
+    // Strict Stock Filter (Keep only in-stock or Hikvision/Velocity)
+    eligibleProducts = eligibleProducts.filter(p => {
+      const stockVal = getNum(getProp(p, "Stock"));
+      const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
+      return stockVal > 0 || brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+    });
+
+    if (eligibleProducts.length === 0) {
+      alert("Is scheme ke eligible products abhi stock mein nahi hain.");
+      return;
+    }
+
+    setActiveSchemeProducts(eligibleProducts);
+    setActiveSchemeTitle(scheme.message);
+    setShowProductsModal(true);
+  };
+
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   let comboP1 = null, comboP2 = null;
   let p1Price = 0, p2Price = 0, originalTotal = 0, savingsAmt = 0, savingsPct = 0, comboPrice = 400;
@@ -45,7 +106,6 @@ export default function OffersView(props) {
               
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
               comboPrice = match ? parseInt(match[1] || match[0]) : 400;
-              
               savingsAmt = originalTotal > comboPrice ? originalTotal - comboPrice : 0;
               savingsPct = originalTotal > 0 ? Math.round((savingsAmt / originalTotal) * 100) : 0;
           }
@@ -70,12 +130,13 @@ export default function OffersView(props) {
   };
 
   return (
-    <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans animate-fade-in">
+    <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans animate-fade-in relative">
       <div className="mb-4">
         <h2 className="font-black text-gray-900 text-xl tracking-tight">🎁 Exclusive Deals & Offers</h2>
         <p className="text-xs text-gray-500 font-bold mt-0.5">Maximize your margins with active wholesale schemes.</p>
       </div>
 
+      {/* EXCLUSIVE COMBO CARD */}
       {comboP1 && comboP2 && (
         <div className="mb-6">
           <div className="bg-gradient-to-br from-indigo-950 via-blue-900 to-indigo-950 rounded-3xl p-1 shadow-xl relative overflow-hidden border border-indigo-800">
@@ -135,29 +196,53 @@ export default function OffersView(props) {
         </div>
       )}
 
+      {/* ACTIVE TARGET REWARDS */}
       <div className="mb-6">
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
         <div className="space-y-3">
-          {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((sch, i) => (
-            <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-              <div>
-                <span className="bg-blue-100 text-blue-800 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-                  {sch.type} Scheme
-                </span>
-                <h4 className="font-black text-gray-800 text-sm mt-1">{sch.message}</h4>
-                <p className="text-[10px] text-green-700 font-bold mt-0.5">🎁 Reward: {sch.reward}</p>
+          {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((sch, i) => {
+            const progress = calculateSchemeProgress(cartItems, sch);
+            return (
+              <div key={i} className={`bg-white p-4 rounded-2xl shadow-sm border ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}>
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <span className="bg-blue-100 text-blue-800 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
+                      {sch.type} Scheme
+                    </span>
+                    <h4 className="font-black text-gray-800 text-sm mt-1.5 leading-snug pr-2">{sch.message}</h4>
+                    <p className="text-[10px] text-red-600 font-black mt-1 uppercase">🎁 Reward: {sch.reward}</p>
+                  </div>
+                </div>
+                
+                {/* LIVE PROGRESS BAR */}
+                <div className="mt-3 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                  <div className="flex justify-between items-end mb-1.5">
+                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-wide">Scheme Progress</span>
+                     <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-600' : 'text-blue-700'}`}>
+                        {progress.current} / {progress.required}
+                     </span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                     <div 
+                        className={`${progress.isUnlocked ? 'bg-green-500' : 'bg-blue-600'} h-full transition-all duration-500`} 
+                        style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                     ></div>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => handleViewItems(sch)}
+                  className={`w-full mt-3 font-black text-xs px-4 py-3 rounded-xl shadow-sm active:scale-95 flex items-center justify-center gap-2 transition-colors ${progress.isUnlocked ? 'bg-green-600 text-white' : 'bg-blue-900 text-white'}`}
+                >
+                  {progress.isUnlocked ? '✅ REWARD UNLOCKED - VIEW ITEMS' : '🛒 ADD ELIGIBLE ITEMS'}
+                </button>
               </div>
-              <button 
-                onClick={() => setView('catalog')}
-                className="bg-blue-900 text-white font-black text-xs px-4 py-2.5 rounded-xl active:scale-95 shadow-sm shrink-0"
-              >
-                VIEW ITEMS
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
+      {/* VOLUME DISCOUNT SLABS */}
       <div>
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 Volume Discount Slabs</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -172,6 +257,93 @@ export default function OffersView(props) {
           ))}
         </div>
       </div>
+
+      {/* 🟢 NEW: ELIGIBLE PRODUCTS MODAL */}
+      {showProductsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-end animate-fade-in">
+           <div className="absolute inset-0" onClick={() => setShowProductsModal(false)}></div>
+           <div className="bg-gray-50 w-full max-w-md rounded-t-3xl max-h-[85vh] flex flex-col relative z-10 animate-slide-up shadow-2xl">
+              
+              <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white rounded-t-3xl shadow-md">
+                 <div>
+                    <h3 className="font-black text-sm uppercase leading-tight pr-4">{activeSchemeTitle}</h3>
+                    <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">Tap + to add eligible items</p>
+                 </div>
+                 <button 
+                   onClick={() => setShowProductsModal(false)} 
+                   className="w-8 h-8 bg-blue-800 rounded-full font-black text-lg flex items-center justify-center shrink-0 border border-blue-700"
+                 >✕</button>
+              </div>
+
+              <div className="overflow-y-auto p-4 space-y-3 pb-32">
+                 {activeSchemeProducts.map((item, idx) => {
+                    const smartImg = getSmartImage(item);
+                    const itemName = String(getProp(item, "ProductName") || "Item");
+                    const dealerPrice = getNum(getProp(item, "DealerPrice"));
+                    const itemCode = String(getProp(item, "ItemCode") || "");
+                    const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
+                    
+                    const brandStr = String(getProp(item, "Brand") || "").toUpperCase();
+                    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+                    const stockVal = getNum(getProp(item, "Stock"));
+                    const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+
+                    return (
+                       <div key={`${itemCode}-${idx}`} className="flex gap-3 items-center p-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                          {smartImg ? (
+                            <img src={smartImg} className="w-16 h-16 object-contain rounded-xl border bg-gray-50 p-1 flex-shrink-0" />
+                          ) : (
+                            <div className="w-16 h-16 bg-gray-50 rounded-xl border flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">No Img</div>
+                          )}
+                          
+                          <div className="flex-grow">
+                             <div className="text-[8px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-black inline-block mb-1">
+                               {String(getProp(item, "Brand") || "")}
+                             </div>
+                             <h4 className="text-xs font-black text-gray-800 leading-tight line-clamp-2">{itemName}</h4>
+                             
+                             <div className="flex items-end justify-between mt-2">
+                                <div>
+                                   <div className="font-black text-sm text-blue-900">₹{dealerPrice.toLocaleString('en-IN')}</div>
+                                   {showOnOrder && (
+                                     <div className="text-[8px] text-orange-600 font-black uppercase mt-0.5">⏳ On Order</div>
+                                   )}
+                                </div>
+                                
+                                {currentQty > 0 ? (
+                                  <div className="flex items-center bg-blue-50 rounded-lg p-1 border border-blue-200">
+                                    <button onClick={() => updateQty(item, -1)} className="bg-white text-blue-900 font-black w-7 h-7 rounded-md shadow-sm flex items-center justify-center">-</button>
+                                    <span className="font-black text-blue-900 text-sm w-8 text-center">{currentQty}</span>
+                                    <button onClick={() => updateQty(item, 1)} className="bg-blue-900 text-white font-black w-7 h-7 rounded-md shadow-sm flex items-center justify-center">+</button>
+                                  </div>
+                                ) : (
+                                  <button 
+                                    onClick={() => updateQty(item, 1)} 
+                                    className="bg-blue-900 text-white text-[10px] font-black px-4 py-2 rounded-lg shadow-sm active:scale-95"
+                                  >
+                                    + ADD
+                                  </button>
+                                )}
+                             </div>
+                          </div>
+                       </div>
+                    );
+                 })}
+              </div>
+
+              {/* FLOATING CART BUTTON INSIDE MODAL */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                 <button 
+                   onClick={() => { setShowProductsModal(false); setView('cart'); }} 
+                   className="w-full bg-green-600 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
+                 >
+                   🛒 GO TO CART TO CHECKOUT
+                 </button>
+              </div>
+
+           </div>
+        </div>
+      )}
     </div>
   );
 }
