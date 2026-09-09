@@ -10,6 +10,9 @@ import {
 import { ProgressBar } from './SharedUI';
 
 export function Catalog(props) {
+  // ==========================================
+  // 1. PROPS & STATE INITIALIZATION
+  // ==========================================
   var user = props.user;
   var callAPI = props.callAPI;
   var cart = props.cart;
@@ -32,11 +35,15 @@ export function Catalog(props) {
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [activeVariants, setActiveVariants] = useState({});
   
-  // NAYE STATES: FILTERS KE LIYE
+  // Filter States
   const [brandFilter, setBrandFilter] = useState("");
   const [sortFilter, setSortFilter] = useState("");
 
+  // ==========================================
+  // 2. DATA FETCHING (API CALLS)
+  // ==========================================
   useEffect(() => {
+    // Fetch Products
     if (products.length === 0) {
       fetch(API_URL, {
         method: 'POST',
@@ -53,6 +60,7 @@ export function Catalog(props) {
       .catch(() => setLoading(false));
     }
     
+    // Fetch Discounts
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getDiscounts" }),
@@ -66,6 +74,7 @@ export function Catalog(props) {
     })
     .catch(() => {});
 
+    // Fetch Schemes
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getSchemes" }),
@@ -80,6 +89,9 @@ export function Catalog(props) {
     .catch(() => {});
   }, []);
 
+  // ==========================================
+  // 3. CART & PROGRESS CALCULATIONS
+  // ==========================================
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   
@@ -99,6 +111,7 @@ export function Catalog(props) {
     return (Math.min(nQty, pQty) > 0 && (nPrice + pPrice) > 400) ? ((nPrice + pPrice) - 400) * Math.min(nQty, pQty) : 0;
   })();
 
+  // 25 Pcs Celebration Logic
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) { 
       if (window.confetti) {
@@ -115,6 +128,7 @@ export function Catalog(props) {
     }
   }, [totalItems, celebrated25Pcs]);
 
+  // Discount Tier Celebration Logic
   useEffect(() => {
     var sortedDiscounts = [...discounts]
       .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
@@ -148,6 +162,9 @@ export function Catalog(props) {
     }
   }, [totalAmount, discounts, celebratedTiers]);
 
+  // ==========================================
+  // 4. EVENT HANDLERS
+  // ==========================================
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
@@ -185,7 +202,8 @@ export function Catalog(props) {
     if (!itemCode) return;
     
     const stockVal = getNum(getProp(product, "Stock"));
-    const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
+    const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
+    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
     
     const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
     const prodType = String(getProp(product, "Type") || "").toLowerCase();
@@ -207,6 +225,9 @@ export function Catalog(props) {
     setCart(updated);
   };
 
+  // ==========================================
+  // 5. COMBO SCHEME LOGIC
+  // ==========================================
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   let comboP1 = null, comboP2 = null;
   let p1Price = 0, p2Price = 0, originalTotal = 0, savingsAmt = 0, savingsPct = 0, comboPrice = 400;
@@ -248,6 +269,9 @@ export function Catalog(props) {
     }
   };
 
+  // ==========================================
+  // 6. LOADER STATE
+  // ==========================================
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
@@ -257,13 +281,25 @@ export function Catalog(props) {
     );
   }
 
-  // Smart Render Function
+  // ==========================================
+  // 7. STRICT IN-STOCK FILTER ENGINE
+  // ==========================================
+  // Here we permanently remove items with 0 stock unless they are Hikvision or Velocity.
+  const inStockFlat = products.filter(p => {
+    const stockVal = getNum(getProp(p, "Stock"));
+    const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
+    return stockVal > 0 || brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+  });
+  
+  const inStockProducts = groupProductsByVariant(inStockFlat);
+
+  // ==========================================
+  // 8. RENDER PRODUCTS ENGINE
+  // ==========================================
   const renderProducts = (productList) => {
-    const groupedList = groupProductsByVariant(productList);
-    
     return (
       <div className="p-4 pb-[140px] grid grid-cols-2 gap-4">
-        {groupedList.map((p, idx) => {
+        {productList.map((p, idx) => {
           var name = String(getProp(p, "ProductName") || "Premium Item");
           var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
                                (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
@@ -277,10 +313,11 @@ export function Catalog(props) {
           const stockVal = getNum(getProp(activeVariant, "Stock"));
           
           const isNewItem = String(getProp(activeVariant, "IsNew")).toUpperCase() === "TRUE" || String(getProp(activeVariant, "Tags")).toUpperCase().includes("NEW");
-          const isAlwaysLiveBrand = String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(activeVariant, "Brand") || "").toUpperCase().includes("VELOCITY");
+          const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
+          const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
           
+          // Flash "On Order" if it is Hikvision/Velocity and stock is 0
           const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
-          const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
           return (
             <div 
@@ -299,18 +336,10 @@ export function Catalog(props) {
                 </span>
               )}
               
-              {!isNewItem && !showOnOrder && totalItems >= 25 && !isOutOfStock && (
+              {!isNewItem && !showOnOrder && totalItems >= 25 && (
                 <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10">
                   25+ Target
                 </span>
-              )}
-              
-              {isOutOfStock && (
-                <div className="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                  <span className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded uppercase shadow-lg transform -rotate-12 border border-red-800">
-                    Out of Stock
-                  </span>
-                </div>
               )}
               
               <div 
@@ -320,7 +349,7 @@ export function Catalog(props) {
                 {smartImg ? (
                   <img 
                     src={smartImg} 
-                    className={`h-32 w-full object-contain mb-2 p-1 ${isOutOfStock ? 'grayscale opacity-50' : ''}`} 
+                    className="h-32 w-full object-contain mb-2 p-1" 
                     onError={(e) => { 
                       e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
                     }} 
@@ -331,7 +360,7 @@ export function Catalog(props) {
                     No Image
                   </div>
                 )}
-                <h3 className={`font-bold text-xs leading-snug line-clamp-2 h-8 ${isOutOfStock ? 'text-gray-400' : ''}`}>
+                <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">
                   {name}
                 </h3>
               </div>
@@ -374,16 +403,12 @@ export function Catalog(props) {
                       )
                     )}
                     
-                    <div className={`font-black text-lg mb-2 tracking-tight ${isOutOfStock ? 'text-gray-400' : 'text-blue-950'}`}>
+                    <div className="font-black text-lg mb-2 tracking-tight text-blue-950">
                       {dealerVal > 0 ? `₹${dealerVal}` : "Contact Us"}
                     </div>
                     
                     {dealerVal > 0 && (
-                      isOutOfStock ? (
-                        <button disabled className="w-full bg-gray-100 text-gray-400 text-[11px] font-bold py-3 rounded-xl shadow-sm cursor-not-allowed">
-                          OUT OF STOCK
-                        </button>
-                      ) : currentQty > 0 ? (
+                      currentQty > 0 ? (
                         <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                           <button 
                             onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} 
@@ -433,6 +458,9 @@ export function Catalog(props) {
     );
   };
 
+  // ==========================================
+  // 9. MAIN CONTENT ROUTER
+  // ==========================================
   let mainContent;
   
   if (!loading && products.length === 0) {
@@ -450,12 +478,12 @@ export function Catalog(props) {
       </div>
     );
   } else if (searchQuery.trim() !== "") {
-    mainContent = renderProducts(products.filter(p => 
+    mainContent = renderProducts(inStockProducts.filter(p => 
       String(getProp(p, "ProductName") || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
       String(getProp(p, "Brand") || "").toLowerCase().includes(searchQuery.toLowerCase())
     ));
   } else if (!selectedType) {
-    const types = [...new Set(products.map(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim()).filter(Boolean))].sort();
+    const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim()).filter(Boolean))].sort();
     
     mainContent = (
       <div className="p-4 pb-[140px]">
@@ -467,8 +495,8 @@ export function Catalog(props) {
         )}
         <div className="grid grid-cols-2 gap-4">
           {types.map(type => {
-            const cover = getSmartImage(products.find(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type));
-            const categoryCount = products.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type).length;
+            const cover = getSmartImage(inStockFlat.find(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type));
+            const categoryCount = inStockProducts.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type).length;
             
             return (
               <div 
@@ -494,16 +522,19 @@ export function Catalog(props) {
       </div>
     );
   } else {
-    let displayProducts = products.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === selectedType);
+    // ACTIVE CATEGORY VIEW
+    let displayProducts = inStockProducts.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === selectedType);
     const categoryBrands = [...new Set(displayProducts.map(p => String(getProp(p, "Brand") || "").trim()).filter(Boolean))].sort();
 
+    // Filtering by Brand
     if (brandFilter) {
       displayProducts = displayProducts.filter(p => String(getProp(p, "Brand") || "").trim() === brandFilter);
     }
     
+    // Sorting by Price (Default High to Low)
     if (sortFilter === "low") {
       displayProducts.sort((a,b) => getNum(getProp(a, "DealerPrice")) - getNum(getProp(b, "DealerPrice")));
-    } else if (sortFilter === "high") {
+    } else {
       displayProducts.sort((a,b) => getNum(getProp(b, "DealerPrice")) - getNum(getProp(a, "DealerPrice")));
     }
 
@@ -561,9 +592,8 @@ export function Catalog(props) {
              onChange={e => setSortFilter(e.target.value)} 
              className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
            >
-             <option value="">Sort by Price</option>
+             <option value="">Price: High to Low</option>
              <option value="low">Price: Low to High</option>
-             <option value="high">Price: High to Low</option>
            </select>
         </div>
 
@@ -578,6 +608,9 @@ export function Catalog(props) {
     );
   }
 
+  // ==========================================
+  // 10. FINAL COMPONENT RETURN
+  // ==========================================
   return (
     <div className="max-w-md mx-auto relative flex flex-col">
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
@@ -745,6 +778,9 @@ export function Catalog(props) {
   );
 }
 
+// ==========================================
+// 11. PRODUCT DETAIL MODAL COMPONENT
+// ==========================================
 export function ProductDetailModal(props) {
   var product = props.product;
   var onClose = props.onClose;
@@ -770,6 +806,7 @@ export function ProductDetailModal(props) {
   useEffect(() => {
     const list = [];
     
+    // Drive Link Processor
     const formatImg = (url) => {
       let cleanUrl = String(url).trim();
       if (cleanUrl.indexOf("//") === 0) {
@@ -847,11 +884,9 @@ export function ProductDetailModal(props) {
   var activeBrand = String(getProp(activeVariant, "Brand") || "Premium");
   var activeType = String(getProp(activeVariant, "Type") || getProp(activeVariant, "Category") || "Accessories");
   var stockVal = getNum(getProp(activeVariant, "Stock"));
-  var activeStock = String(getProp(activeVariant, "Stock") || "Available");
-
+  
   const isAlwaysLiveBrand = activeBrand.toUpperCase().includes("HIKVISION") || activeBrand.toUpperCase().includes("VELOCITY");
   const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
-  const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
@@ -874,20 +909,12 @@ export function ProductDetailModal(props) {
           >
             <img 
               src={imagesList[currentImgIndex]} 
-              className={`h-72 max-w-full object-contain ${isOutOfStock ? 'grayscale opacity-50' : ''}`} 
+              className="h-72 max-w-full object-contain" 
               onError={(e) => { 
                 e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
               }} 
               alt={activeName} 
             />
-            
-            {isOutOfStock && (
-               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 backdrop-blur-[1px]">
-                 <span className="bg-red-600 text-white text-lg font-black px-6 py-2 rounded uppercase shadow-2xl transform -rotate-12 border-2 border-red-800 tracking-widest">
-                   OUT OF STOCK
-                 </span>
-               </div>
-            )}
             
             {imagesList.length > 1 && (
               <React.Fragment>
@@ -916,7 +943,7 @@ export function ProductDetailModal(props) {
           </div>
 
           <div className="p-5">
-            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${isOutOfStock ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-900'}`}>
+            <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
               {activeBrand}
             </span>
             
@@ -960,11 +987,11 @@ export function ProductDetailModal(props) {
                   Dealer Price ({activeVariant.capacity})
                 </div>
                 <div className="flex items-baseline gap-2.5 mt-1">
-                  <span className={`text-3xl font-black ${isOutOfStock ? 'text-gray-400 line-through' : 'text-blue-950'}`}>
+                  <span className="text-3xl font-black text-blue-950">
                     ₹{dealerVal}
                   </span>
                   
-                  {hasDiscount && !isOutOfStock && (
+                  {hasDiscount && (
                     <React.Fragment>
                       <span className="text-xs text-gray-400 line-through font-bold">
                         MRP: ₹{mrpVal}
@@ -976,9 +1003,9 @@ export function ProductDetailModal(props) {
                   )}
                 </div>
                 
-                <div className={`text-[10px] font-bold mt-2 flex items-center gap-1 ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
-                  <span>{isOutOfStock ? '🚫' : showOnOrder ? '⏳' : '📦'}</span> 
-                  {isOutOfStock ? "ITEM CURRENTLY OUT OF STOCK" : showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${activeStock} units`}
+                <div className="text-[10px] font-bold mt-2 flex items-center gap-1 text-green-600">
+                  <span>{showOnOrder ? '⏳' : '📦'}</span> 
+                  {showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${stockVal} units`}
                 </div>
               </div>
             ) : (
@@ -1028,11 +1055,7 @@ export function ProductDetailModal(props) {
               </div>
               
               <div className="w-1/2">
-                {isOutOfStock ? (
-                   <button disabled className="w-full bg-gray-200 text-gray-500 text-xs font-black py-4 rounded-xl cursor-not-allowed">
-                     OUT OF STOCK
-                   </button>
-                ) : currentQty > 0 ? (
+                {currentQty > 0 ? (
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                     <button 
                       onClick={() => updateQty(activeVariant, -1)} 
