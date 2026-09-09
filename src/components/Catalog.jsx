@@ -21,6 +21,10 @@ export function Catalog(props) {
   const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [activeVariants, setActiveVariants] = useState({});
+  
+  // 🟢 NAYE STATES: FILTERS KE LIYE
+  const [brandFilter, setBrandFilter] = useState("");
+  const [sortFilter, setSortFilter] = useState("");
 
   useEffect(() => {
     if (products.length === 0) {
@@ -113,6 +117,9 @@ export function Catalog(props) {
   const openCategory = (type) => { 
     window.history.pushState({ modal: 'category' }, ''); 
     setSelectedType(type); 
+    // Reset filters when opening a new category
+    setBrandFilter("");
+    setSortFilter("");
   };
   
   const openProductModal = (p) => { 
@@ -123,7 +130,11 @@ export function Catalog(props) {
   useEffect(() => {
     const handlePop = (e) => { 
       if (selectedProduct) setSelectedProduct(null); 
-      else if (selectedType) setSelectedType(null); 
+      else if (selectedType) {
+        setSelectedType(null); 
+        setBrandFilter("");
+        setSortFilter("");
+      }
     };
     window.addEventListener('popstate', handlePop);
     return () => window.removeEventListener('popstate', handlePop);
@@ -254,8 +265,9 @@ export function Catalog(props) {
                   className="h-32 w-full object-contain mb-2 p-1" 
                   onError={(e) => { 
                     e.target.onerror=null; 
-                    e.target.src="https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true"; 
+                    e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>';
                   }} 
+                  alt={name}
                 /> 
               ) : (
                 <div className="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
@@ -362,18 +374,27 @@ export function Catalog(props) {
         <div className="grid grid-cols-2 gap-4">
           {types.map(type => {
             const cover = getSmartImage(inStockFlat.find(p => String(getProp(p, "Type") || "") === type));
+            // 🟢 NAYA LOGIC 1: Live category product count calculation
+            const categoryCount = inStockProducts.filter(p => String(getProp(p, "Type") || "") === type).length;
+            
             return (
               <div 
                 key={type} 
                 onClick={() => openCategory(type)} 
-                className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40"
+                className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40 border border-gray-100"
               >
                 {cover ? (
-                  <img src={cover} className="h-16 object-contain mb-3" /> 
+                  <img src={cover} className="h-16 object-contain mb-3" alt={type} /> 
                 ) : (
                   <div className="text-3xl mb-3">📦</div>
                 )}
-                <h3 className="font-extrabold text-sm text-center truncate w-full">{type}</h3>
+                <h3 className="font-extrabold text-sm text-center truncate w-full text-gray-800 flex items-center justify-center gap-1.5">
+                  {type} 
+                  {/* 🟢 Render Count Badge */}
+                  <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-blue-100">
+                    {categoryCount}
+                  </span>
+                </h3>
               </div>
             );
           })}
@@ -381,11 +402,33 @@ export function Catalog(props) {
       </div>
     );
   } else {
+    // 🟢 NAYA LOGIC 2: Dynamic Filters Engine
+    let displayProducts = inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType);
+    
+    // Extract unique brands specific to the opened category
+    const categoryBrands = [...new Set(displayProducts.map(p => String(getProp(p, "Brand") || "").trim()).filter(Boolean))].sort();
+
+    // Apply Brand Filter
+    if (brandFilter) {
+      displayProducts = displayProducts.filter(p => String(getProp(p, "Brand") || "").trim() === brandFilter);
+    }
+
+    // Apply Sorting Filter
+    if (sortFilter === "low") {
+      displayProducts.sort((a,b) => getNum(getProp(a, "DealerPrice")) - getNum(getProp(b, "DealerPrice")));
+    } else if (sortFilter === "high") {
+      displayProducts.sort((a,b) => getNum(getProp(b, "DealerPrice")) - getNum(getProp(a, "DealerPrice")));
+    }
+
     mainContent = (
       <div>
         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
           <button 
-            onClick={() => window.history.back()} 
+            onClick={() => {
+              window.history.back();
+              setBrandFilter("");
+              setSortFilter("");
+            }} 
             className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm"
           >
             ← Categories
@@ -394,7 +437,7 @@ export function Catalog(props) {
           <button 
             onClick={() => {
               let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
-              inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType).slice(0, 15).forEach((p, idx) => {
+              displayProducts.slice(0, 15).forEach((p, idx) => {
                 shareText += `${idx + 1}. *${String(getProp(p, "ProductName") || "")}*\n💰 Price: ₹${getNum(getProp(p, globalProps.customerMode ? "MRP" : "DealerPrice"))}\n🔗 Photo: ${getSmartImage(p)}\n\n`;
               });
               if (navigator.share) {
@@ -408,9 +451,33 @@ export function Catalog(props) {
             📲 SHARE LIST
           </button>
         </div>
-        {renderProducts(
-          inStockProducts.filter(p => String(getProp(p, "Type") || "") === selectedType)
-          .sort((a,b) => getNum(getProp(b, "DealerPrice")) - getNum(getProp(a, "DealerPrice")))
+
+        {/* 🟢 NEW DYNAMIC FILTER BAR UI */}
+        <div className="bg-white px-4 py-3 border-b flex gap-3 overflow-x-auto no-scrollbar shadow-sm">
+           <select 
+             value={brandFilter} 
+             onChange={e => setBrandFilter(e.target.value)}
+             className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
+           >
+             <option value="">All Brands</option>
+             {categoryBrands.map(b => <option key={b} value={b}>{b}</option>)}
+           </select>
+           
+           <select 
+             value={sortFilter} 
+             onChange={e => setSortFilter(e.target.value)}
+             className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
+           >
+             <option value="">Sort by Price</option>
+             <option value="low">Price: Low to High</option>
+             <option value="high">Price: High to Low</option>
+           </select>
+        </div>
+
+        {displayProducts.length > 0 ? renderProducts(displayProducts) : (
+          <div className="text-center p-8 text-gray-400 font-bold text-sm mt-10">
+            No products found for this filter.
+          </div>
         )}
       </div>
     );
@@ -489,7 +556,7 @@ export function Catalog(props) {
                   <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
                       <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
                         <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
-                          {getSmartImage(comboP1) ? <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" /> : "📦"}
+                          {getSmartImage(comboP1) ? <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" alt="Combo 1" /> : "📦"}
                         </div>
                         <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">{getProp(comboP1, "ProductName")}</div>
                         <div className="text-red-300 text-[10px] font-bold line-through">₹{p1Price}</div>
@@ -499,7 +566,7 @@ export function Catalog(props) {
                       
                       <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
                         <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
-                          {getSmartImage(comboP2) ? <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" /> : "📦"}
+                          {getSmartImage(comboP2) ? <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" alt="Combo 2" /> : "📦"}
                         </div>
                         <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">{getProp(comboP2, "ProductName")}</div>
                         <div className="text-red-300 text-[10px] font-bold line-through">₹{p2Price}</div>
@@ -655,6 +722,7 @@ export function ProductDetailModal(props) {
                   e.target.src = "https://ui-avatars.com/api/?name=Yash+Marketing&background=f3f4f6&color=1e3a8a&size=200&bold=true"; 
                 } 
               }} 
+              alt={activeName}
             />
             {imagesList.length > 1 && (
               <React.Fragment>
