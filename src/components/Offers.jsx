@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL, getNum, getProp, getSmartImage, calculateSchemeProgress } from '../utils/helpers';
+import { API_URL, getNum, getProp, getSmartImage, groupProductsByVariant, calculateSchemeProgress } from '../utils/helpers';
 
 export default function OffersView(props) {
   var products = props.products || [];
@@ -10,10 +10,11 @@ export default function OffersView(props) {
   const [schemes, setSchemes] = useState([]);
   const [discounts, setDiscounts] = useState([]);
   
-  // NAYE STATES: Modal aur Eligible Products ke liye
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [activeSchemeProducts, setActiveSchemeProducts] = useState([]);
   const [activeSchemeTitle, setActiveSchemeTitle] = useState("");
+  // 🟢 NAYA STATE: Modal ke andar variant selection ke liye
+  const [activeVariants, setActiveVariants] = useState({});
 
   useEffect(() => {
     fetch(API_URL, {
@@ -35,7 +36,6 @@ export default function OffersView(props) {
 
   const cartItems = Object.values(cart);
 
-  // Cart update function (Same as Catalog for accuracy)
   const updateQty = (product, change) => {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
@@ -60,19 +60,21 @@ export default function OffersView(props) {
     setCart(updated);
   };
 
-  // View Items Modal Logic
+  // 🟢 SMART FILTER ENGINE FOR MODAL
   const handleViewItems = (scheme) => {
-    const target = String(scheme.target || "").toLowerCase();
-    let eligibleProducts = [];
+    const targetStr = String(scheme.target || "").toLowerCase();
+    const targets = targetStr.split(",").map(t => t.trim()).filter(Boolean);
 
-    // Filter logic based on Scheme Type
-    if (String(scheme.type).toUpperCase().includes("BRAND")) {
-      eligibleProducts = products.filter(p => String(getProp(p, "Brand") || "").toLowerCase().includes(target));
-    } else {
-      eligibleProducts = products.filter(p => String(getProp(p, "ProductName") || "").toLowerCase().includes(target) || String(getProp(p, "Type") || "").toLowerCase().includes(target));
-    }
+    // Filter based on Name, Brand, OR Category
+    let eligibleProducts = products.filter(p => {
+      const brand = String(getProp(p, "Brand") || "").toLowerCase();
+      const name = String(getProp(p, "ProductName") || "").toLowerCase();
+      const type = String(getProp(p, "Type") || getProp(p, "Category") || "").toLowerCase();
+      
+      return targets.some(t => brand.includes(t) || name.includes(t) || type.includes(t));
+    });
 
-    // Strict Stock Filter (Keep only in-stock or Hikvision/Velocity)
+    // Remove Out of Stock items immediately
     eligibleProducts = eligibleProducts.filter(p => {
       const stockVal = getNum(getProp(p, "Stock"));
       const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
@@ -129,6 +131,9 @@ export default function OffersView(props) {
     }
   };
 
+  // 🟢 GROUP ELIGIBLE PRODUCTS FOR MODAL DISPLAY
+  const groupedModalProducts = groupProductsByVariant(activeSchemeProducts);
+
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans animate-fade-in relative">
       <div className="mb-4">
@@ -136,7 +141,6 @@ export default function OffersView(props) {
         <p className="text-xs text-gray-500 font-bold mt-0.5">Maximize your margins with active wholesale schemes.</p>
       </div>
 
-      {/* EXCLUSIVE COMBO CARD */}
       {comboP1 && comboP2 && (
         <div className="mb-6">
           <div className="bg-gradient-to-br from-indigo-950 via-blue-900 to-indigo-950 rounded-3xl p-1 shadow-xl relative overflow-hidden border border-indigo-800">
@@ -196,7 +200,6 @@ export default function OffersView(props) {
         </div>
       )}
 
-      {/* ACTIVE TARGET REWARDS */}
       <div className="mb-6">
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
         <div className="space-y-3">
@@ -214,7 +217,6 @@ export default function OffersView(props) {
                   </div>
                 </div>
                 
-                {/* LIVE PROGRESS BAR */}
                 <div className="mt-3 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
                   <div className="flex justify-between items-end mb-1.5">
                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-wide">Scheme Progress</span>
@@ -242,7 +244,6 @@ export default function OffersView(props) {
         </div>
       </div>
 
-      {/* VOLUME DISCOUNT SLABS */}
       <div>
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 Volume Discount Slabs</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -258,16 +259,16 @@ export default function OffersView(props) {
         </div>
       </div>
 
-      {/* 🟢 NEW: ELIGIBLE PRODUCTS MODAL */}
+      {/* 🟢 NEW: CATALOG STYLE PRODUCTS MODAL */}
       {showProductsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-end animate-fade-in">
            <div className="absolute inset-0" onClick={() => setShowProductsModal(false)}></div>
-           <div className="bg-gray-50 w-full max-w-md rounded-t-3xl max-h-[85vh] flex flex-col relative z-10 animate-slide-up shadow-2xl">
+           <div className="bg-gray-50 w-full max-w-md rounded-t-3xl h-[85vh] flex flex-col relative z-10 animate-slide-up shadow-2xl overflow-hidden">
               
-              <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white rounded-t-3xl shadow-md">
+              <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white shadow-md z-20 shrink-0">
                  <div>
                     <h3 className="font-black text-sm uppercase leading-tight pr-4">{activeSchemeTitle}</h3>
-                    <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">Tap + to add eligible items</p>
+                    <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">Eligible Scheme Items</p>
                  </div>
                  <button 
                    onClick={() => setShowProductsModal(false)} 
@@ -275,69 +276,88 @@ export default function OffersView(props) {
                  >✕</button>
               </div>
 
-              <div className="overflow-y-auto p-4 space-y-3 pb-32">
-                 {activeSchemeProducts.map((item, idx) => {
-                    const smartImg = getSmartImage(item);
-                    const itemName = String(getProp(item, "ProductName") || "Item");
-                    const dealerPrice = getNum(getProp(item, "DealerPrice"));
-                    const itemCode = String(getProp(item, "ItemCode") || "");
-                    const currentQty = cart[itemCode] ? cart[itemCode].qty : 0;
+              {/* Grid Layout Identical to Catalog */}
+              <div className="overflow-y-auto p-4 pb-32 grid grid-cols-2 gap-4 relative z-10">
+                 {groupedModalProducts.map((p, idx) => {
+                    var name = String(getProp(p, "ProductName") || "Premium Item");
+                    var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
+                                         (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+                    var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
                     
-                    const brandStr = String(getProp(item, "Brand") || "").toUpperCase();
+                    const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
+                    const smartImg = getSmartImage(activeVariant);
+                    const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
+                    const stockVal = getNum(getProp(activeVariant, "Stock"));
+                    
+                    const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
                     const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
-                    const stockVal = getNum(getProp(item, "Stock"));
                     const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
 
                     return (
-                       <div key={`${itemCode}-${idx}`} className="flex gap-3 items-center p-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                      <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative overflow-hidden">
+                        
+                        {showOnOrder && (
+                          <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                            ⏳ ON ORDER
+                          </span>
+                        )}
+                        
+                        <div className="mt-1">
                           {smartImg ? (
-                            <img src={smartImg} className="w-16 h-16 object-contain rounded-xl border bg-gray-50 p-1 flex-shrink-0" />
+                            <img 
+                              src={smartImg} 
+                              className="h-28 w-full object-contain mb-2 p-1" 
+                              onError={(e) => { e.target.outerHTML = '<div class="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; }} 
+                            /> 
                           ) : (
-                            <div className="w-16 h-16 bg-gray-50 rounded-xl border flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">No Img</div>
+                            <div className="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
                           )}
-                          
-                          <div className="flex-grow">
-                             <div className="text-[8px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-black inline-block mb-1">
-                               {String(getProp(item, "Brand") || "")}
-                             </div>
-                             <h4 className="text-xs font-black text-gray-800 leading-tight line-clamp-2">{itemName}</h4>
-                             
-                             <div className="flex items-end justify-between mt-2">
-                                <div>
-                                   <div className="font-black text-sm text-blue-900">₹{dealerPrice.toLocaleString('en-IN')}</div>
-                                   {showOnOrder && (
-                                     <div className="text-[8px] text-orange-600 font-black uppercase mt-0.5">⏳ On Order</div>
-                                   )}
-                                </div>
-                                
-                                {currentQty > 0 ? (
-                                  <div className="flex items-center bg-blue-50 rounded-lg p-1 border border-blue-200">
-                                    <button onClick={() => updateQty(item, -1)} className="bg-white text-blue-900 font-black w-7 h-7 rounded-md shadow-sm flex items-center justify-center">-</button>
-                                    <span className="font-black text-blue-900 text-sm w-8 text-center">{currentQty}</span>
-                                    <button onClick={() => updateQty(item, 1)} className="bg-blue-900 text-white font-black w-7 h-7 rounded-md shadow-sm flex items-center justify-center">+</button>
-                                  </div>
-                                ) : (
-                                  <button 
-                                    onClick={() => updateQty(item, 1)} 
-                                    className="bg-blue-900 text-white text-[10px] font-black px-4 py-2 rounded-lg shadow-sm active:scale-95"
-                                  >
-                                    + ADD
-                                  </button>
-                                )}
-                             </div>
+                          <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">{name}</h3>
+                        </div>
+                        
+                        {p.isGrouped && (
+                          <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
+                            {p.variants.map(v => (
+                              <button 
+                                key={String(getProp(v, "ItemCode"))} 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  setActiveVariants(prev => ({ ...prev, [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) })); 
+                                }} 
+                                className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                              >
+                                {v.capacity}
+                              </button>
+                            ))}
                           </div>
-                       </div>
+                        )}
+
+                        <div className="mt-1 relative z-20">
+                          <div className="font-black text-lg mb-2 tracking-tight text-blue-950">₹{dealerVal}</div>
+                          
+                          {currentQty > 0 ? (
+                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                              <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                              <span className="font-black text-blue-900">{currentQty}</span>
+                              <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
+                              {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     );
                  })}
               </div>
 
-              {/* FLOATING CART BUTTON INSIDE MODAL */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
                  <button 
                    onClick={() => { setShowProductsModal(false); setView('cart'); }} 
                    className="w-full bg-green-600 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
                  >
-                   🛒 GO TO CART TO CHECKOUT
+                   🛒 PROCEED TO CART
                  </button>
               </div>
 

@@ -33,7 +33,6 @@ export function getSmartImage(product) {
       url = "https:" + url;
     }
     
-    // 🟢 NAYA FIX: Google Drive Thumbnail API to bypass Google's block
     if (url.includes("drive.google.com")) {
       let fileId = "";
       const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -125,25 +124,29 @@ export function groupProductsByVariant(flatList) {
   });
 }
 
+// 🟢 SMART SCHEME CALCULATOR (Handles comma separated models and strict name matching)
 export function calculateSchemeProgress(cartItems, scheme) {
   let currentQty = 0;
+  const targetStr = String(scheme.target || "").toLowerCase();
+  // Split targets by comma so multiple models work automatically
+  const targets = targetStr.split(",").map(t => t.trim()).filter(Boolean);
+
   cartItems.forEach(item => {
     const itemName = String(getProp(item, "ProductName") || "").toLowerCase();
     const brand = String(getProp(item, "Brand") || "").toLowerCase();
     const type = String(getProp(item, "Type") || getProp(item, "Category") || "").toLowerCase();
-    const target = String(scheme.target || "").toLowerCase();
-    
-    if (scheme.type === "Product" && itemName.includes(target)) {
+
+    // Check if the item matches ANY of the target models/brands
+    const isMatch = targets.some(t => {
+      if (!t) return false;
+      return itemName.includes(t) || brand.includes(t) || type.includes(t);
+    });
+
+    if (isMatch) {
       currentQty += item.qty;
-    } else if (scheme.type === "Brand" && brand.includes(target)) {
-      currentQty += item.qty;
-    } else if (scheme.type === "MixCategory") {
-      const targets = target.split(",").map(t => t.trim());
-      if (targets.some(t => type.includes(t) || itemName.includes(t))) {
-        currentQty += item.qty;
-      }
     }
   });
+
   return {
     current: currentQty,
     required: getNum(scheme.minQty),
