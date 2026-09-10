@@ -70,7 +70,9 @@ export default function OffersView(props) {
     setIsComboModal(isCombo);
 
     if (isCombo) {
-      const match = String(scheme.message).match(/₹(\d+)/) || String(scheme.reward).match(/₹(\d+)/) || String(scheme.reward).match(/(\d+)/);
+      const msgStr = String(scheme.message || "");
+      const rwdStr = String(scheme.reward || "");
+      const match = msgStr.match(/₹(\d+)/) || rwdStr.match(/₹(\d+)/) || rwdStr.match(/(\d+)/);
       setActiveComboPrice(match ? parseInt(match[1] || match[0]) : 400);
     }
 
@@ -138,11 +140,34 @@ export default function OffersView(props) {
         window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
       }
       alert("✅ 10 Pairs Combo added to cart successfully!");
-      setShowProductsModal(false);
     }
   };
 
+  const handleAddModalCombo = () => {
+    let updated = Object.assign({}, cart);
+    
+    activeSchemeProducts.forEach(p => {
+      var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
+                           (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+      var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
+      
+      const itemCode = String(getProp(activeVariant, "ItemCode"));
+      updated[itemCode] = Object.assign({}, activeVariant, { qty: (updated[itemCode]?.qty || 0) + 10 });
+    });
+    
+    setCart(updated);
+    if (window.confetti) {
+      window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
+    }
+    alert("✅ 10 Pairs Combo Added Successfully!");
+    setShowProductsModal(false);
+  };
+
   const groupedModalProducts = groupProductsByVariant(activeSchemeProducts);
+  
+  const orig10PairPrice = activeSchemeProducts.reduce((sum, p) => sum + (getNum(getProp(p, "DealerPrice")) * 10), 0);
+  const combo10PairPrice = activeComboPrice * 10;
+  const modalSavings = orig10PairPrice > combo10PairPrice ? orig10PairPrice - combo10PairPrice : 0;
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans animate-fade-in relative">
@@ -367,27 +392,21 @@ export default function OffersView(props) {
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
-                 {isComboModal ? (() => {
-                    const orig10PairPrice = activeSchemeProducts.reduce((sum, p) => sum + (getNum(getProp(p, "DealerPrice")) * 10), 0);
-                    const combo10PairPrice = activeComboPrice * 10;
-                    const savings = orig10PairPrice > combo10PairPrice ? orig10PairPrice - combo10PairPrice : 0;
-                    
-                    return (
-                      <div>
-                        <div className="flex justify-between items-center mb-2 px-1">
-                           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Original: <span className="line-through">₹{orig10PairPrice}</span></div>
-                           <div className="text-[11px] text-green-700 font-black uppercase bg-green-100 px-2 py-0.5 rounded">You Save ₹{savings}!</div>
-                        </div>
-                        <button 
-                          onClick={handleAddModalCombo} 
-                          className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-black text-sm py-4 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 flex flex-col items-center justify-center border border-green-400"
-                        >
-                          <span>🛒 ADD 10 PAIRS COMBO</span>
-                          <span className="text-[8px] opacity-90 font-bold uppercase tracking-widest mt-0.5">Pay only ₹{combo10PairPrice}</span>
-                        </button>
+                 {isComboModal ? (
+                    <div>
+                      <div className="flex justify-between items-center mb-2 px-1">
+                         <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Original: <span className="line-through">₹{orig10PairPrice}</span></div>
+                         <div className="text-[11px] text-green-700 font-black uppercase bg-green-100 px-2 py-0.5 rounded">You Save ₹{modalSavings}!</div>
                       </div>
-                    )
-                 })() : (
+                      <button 
+                        onClick={handleAddModalCombo} 
+                        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-black text-sm py-4 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 flex flex-col items-center justify-center border border-green-400"
+                      >
+                        <span>🛒 ADD 10 PAIRS COMBO</span>
+                        <span className="text-[8px] opacity-90 font-bold uppercase tracking-widest mt-0.5">Pay only ₹{combo10PairPrice}</span>
+                      </button>
+                    </div>
+                 ) : (
                    <button 
                      onClick={() => { setShowProductsModal(false); setView('cart'); }} 
                      className="w-full bg-blue-900 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
