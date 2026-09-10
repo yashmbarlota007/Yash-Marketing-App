@@ -32,7 +32,6 @@ export function Catalog(props) {
   ]);
   const [schemes, setSchemes] = useState([]); 
   const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
-  const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [activeVariants, setActiveVariants] = useState({});
   
   // Filter States
@@ -110,23 +109,6 @@ export function Catalog(props) {
     });
     return (Math.min(nQty, pQty) > 0 && (nPrice + pPrice) > 400) ? ((nPrice + pPrice) - 400) * Math.min(nQty, pQty) : 0;
   })();
-
-  // 25 Pcs Celebration Logic
-  useEffect(() => {
-    if (totalItems >= 25 && !celebrated25Pcs) { 
-      if (window.confetti) {
-        window.confetti({ 
-          particleCount: 250, 
-          spread: 100, 
-          origin: { y: 0.5 }, 
-          colors: ['#ff0055', '#00ffcc', '#ffcc00', '#33ff33'] 
-        }); 
-      }
-      setCelebrated25Pcs(true); 
-    } else if (totalItems < 25) {
-      setCelebrated25Pcs(false);
-    }
-  }, [totalItems, celebrated25Pcs]);
 
   // Discount Tier Celebration Logic
   useEffect(() => {
@@ -241,11 +223,13 @@ export function Catalog(props) {
           if (comboP1 && comboP2) {
               p1Price = getNum(getProp(comboP1, "DealerPrice"));
               p2Price = getNum(getProp(comboP2, "DealerPrice"));
-              originalTotal = p1Price + p2Price;
+              originalTotal = (p1Price + p2Price) * 10;
               
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
               comboPrice = match ? parseInt(match[1] || match[0]) : 400;
-              savingsAmt = originalTotal > comboPrice ? originalTotal - comboPrice : 0;
+              let combo10Price = comboPrice * 10;
+
+              savingsAmt = originalTotal > combo10Price ? originalTotal - combo10Price : 0;
               savingsPct = originalTotal > 0 ? Math.round((savingsAmt / originalTotal) * 100) : 0;
           }
       }
@@ -257,13 +241,14 @@ export function Catalog(props) {
       const itemCode1 = String(getProp(comboP1, "ItemCode"));
       const itemCode2 = String(getProp(comboP2, "ItemCode"));
       
-      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
-      updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 1 });
+      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 10 });
+      updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 10 });
       
       setCart(updated);
       if (window.confetti) {
-        window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
       }
+      alert("✅ 10 Pairs Combo added to cart successfully!");
     } else {
       alert("Combo Error: Target product not found.");
     }
@@ -318,6 +303,7 @@ export function Catalog(props) {
           
           // Flash "On Order" if it is Hikvision/Velocity and stock is 0
           const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+          const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
           return (
             <div 
@@ -336,10 +322,12 @@ export function Catalog(props) {
                 </span>
               )}
               
-              {!isNewItem && !showOnOrder && totalItems >= 25 && (
-                <span className="absolute top-2 right-2 bg-green-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow animate-pulse z-10">
-                  25+ Target
-                </span>
+              {isOutOfStock && (
+                <div className="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                  <span className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded uppercase shadow-lg transform -rotate-12 border border-red-800">
+                    Out of Stock
+                  </span>
+                </div>
               )}
               
               <div 
@@ -349,7 +337,7 @@ export function Catalog(props) {
                 {smartImg ? (
                   <img 
                     src={smartImg} 
-                    className="h-32 w-full object-contain mb-2 p-1" 
+                    className={`h-32 w-full object-contain mb-2 p-1 ${isOutOfStock ? 'grayscale opacity-50' : ''}`} 
                     onError={(e) => { 
                       e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
                     }} 
@@ -360,7 +348,7 @@ export function Catalog(props) {
                     No Image
                   </div>
                 )}
-                <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8">
+                <h3 className={`font-bold text-xs leading-snug line-clamp-2 h-8 ${isOutOfStock ? 'text-gray-400' : ''}`}>
                   {name}
                 </h3>
               </div>
@@ -403,12 +391,16 @@ export function Catalog(props) {
                       )
                     )}
                     
-                    <div className="font-black text-lg mb-2 tracking-tight text-blue-950">
+                    <div className={`font-black text-lg mb-2 tracking-tight ${isOutOfStock ? 'text-gray-400' : 'text-blue-950'}`}>
                       {dealerVal > 0 ? `₹${dealerVal}` : "Contact Us"}
                     </div>
                     
                     {dealerVal > 0 && (
-                      currentQty > 0 ? (
+                      isOutOfStock ? (
+                        <button disabled className="w-full bg-gray-100 text-gray-400 text-[11px] font-bold py-3 rounded-xl shadow-sm cursor-not-allowed">
+                          OUT OF STOCK
+                        </button>
+                      ) : currentQty > 0 ? (
                         <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                           <button 
                             onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} 
@@ -614,15 +606,9 @@ export function Catalog(props) {
   return (
     <div className="max-w-md mx-auto relative flex flex-col">
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
-        {totalItems > 0 && !globalProps.customerMode && (
+        {cartItems.length > 0 && !globalProps.customerMode && (
           <React.Fragment>
             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
-            
-            {totalItems >= 25 && (
-              <div className="bg-green-600 text-white text-center text-[10px] font-black py-1.5 uppercase border-b border-green-700 animate-bounce shadow-sm">
-                🎉 Target 25 Pcs Met! Bumper Reward Live! 🎁
-              </div>
-            )}
             
             {schemes.length > 0 && (
               <div className="bg-white">
@@ -737,11 +723,11 @@ export function Catalog(props) {
                       </div>
                       <div className="flex items-baseline gap-1">
                         <span className="text-green-600 font-black text-3xl tracking-tighter">
-                          ₹{comboPrice}
+                          ₹{comboPrice * 10}
                         </span>
                       </div>
                       <div className="text-[9px] text-green-700 font-black tracking-wider uppercase mt-1 bg-green-100 inline-block px-1.5 py-0.5 rounded">
-                        ✨ YOU SAVE ₹{savingsAmt} ({savingsPct}%)
+                        ✨ YOU SAVE ₹{savingsAmt}
                       </div>
                     </div>
 
@@ -749,7 +735,7 @@ export function Catalog(props) {
                       onClick={handleAddCombo} 
                       className="z-10 bg-gradient-to-r from-green-500 to-green-600 text-white font-black px-4 py-3 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex flex-col items-center text-xs border border-green-400"
                     >
-                      <span>🛒 ADD COMBO</span>
+                      <span>🛒 ADD 10 PAIRS</span>
                       <span className="text-[7px] opacity-90 font-bold uppercase tracking-widest mt-0.5">
                         Instant Discount
                       </span>
@@ -887,6 +873,7 @@ export function ProductDetailModal(props) {
   
   const isAlwaysLiveBrand = activeBrand.toUpperCase().includes("HIKVISION") || activeBrand.toUpperCase().includes("VELOCITY");
   const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+  const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-end justify-center animate-fade-in">
@@ -909,12 +896,20 @@ export function ProductDetailModal(props) {
           >
             <img 
               src={imagesList[currentImgIndex]} 
-              className="h-72 max-w-full object-contain" 
+              className={`h-72 max-w-full object-contain ${isOutOfStock ? 'grayscale opacity-50' : ''}`} 
               onError={(e) => { 
                 e.target.outerHTML = '<div class="h-32 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
               }} 
               alt={activeName} 
             />
+            
+            {isOutOfStock && (
+               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 backdrop-blur-[1px]">
+                 <span className="bg-red-600 text-white text-lg font-black px-6 py-2 rounded uppercase shadow-2xl transform -rotate-12 border-2 border-red-800 tracking-widest">
+                   OUT OF STOCK
+                 </span>
+               </div>
+            )}
             
             {imagesList.length > 1 && (
               <React.Fragment>
@@ -943,7 +938,7 @@ export function ProductDetailModal(props) {
           </div>
 
           <div className="p-5">
-            <span className="text-[10px] bg-blue-50 text-blue-900 font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${isOutOfStock ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-900'}`}>
               {activeBrand}
             </span>
             
@@ -987,11 +982,11 @@ export function ProductDetailModal(props) {
                   Dealer Price ({activeVariant.capacity})
                 </div>
                 <div className="flex items-baseline gap-2.5 mt-1">
-                  <span className="text-3xl font-black text-blue-950">
+                  <span className={`text-3xl font-black ${isOutOfStock ? 'text-gray-400 line-through' : 'text-blue-950'}`}>
                     ₹{dealerVal}
                   </span>
                   
-                  {hasDiscount && (
+                  {hasDiscount && !isOutOfStock && (
                     <React.Fragment>
                       <span className="text-xs text-gray-400 line-through font-bold">
                         MRP: ₹{mrpVal}
@@ -1003,9 +998,9 @@ export function ProductDetailModal(props) {
                   )}
                 </div>
                 
-                <div className="text-[10px] font-bold mt-2 flex items-center gap-1 text-green-600">
-                  <span>{showOnOrder ? '⏳' : '📦'}</span> 
-                  {showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${stockVal} units`}
+                <div className={`text-[10px] font-bold mt-2 flex items-center gap-1 ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
+                  <span>{isOutOfStock ? '🚫' : showOnOrder ? '⏳' : '📦'}</span> 
+                  {isOutOfStock ? "ITEM CURRENTLY OUT OF STOCK" : showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${stockVal} units`}
                 </div>
               </div>
             ) : (
@@ -1055,7 +1050,11 @@ export function ProductDetailModal(props) {
               </div>
               
               <div className="w-1/2">
-                {currentQty > 0 ? (
+                {isOutOfStock ? (
+                   <button disabled className="w-full bg-gray-200 text-gray-500 text-xs font-black py-4 rounded-xl cursor-not-allowed">
+                     OUT OF STOCK
+                   </button>
+                ) : currentQty > 0 ? (
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                     <button 
                       onClick={() => updateQty(activeVariant, -1)} 

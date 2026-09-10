@@ -14,6 +14,8 @@ export default function OffersView(props) {
   const [activeSchemeProducts, setActiveSchemeProducts] = useState([]);
   const [activeSchemeTitle, setActiveSchemeTitle] = useState("");
   const [activeVariants, setActiveVariants] = useState({});
+  const [isComboModal, setIsComboModal] = useState(false);
+  const [activeComboPrice, setActiveComboPrice] = useState(400);
 
   useEffect(() => {
     fetch(API_URL, {
@@ -63,6 +65,14 @@ export default function OffersView(props) {
   const handleViewItems = (scheme) => {
     const targetStr = String(scheme.target || "").toLowerCase();
     const targets = targetStr.split(",").map(t => t.trim()).filter(Boolean);
+
+    const isCombo = String(scheme.type).toUpperCase().includes('COMBO') || String(scheme.message).toUpperCase().includes('COMBO');
+    setIsComboModal(isCombo);
+
+    if (isCombo) {
+      const match = String(scheme.message).match(/₹(\d+)/) || String(scheme.reward).match(/₹(\d+)/) || String(scheme.reward).match(/(\d+)/);
+      setActiveComboPrice(match ? parseInt(match[1] || match[0]) : 400);
+    }
 
     let eligibleProducts = products.filter(p => {
       const brand = String(getProp(p, "Brand") || "").toLowerCase();
@@ -114,7 +124,6 @@ export default function OffersView(props) {
       }
   }
 
-  // 🟢 NAYA LOGIC: COMBO MULTIPLES OF 10
   const handleAddCombo = () => {
     if (comboP1 && comboP2) {
       let updated = Object.assign({}, cart);
@@ -126,9 +135,10 @@ export default function OffersView(props) {
       
       setCart(updated);
       if (window.confetti) {
-        window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
       }
       alert("✅ 10 Pairs Combo added to cart successfully!");
+      setShowProductsModal(false);
     }
   };
 
@@ -177,17 +187,16 @@ export default function OffersView(props) {
                   <div className="z-10">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Original:</span>
-                      <span className="text-[11px] text-gray-400 font-black line-through">₹{originalTotal}</span>
+                      <span className="text-[11px] text-gray-400 font-black line-through">₹{originalTotal * 10}</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-green-600 font-black text-3xl tracking-tighter">₹{comboPrice}</span>
+                      <span className="text-green-600 font-black text-3xl tracking-tighter">₹{comboPrice * 10}</span>
                     </div>
                     <div className="text-[9px] text-green-700 font-black tracking-wider uppercase mt-1 bg-green-100 inline-block px-1.5 py-0.5 rounded">
-                      ✨ YOU SAVE ₹{savingsAmt} ({savingsPct}%)
+                      ✨ YOU SAVE ₹{(originalTotal * 10) - (comboPrice * 10)}
                     </div>
                   </div>
 
-                  {/* 🟢 BUTTON TEXT UPDATED FOR 10 PAIRS */}
                   <button 
                     onClick={handleAddCombo} 
                     className="z-10 bg-gradient-to-r from-green-500 to-green-600 text-white font-black px-4 py-3 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex flex-col items-center text-xs border border-green-400"
@@ -204,7 +213,6 @@ export default function OffersView(props) {
       <div className="mb-6">
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
         
-        {/* 🟢 TARGET REWARDS CONVERTED TO 2X2 GRID */}
         <div className="grid grid-cols-2 gap-3">
           {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((sch, i) => {
             const progress = calculateSchemeProgress(cartItems, sch);
@@ -268,7 +276,9 @@ export default function OffersView(props) {
               <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white shadow-md z-20 shrink-0">
                  <div>
                     <h3 className="font-black text-sm uppercase leading-tight pr-4">{activeSchemeTitle}</h3>
-                    <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">Eligible Scheme Items</p>
+                    <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">
+                      {isComboModal ? "Combo Package Items" : "Eligible Scheme Items"}
+                    </p>
                  </div>
                  <button 
                    onClick={() => setShowProductsModal(false)} 
@@ -276,7 +286,7 @@ export default function OffersView(props) {
                  >✕</button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 pb-32">
+              <div className="flex-1 overflow-y-auto p-4 pb-40">
                  <div className="grid grid-cols-2 gap-4 relative z-10">
                     {groupedModalProducts.map((p, idx) => {
                        var name = String(getProp(p, "ProductName") || "Premium Item");
@@ -336,16 +346,18 @@ export default function OffersView(props) {
                            <div className="mt-1 relative z-20">
                              <div className="font-black text-lg mb-2 tracking-tight text-blue-950">₹{dealerVal}</div>
                              
-                             {currentQty > 0 ? (
-                               <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                 <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
-                                 <span className="font-black text-blue-900">{currentQty}</span>
-                                 <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
-                               </div>
-                             ) : (
-                               <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
-                                 {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
-                               </button>
+                             {!isComboModal && (
+                               currentQty > 0 ? (
+                                 <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                   <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                   <span className="font-black text-blue-900">{currentQty}</span>
+                                   <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                                 </div>
+                               ) : (
+                                 <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
+                                   {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
+                                 </button>
+                               )
                              )}
                            </div>
                          </div>
@@ -355,12 +367,34 @@ export default function OffersView(props) {
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
-                 <button 
-                   onClick={() => { setShowProductsModal(false); setView('cart'); }} 
-                   className="w-full bg-green-600 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
-                 >
-                   🛒 PROCEED TO CART
-                 </button>
+                 {isComboModal ? (() => {
+                    const orig10PairPrice = activeSchemeProducts.reduce((sum, p) => sum + (getNum(getProp(p, "DealerPrice")) * 10), 0);
+                    const combo10PairPrice = activeComboPrice * 10;
+                    const savings = orig10PairPrice > combo10PairPrice ? orig10PairPrice - combo10PairPrice : 0;
+                    
+                    return (
+                      <div>
+                        <div className="flex justify-between items-center mb-2 px-1">
+                           <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Original: <span className="line-through">₹{orig10PairPrice}</span></div>
+                           <div className="text-[11px] text-green-700 font-black uppercase bg-green-100 px-2 py-0.5 rounded">You Save ₹{savings}!</div>
+                        </div>
+                        <button 
+                          onClick={handleAddModalCombo} 
+                          className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-black text-sm py-4 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 flex flex-col items-center justify-center border border-green-400"
+                        >
+                          <span>🛒 ADD 10 PAIRS COMBO</span>
+                          <span className="text-[8px] opacity-90 font-bold uppercase tracking-widest mt-0.5">Pay only ₹{combo10PairPrice}</span>
+                        </button>
+                      </div>
+                    )
+                 })() : (
+                   <button 
+                     onClick={() => { setShowProductsModal(false); setView('cart'); }} 
+                     className="w-full bg-blue-900 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
+                   >
+                     🛒 PROCEED TO CART
+                   </button>
+                 )}
               </div>
 
            </div>
