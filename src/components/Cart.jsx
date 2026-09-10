@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL, getNum, getProp, getSmartImage, calculateSchemeProgress, PHONEPE_QR_URL, OFFICE_NUMBER } from '../utils/helpers';
+import { 
+  API_URL, 
+  getNum, 
+  getProp, 
+  getSmartImage, 
+  calculateSchemeProgress, 
+  PHONEPE_QR_URL, 
+  OFFICE_NUMBER 
+} from '../utils/helpers';
 
 export function Cart(props) {
+  // ==========================================
+  // 1. PROPS & STATE INITIALIZATION
+  // ==========================================
   var user = props.user;
   var cart = props.cart;
   var setCart = props.setCart;
@@ -13,48 +24,93 @@ export function Cart(props) {
   const [schemes, setSchemes] = useState([]); 
   const [paymentMode, setPaymentMode] = useState("");
   const [screenshotData, setScreenshotData] = useState(null);
-  const [discounts, setDiscounts] = useState([{ minAmount: 10000, percent: 1 }, { minAmount: 20000, percent: 1.5 }]);
+  const [discounts, setDiscounts] = useState([
+    { minAmount: 10000, percent: 1 }, 
+    { minAmount: 20000, percent: 1.5 }
+  ]);
   const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [orderRemarks, setOrderRemarks] = useState("");
 
+  // ==========================================
+  // 2. DATA FETCHING (API CALLS)
+  // ==========================================
   useEffect(() => {
+    // Fetch Discounts
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => { 
-      if (res && res.success && res.data.length > 0) setDiscounts(res.data); 
-    }).catch(() => {});
+    })
+    .then(r => r.json())
+    .then(res => { 
+      if (res && res.success && res.data.length > 0) {
+        setDiscounts(res.data); 
+      }
+    })
+    .catch(() => {});
     
+    // Fetch Schemes
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => { 
-      if (res && res.success) setSchemes(res.data); 
-    }).catch(() => {});
+    })
+    .then(r => r.json())
+    .then(res => { 
+      if (res && res.success) {
+        setSchemes(res.data); 
+      }
+    })
+    .catch(() => {});
   }, []);
 
+  // ==========================================
+  // 3. CART CALCULATIONS & SCHEME SPLITTING
+  // ==========================================
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
-  let comboDiscountAmount = 0, combosApplied = 0;
+  // Separate non-combo schemes to check progress
+  const nonComboSchemes = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO');
+  
+  // Split schemes into Locked and Unlocked
+  const lockedSchemes = nonComboSchemes.filter(s => {
+    return !calculateSchemeProgress(cartItems, s).isUnlocked;
+  });
+  const unlockedSchemes = nonComboSchemes.filter(s => {
+    return calculateSchemeProgress(cartItems, s).isUnlocked;
+  });
+
+  let comboDiscountAmount = 0;
+  let combosApplied = 0;
   let singleComboEffectivePrice = 400; 
+  
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   
   if (comboScheme && comboScheme.target) {
       let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
+      
       if (targets.length >= 2) {
           let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
+          
           cartItems.forEach(item => {
               let n = String(getProp(item, "ProductName")).toLowerCase().trim();
-              if (n === targets[0]) { t1Qty += item.qty; t1Price = getNum(getProp(item, "DealerPrice")); }
-              if (n === targets[1]) { t2Qty += item.qty; t2Price = getNum(getProp(item, "DealerPrice")); }
+              if (n === targets[0]) { 
+                t1Qty += item.qty; 
+                t1Price = getNum(getProp(item, "DealerPrice")); 
+              }
+              if (n === targets[1]) { 
+                t2Qty += item.qty; 
+                t2Price = getNum(getProp(item, "DealerPrice")); 
+              }
           });
+          
           combosApplied = Math.min(t1Qty, t2Qty);
+          
           if (combosApplied > 0) {
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
               singleComboEffectivePrice = match ? parseInt(match[1] || match[0]) : 400; 
+              
               const originalComboPrice = t1Price + t2Price;
               if (originalComboPrice > singleComboEffectivePrice) {
                 comboDiscountAmount = (originalComboPrice - singleComboEffectivePrice) * combosApplied;
@@ -63,24 +119,37 @@ export function Cart(props) {
       }
   }
 
-  const baseTotalAmount = cartItems.reduce((acc, item) => acc + (getNum(getProp(item, "DealerPrice")) * item.qty), 0);
+  const baseTotalAmount = cartItems.reduce((acc, item) => {
+    return acc + (getNum(getProp(item, "DealerPrice")) * item.qty);
+  }, 0);
+  
   const totalAmount = baseTotalAmount - comboDiscountAmount;
-
   const totalComboValue = combosApplied * singleComboEffectivePrice;
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
+  // 25 Pcs Celebration Effect
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) { 
       if (window.confetti) {
-        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ['#ffc0cb', '#87ceeb', '#ffd700'] }); 
+        window.confetti({ 
+          particleCount: 200, 
+          spread: 90, 
+          origin: { y: 0.5 }, 
+          colors: ['#ffc0cb', '#87ceeb', '#ffd700'] 
+        }); 
       }
       setCelebrated25Pcs(true); 
     } else if (totalItems < 25) {
       setCelebrated25Pcs(false);
     }
-  }, [totalItems]);
+  }, [totalItems, celebrated25Pcs]);
 
-  var sortedDiscountsDesc = [...discounts].map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) })).filter(d => !isNaN(d.minAmount) && !isNaN(d.percent)).sort((a, b) => b.minAmount - a.minAmount);
+  // Bulk Discount Calculations
+  var sortedDiscountsDesc = [...discounts]
+    .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
+    .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+    .sort((a, b) => b.minAmount - a.minAmount);
+    
   let bulkPercent = 0;
   for (var i = 0; i < sortedDiscountsDesc.length; i++) { 
     if (totalAmount >= sortedDiscountsDesc[i].minAmount) { 
@@ -94,6 +163,9 @@ export function Cart(props) {
   const upiDiscountAmount = (paymentMode === 'UPI' && nonComboAfterBulk > 0) ? Math.round(nonComboAfterBulk * 0.02) : 0;
   const finalAmount = totalComboValue + (nonComboAfterBulk - upiDiscountAmount);
 
+  // ==========================================
+  // 4. EVENT HANDLERS
+  // ==========================================
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -116,13 +188,14 @@ export function Cart(props) {
   const updateQty = (product, change) => {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
+    
     if (!itemCode) return;
     
     const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
     const stockVal = getNum(getProp(product, "Stock"));
     
     const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
-    const prodType = String(getProp(product, "Type") || "").toLowerCase();
+    const prodType = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase();
     const isCable = prodName.includes("cable") || prodType.includes("cable");
     
     const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
@@ -130,35 +203,57 @@ export function Cart(props) {
     const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
     
-    if (newQty > maxLimit && maxLimit > 0) return alert("Maximum stock limit reached!");
+    if (newQty > maxLimit && maxLimit > 0) {
+      return alert("Maximum stock limit reached!");
+    }
+    
     if (newQty <= 0) {
       delete updated[itemCode]; 
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
     }
+    
     setCart(updated);
   };
 
   const handleCheckout = function() {
-    if (!paymentMode) return alert("Please select Payment Mode!");
-    if (paymentMode === 'UPI' && !screenshotData) return alert("Upload Payment Screenshot first!");
-    
-    setLoading(true);
-    var itemsStr = cartItems.map(function(i) { 
-      return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
-    }).join(" | ");
-    
-    let unlockedRewardsList = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO' && calculateSchemeProgress(cartItems, s).isUnlocked).map(s => s.reward);
-    if (totalItems >= 25) {
-      unlockedRewardsList.push("Target 25 Pcs Bumper Reward");
+    if (!paymentMode) {
+      return alert("Please select Payment Mode!");
     }
     
+    if (paymentMode === 'UPI' && !screenshotData) {
+      return alert("Upload Payment Screenshot first!");
+    }
+    
+    setLoading(true);
+    
+    // Create base items array
+    var itemsList = cartItems.map(function(i) { 
+      return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
+    });
+    
+    // 🟢 BACKEND SYNC: Inject explicit freebies into the order items list
+    unlockedSchemes.forEach(sch => {
+      itemsList.push(`🎁 FREE ITEM: ${sch.reward} (Offer Applied: ${sch.message})`);
+    });
+    
+    if (totalItems >= 25) {
+      itemsList.push("🎁 FREE ITEM: Target 25 Pcs Bumper Reward Package");
+    }
+    
+    if (combosApplied > 0) {
+      itemsList.push(`🎁 APPLIED: Combo Offer (${combosApplied}x) - Saved ₹${comboDiscountAmount}`);
+    }
+
+    var finalItemsStr = itemsList.join(" | ");
+    
+    // Send to Google Sheets API
     callAPI({
       action: "placeOrder",
       order: { 
         phone: user.phone, 
         shopName: user.shopName, 
-        items: itemsStr, 
+        items: finalItemsStr, 
         totalAmount: baseTotalAmount, 
         finalAmount: finalAmount, 
         paymentMode: paymentMode, 
@@ -166,14 +261,14 @@ export function Cart(props) {
         bulkDiscount: bulkDiscountAmount, 
         bulkPercent: bulkPercent, 
         upiDiscount: upiDiscountAmount,
-        rewards: unlockedRewardsList.join(", "), 
+        rewards: unlockedSchemes.map(s => s.reward).join(", "), 
         remarks: orderRemarks,
         screenshot: screenshotData
       }
     }).then(function(res) {
       setLoading(false);
       if (res && res.success) {
-        alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount + "\n\n We will dispatch it shortly.");
+        alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount + "\n\nWe will dispatch it shortly.");
         globalProps.logSpyData("Order Placed", "Val: ₹" + finalAmount);
         setCart({}); 
         setView("catalog");
@@ -185,40 +280,56 @@ export function Cart(props) {
     });
   };
 
+  // ==========================================
+  // 5. RENDER CART UI
+  // ==========================================
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[180px] font-sans relative">
+      
+      {/* 25 PCS BUMPER BANNER */}
       {totalItems >= 25 && (
         <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
-           <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">🏆 25 PCS TARGET ACHIEVED</h4>
-           <p className="text-[10px] font-bold text-green-700 mt-1">Bumper celebration package and direct extra reward points allocated explicitly under this master checkout request.</p>
+           <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">
+             🏆 25 PCS TARGET ACHIEVED
+           </h4>
+           <p className="text-[10px] font-bold text-green-700 mt-1">
+             Bumper celebration package and direct extra reward points allocated explicitly under this master checkout request.
+           </p>
         </div>
       )}
 
-      {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
+      {/* LOCKED SCHEMES PROGRESS TRACKER */}
+      {lockedSchemes.map((scheme, idx) => {
         const progress = calculateSchemeProgress(cartItems, scheme);
         return (
-          <div key={idx} className={`p-4 mb-4 rounded-2xl border-2 ${progress.isUnlocked ? 'bg-green-50 border-green-500 shadow-md' : 'bg-amber-50 border-amber-300'}`}>
-            <h4 className={`font-black text-xs uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-amber-900'}`}>
+          <div 
+            key={`locked-${idx}`} 
+            className="p-4 mb-4 rounded-2xl border-2 bg-amber-50 border-amber-300"
+          >
+            <h4 className="font-black text-xs uppercase text-amber-900">
               {scheme.message}
             </h4>
             <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden border border-gray-300 shadow-inner">
                <div 
-                 className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-amber-500'} h-full transition-all duration-500`} 
+                 className="bg-amber-500 h-full transition-all duration-500" 
                  style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
                ></div>
             </div>
-            <p className={`text-[10px] font-bold mt-1 ${progress.isUnlocked ? 'text-green-700' : 'text-gray-600'}`}>
-              {progress.current}/{progress.required} items added. {progress.isUnlocked && "🎉 REWARD UNLOCKED: " + scheme.reward}
+            <p className="text-[10px] font-bold mt-1 text-gray-600">
+              {progress.current} / {progress.required} items added. Add {progress.required - progress.current} more to unlock {scheme.reward}!
             </p>
           </div>
         );
       })}
 
+      {/* CART ITEMS LIST */}
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
         {cartItems.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-4xl">🛒</span>
-            <p className="font-black text-gray-400 mt-2 text-sm uppercase">Cart Khali Hai</p>
+            <p className="font-black text-gray-400 mt-2 text-sm uppercase">
+              Cart Khali Hai
+            </p>
             <button 
               onClick={() => setView("catalog")} 
               className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm"
@@ -227,101 +338,160 @@ export function Cart(props) {
             </button>
           </div>
         ) : (
-          cartItems.map(item => {
-            var smartImg = getSmartImage(item);
-            var itemName = String(getProp(item, "ProductName") || "Premium Item");
-            var dealerPrice = getNum(getProp(item, "DealerPrice"));
-            var itemCode = String(getProp(item, "ItemCode") || "");
-            
-            var showOnOrder = (String(getProp(item, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(item, "Brand") || "").toUpperCase().includes("VELOCITY")) && getNum(getProp(item, "Stock")) <= 0;
+          <React.Fragment>
+            {/* 🟢 STRICT GRID LAYOUT FOR CART ITEMS & FREEBIES */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              
+              {cartItems.map(item => {
+                var smartImg = getSmartImage(item);
+                var itemName = String(getProp(item, "ProductName") || "Premium Item");
+                var dealerPrice = getNum(getProp(item, "DealerPrice"));
+                var itemCode = String(getProp(item, "ItemCode") || "");
+                var brandStr = String(getProp(item, "Brand") || "").toUpperCase();
+                
+                var showOnOrder = (brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY")) && getNum(getProp(item, "Stock")) <= 0;
 
-            return (
-              <div key={itemCode} className="flex gap-3 items-center border-b last:border-0 py-3 bg-white relative">
-                {smartImg ? (
-                  <img src={smartImg} className="w-12 h-12 object-contain rounded-lg border bg-white p-1 flex-shrink-0" />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-50 rounded-lg border flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">No Img</div>
-                )}
-                <div className="flex-grow">
-                  <h4 className="text-xs font-bold leading-tight line-clamp-2">{itemName}</h4>
-                  {showOnOrder && (
-                    <span className="text-[8px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded uppercase font-black">
-                      On Order (Next Day)
-                    </span>
-                  )}
-                  
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+                return (
+                  <div 
+                    key={itemCode} 
+                    className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden"
+                  >
+                    {showOnOrder && (
+                      <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                        ⏳ ON ORDER
+                      </span>
+                    )}
+                    
+                    {smartImg ? (
+                      <img 
+                        src={smartImg} 
+                        className="w-16 h-16 object-contain mb-2 p-1" 
+                        alt={itemName}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center text-gray-300 text-[10px] mb-2">
+                        No Img
+                      </div>
+                    )}
+                    
+                    <h4 className="text-xs font-black leading-tight line-clamp-2 h-8 text-gray-800 w-full px-1">
+                      {itemName}
+                    </h4>
+                    
+                    <div className="font-black text-blue-900 text-sm mt-1 mb-2">
+                      ₹{(dealerPrice * item.qty).toLocaleString('en-IN')}
+                    </div>
+                    
+                    <div className="flex items-center justify-between w-full bg-gray-100 rounded-xl p-1 border border-gray-200 mt-auto">
                       <button 
                         onClick={() => updateQty(item, -1)} 
-                        className="bg-white text-gray-800 font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center"
+                        className="bg-white text-gray-800 font-black w-8 h-8 rounded-lg shadow-sm flex items-center justify-center"
                       >
                         -
                       </button>
-                      <span className="font-black text-blue-900 text-xs px-2 min-w-[20px] text-center">
+                      <span className="font-black text-blue-900 text-sm w-full text-center">
                         {item.qty}
                       </span>
                       <button 
                         onClick={() => updateQty(item, 1)} 
-                        className="bg-blue-900 text-white font-black w-6 h-6 rounded-md shadow-sm text-xs flex items-center justify-center"
+                        className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm flex items-center justify-center"
                       >
                         +
                       </button>
                     </div>
-                    <div className="font-black text-gray-900 text-xs text-right">
-                      ₹{(dealerPrice * item.qty).toLocaleString('en-IN')}
-                    </div>
+                  </div>
+                );
+              })}
+
+              {/* FREE REWARDS GRID CARDS */}
+              {unlockedSchemes.map((sch, idx) => (
+                <div 
+                  key={`freebie-${idx}`} 
+                  className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 bg-green-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest shadow-md z-20">
+                    100% FREE
+                  </div>
+                  
+                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner mb-2 border border-green-100">
+                    🎁
+                  </div>
+                  
+                  <h4 className="text-xs font-black text-green-900 leading-tight line-clamp-2 h-8 w-full">
+                    {sch.reward}
+                  </h4>
+                  
+                  <p className="text-[8px] text-green-700 font-bold mt-1 leading-snug line-clamp-2">
+                    {sch.message}
+                  </p>
+                  
+                  <div className="font-black text-green-700 text-sm mt-auto pt-2">
+                    ₹0
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
+              ))}
+              
+            </div>
 
-        {cartItems.length > 0 && (
-          <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-100">
-            <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
-            <span className="font-black text-lg text-gray-900">₹{baseTotalAmount.toLocaleString('en-IN')}</span>
-          </div>
-        )}
-        
-        {combosApplied > 0 && comboDiscountAmount > 0 && (
-          <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
-            <span className="font-black uppercase text-[10px] flex items-center gap-1">🔥 Combo Offer Applied ({combosApplied}x)</span>
-            <span className="font-black text-sm">-₹{comboDiscountAmount.toLocaleString('en-IN')}</span>
-          </div>
-        )}
-        
-        {cartItems.length > 0 && bulkDiscountAmount > 0 && (
-          <div className="flex justify-between items-center mt-2 text-green-700">
-            <span className="font-black uppercase text-[10px]">Bulk Discount ({bulkPercent}%) (Non-Combo)</span>
-            <span className="font-black text-sm">-₹{bulkDiscountAmount.toLocaleString('en-IN')}</span>
-          </div>
-        )}
-        
-        {cartItems.length > 0 && paymentMode === 'UPI' && upiDiscountAmount > 0 && (
-          <div className="flex justify-between items-center mt-2 text-green-700">
-            <span className="font-black uppercase text-[10px]">UPI Discount (2%) (Non-Combo)</span>
-            <span className="font-black text-sm">-₹{upiDiscountAmount.toLocaleString('en-IN')}</span>
-          </div>
-        )}
-        
-        {cartItems.length > 0 && totalItems >= 25 && (
-          <div className="mt-2 text-blue-700 text-[10px] font-black uppercase flex items-center gap-1 bg-blue-50 p-2 rounded-xl border border-blue-100">
-            🎁 Unlocked: Target 25 Pcs Bumper Reward Package Included!
-          </div>
+            {/* CART SUMMARY TOTALS */}
+            <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-200">
+              <span className="font-bold text-gray-500 uppercase text-[10px]">
+                Net Value
+              </span>
+              <span className="font-black text-lg text-gray-900">
+                ₹{baseTotalAmount.toLocaleString('en-IN')}
+              </span>
+            </div>
+            
+            {combosApplied > 0 && comboDiscountAmount > 0 && (
+              <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
+                <span className="font-black uppercase text-[10px] flex items-center gap-1">
+                  🔥 Combo Offer Applied ({combosApplied}x)
+                </span>
+                <span className="font-black text-sm">
+                  -₹{comboDiscountAmount.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
+            
+            {bulkDiscountAmount > 0 && (
+              <div className="flex justify-between items-center mt-2 text-green-700">
+                <span className="font-black uppercase text-[10px]">
+                  Bulk Discount ({bulkPercent}%) (Non-Combo)
+                </span>
+                <span className="font-black text-sm">
+                  -₹{bulkDiscountAmount.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
+            
+            {paymentMode === 'UPI' && upiDiscountAmount > 0 && (
+              <div className="flex justify-between items-center mt-2 text-green-700">
+                <span className="font-black uppercase text-[10px]">
+                  UPI Discount (2%) (Non-Combo)
+                </span>
+                <span className="font-black text-sm">
+                  -₹{upiDiscountAmount.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
+          </React.Fragment>
         )}
       </div>
 
+      {/* PAYMENT OPTIONS */}
       {cartItems.length > 0 && (
         <React.Fragment>
           <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
           <div className="space-y-3 mb-8">
+            
             <div 
               onClick={() => setPaymentMode('COD')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
-              <div className="font-black text-gray-800">Cash On Delivery (COD)</div>
+              <div className="font-black text-gray-800">
+                Cash On Delivery (COD)
+              </div>
             </div>
 
             <div 
@@ -330,18 +500,27 @@ export function Cart(props) {
             >
               <div className="flex justify-between items-center">
                 <div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight">
-                  <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">PhonePe</span> 
+                  <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
+                    PhonePe
+                  </span> 
                   UPI (2% CASH DISCOUNT ON NON-COMBO)
                 </div>
-                <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">EXTRA SAVINGS</div>
+                <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">
+                  EXTRA SAVINGS
+                </div>
               </div>
+              
               {paymentMode === 'UPI' && (
                 <div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in" onClick={(e) => e.stopPropagation()}>
                   <p className="text-xs font-bold mb-3">
                     Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span>
                   </p>
                   <div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-2">
-                    <img src={PHONEPE_QR_URL} className="w-48 h-48 object-contain mx-auto" alt="PhonePe UPI Barcode" />
+                    <img 
+                      src={PHONEPE_QR_URL} 
+                      className="w-48 h-48 object-contain mx-auto" 
+                      alt="PhonePe UPI Barcode" 
+                    />
                     <div className="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 bg-purple-700 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                       PhonePe QR
                     </div>
@@ -349,7 +528,9 @@ export function Cart(props) {
                   <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
                     UPI NO: {OFFICE_NUMBER}
                   </div>
-                  <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
+                  <p className="text-[10px] text-gray-400 font-bold mb-3">
+                    Upload Screenshot after payment to confirm order
+                  </p>
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -364,14 +545,25 @@ export function Cart(props) {
               onClick={() => setPaymentMode('DAILY')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
-              <div className="font-black text-purple-900">Daily Collection (Auto-Pay)</div>
+              <div className="font-black text-purple-900">
+                Daily Collection (Auto-Pay)
+              </div>
+              
+              {/* 🟢 RESTORED: DAILY COLLECTION YOUTUBE VIDEO TUTORIAL */}
               {paymentMode === 'DAILY' && (
                 <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-purple-100">
-                  <iframe width="100%" height="180" src="https://www.youtube.com/embed/tgbNymZ7vqY" frameBorder="0" allowFullScreen></iframe>
+                  <iframe 
+                    width="100%" 
+                    height="180" 
+                    src="https://www.youtube.com/embed/tgbNymZ7vqY" 
+                    frameBorder="0" 
+                    allowFullScreen
+                  ></iframe>
                 </div>
               )}
             </div>
           </div>
+          
           <div className="mt-4 mb-8">
             <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 Add Order Remarks (Optional)</h3>
             <textarea
@@ -382,21 +574,30 @@ export function Cart(props) {
               rows="2"
             ></textarea>
           </div>
+          
           <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4 rounded-t-3xl shadow-[0_-10px_25px_rgba(0,0,0,0.1)] z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
               <span>Subtotal</span>
-              <span className="line-through font-mono">₹{baseTotalAmount.toLocaleString('en-IN')}</span>
+              <span className="line-through font-mono">
+                ₹{baseTotalAmount.toLocaleString('en-IN')}
+              </span>
             </div>
             <div className="flex justify-between items-center mb-3">
               <span className="font-black text-gray-800 text-lg">Final Amount</span>
-              <span className="text-blue-900 text-2xl font-black">₹{finalAmount.toLocaleString('en-IN')}</span>
+              <span className="text-blue-900 text-2xl font-black">
+                ₹{finalAmount.toLocaleString('en-IN')}
+              </span>
             </div>
             <button 
               onClick={handleCheckout} 
               disabled={loading} 
               className={`w-full text-white font-black text-base py-3.5 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}
             >
-              {loading ? <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div> : "CONFIRM ORDER"}
+              {loading ? (
+                <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
+              ) : (
+                "CONFIRM ORDER"
+              )}
             </button>
           </div>
         </React.Fragment>
