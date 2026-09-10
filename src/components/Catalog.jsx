@@ -208,7 +208,7 @@ export function Catalog(props) {
   };
 
   // ==========================================
-  // 5. COMBO SCHEME LOGIC
+  // 5. COMBO SCHEME LOGIC (STRICTLY 10 PAIRS)
   // ==========================================
   const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
   let comboP1 = null, comboP2 = null;
@@ -223,11 +223,13 @@ export function Catalog(props) {
           if (comboP1 && comboP2) {
               p1Price = getNum(getProp(comboP1, "DealerPrice"));
               p2Price = getNum(getProp(comboP2, "DealerPrice"));
+              
+              // Calculate for 10 pairs explicitly
               originalTotal = (p1Price + p2Price) * 10;
               
               const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
               comboPrice = match ? parseInt(match[1] || match[0]) : 400;
-              let combo10Price = comboPrice * 10;
+              const combo10Price = comboPrice * 10;
 
               savingsAmt = originalTotal > combo10Price ? originalTotal - combo10Price : 0;
               savingsPct = originalTotal > 0 ? Math.round((savingsAmt / originalTotal) * 100) : 0;
@@ -241,6 +243,7 @@ export function Catalog(props) {
       const itemCode1 = String(getProp(comboP1, "ItemCode"));
       const itemCode2 = String(getProp(comboP2, "ItemCode"));
       
+      // Adding strictly 10 quantities
       updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 10 });
       updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 10 });
       
@@ -250,7 +253,7 @@ export function Catalog(props) {
       }
       alert("✅ 10 Pairs Combo added to cart successfully!");
     } else {
-      alert("Combo Error: Target product not found.");
+      alert("Combo Error: Target product not found in database.");
     }
   };
 
@@ -269,7 +272,6 @@ export function Catalog(props) {
   // ==========================================
   // 7. STRICT IN-STOCK FILTER ENGINE
   // ==========================================
-  // Here we permanently remove items with 0 stock unless they are Hikvision or Velocity.
   const inStockFlat = products.filter(p => {
     const stockVal = getNum(getProp(p, "Stock"));
     const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
@@ -301,7 +303,6 @@ export function Catalog(props) {
           const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
           const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
           
-          // Flash "On Order" if it is Hikvision/Velocity and stock is 0
           const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
           const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
 
@@ -610,24 +611,25 @@ export function Catalog(props) {
           <React.Fragment>
             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
             
+            {/* 🟢 HEADER SCHEMES DISPLAYED IN 2X2 GRID */}
             {schemes.length > 0 && (
-              <div className="bg-white">
+              <div className="bg-white p-2 grid grid-cols-2 gap-2 border-b border-gray-100">
                 {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
                   const progress = calculateSchemeProgress(cartItems, scheme);
                   return (
                     <div 
                       key={idx} 
-                      className={`px-4 py-2 border-b ${progress.isUnlocked ? 'bg-green-50' : 'bg-blue-50'}`}
+                      className={`p-2 rounded-xl border flex flex-col justify-between ${progress.isUnlocked ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-100'}`}
                     >
-                      <div className="flex justify-between items-end mb-1">
-                        <span className={`text-[9px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} w-4/5 leading-tight`}>
+                      <div className="flex justify-between items-start mb-1.5 gap-1">
+                        <span className={`text-[8px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} leading-tight line-clamp-2`}>
                           {scheme.message}
                         </span>
-                        <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>
+                        <span className={`text-[9px] font-black shrink-0 ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>
                           {progress.current}/{progress.required}
                         </span>
                       </div>
-                      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
+                      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner mt-auto">
                         <div 
                           className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all`} 
                           style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
