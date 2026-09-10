@@ -65,8 +65,16 @@ export function Cart(props) {
   // 3. CART CALCULATIONS & SCHEME SPLITTING
   // ==========================================
   const cartItems = Object.values(cart);
+  
+  // 🟢 STRICT COMBO ISOLATION: Jo combo hai use nonCombo list se hata do
+  const isComboScheme = (s) => {
+    return String(s.type).toUpperCase().includes('COMBO') || 
+           String(s.message).toUpperCase().includes('COMBO') || 
+           String(s.target).toUpperCase().includes('COMBO') ||
+           String(s.reward).toUpperCase().includes('COMBO');
+  };
 
-  const nonComboSchemes = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO');
+  const nonComboSchemes = schemes.filter(s => !isComboScheme(s));
   
   const lockedSchemes = nonComboSchemes.filter(s => {
     return !calculateSchemeProgress(cartItems, s).isUnlocked;
@@ -79,21 +87,24 @@ export function Cart(props) {
   let combosApplied = 0;
   let singleComboEffectivePrice = 400; 
   
-  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
+  const comboScheme = schemes.find(s => isComboScheme(s));
   
   if (comboScheme && comboScheme.target) {
       let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
       
       if (targets.length >= 2) {
+          // Broad matching (only first 2 words) so it correctly matches items in the cart
+          let broadTargets = targets.map(t => t.split(" ").slice(0, 2).join(" "));
+          
           let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
           
           cartItems.forEach(item => {
-              let n = String(getProp(item, "ProductName")).toLowerCase().trim();
-              if (n === targets[0]) { 
+              let n = String(getProp(item, "ProductName")).toLowerCase();
+              if (n.includes(broadTargets[0])) { 
                 t1Qty += item.qty; 
                 t1Price = getNum(getProp(item, "DealerPrice")); 
               }
-              if (n === targets[1]) { 
+              else if (n.includes(broadTargets[1])) { 
                 t2Qty += item.qty; 
                 t2Price = getNum(getProp(item, "DealerPrice")); 
               }
@@ -121,7 +132,6 @@ export function Cart(props) {
   const totalComboValue = combosApplied * singleComboEffectivePrice;
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
-  // 🟢 SMART DISCOUNT ENGINE (Calculates Missed Savings if COD/UPI not selected)
   var sortedDiscountsDesc = [...discounts]
     .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
     .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
@@ -139,15 +149,12 @@ export function Cart(props) {
   const nonComboAfterPotentialBulk = nonComboAmount - potentialBulkDiscount;
   const potentialCashDiscount = nonComboAfterPotentialBulk > 0 ? Math.round(nonComboAfterPotentialBulk * 0.02) : 0;
 
-  // 🟢 Strict application: Only if payment is COD or UPI
   const isEligibleForDiscount = paymentMode === 'COD' || paymentMode === 'UPI';
   const bulkDiscountAmount = isEligibleForDiscount ? potentialBulkDiscount : 0;
   const cashDiscountAmount = isEligibleForDiscount ? potentialCashDiscount : 0;
 
-  // Missed Savings Tracker
   const totalMissedSavings = potentialBulkDiscount + potentialCashDiscount;
 
-  // 🟢 ₹1 PER FREEBIE ITEM CALCULATION FOR BACKEND & FINAL TOTAL
   let totalFreebieCost = 0;
   unlockedSchemes.forEach(sch => {
     const match = sch.reward.match(/^(\d+)/);
@@ -382,11 +389,9 @@ export function Cart(props) {
                 );
               })}
 
-              {/* 🟢 UNLOCKED SCHEMES WITH ₹1 PER PIECE VISUAL IN CART */}
               {unlockedSchemes.map((sch, idx) => {
                 const match = sch.reward.match(/^(\d+)/);
                 const freeQty = match ? parseInt(match[1]) : 1;
-                const cost = freeQty * 1;
 
                 return (
                   <div 
@@ -406,11 +411,11 @@ export function Cart(props) {
                     </h4>
                     
                     <div className="font-black text-green-700 text-sm mt-auto pt-2">
-                      ₹{cost}
+                      ₹0
                     </div>
                     
                     <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1">
-                      Qty: {freeQty} <span className="text-[7px]">(₹1/pc)</span>
+                      Qty: {freeQty}
                     </div>
                   </div>
                 )
@@ -477,14 +482,14 @@ export function Cart(props) {
       {cartItems.length > 0 && (
         <React.Fragment>
           
-          {/* 🟢 MISSED SAVINGS WARNING BANNER (Shows if payment mode is DAILY or empty) */}
+          {/* 🟢 STRICT MARATHI TRANSLATION FOR MISSED SAVINGS */}
           {(!isEligibleForDiscount) && totalMissedSavings > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-red-50 border-2 border-red-500 shadow-md animate-pulse">
                <h4 className="font-black text-red-900 text-sm flex items-center gap-2">
                  ⚠️ MISSED SAVINGS: ₹{totalMissedSavings.toLocaleString('en-IN')}
                </h4>
                <p className="text-[10px] font-bold text-red-700 mt-1.5 leading-snug">
-                 You are losing <strong>₹{potentialBulkDiscount} in Bulk Discount</strong> and <strong>₹{potentialCashDiscount} in Cash Discount</strong>. Select <strong>COD</strong> or <strong>UPI</strong> payment mode below to claim these savings immediately!
+                 तुम्ही <strong>₹{potentialBulkDiscount} चे Bulk Discount</strong> आणि <strong>₹{potentialCashDiscount} चे Cash Discount</strong> गमावत आहात! तुमचे पैसे वाचवण्यासाठी कृपया खाली <strong>COD</strong> किंवा <strong>UPI</strong> पेमेंट पर्याय निवडा.
                </p>
             </div>
           )}
