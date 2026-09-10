@@ -13,7 +13,6 @@ export default function OffersView(props) {
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [activeSchemeProducts, setActiveSchemeProducts] = useState([]);
   const [activeSchemeTitle, setActiveSchemeTitle] = useState("");
-  // 🟢 NAYA STATE: Modal ke andar variant selection ke liye
   const [activeVariants, setActiveVariants] = useState({});
 
   useEffect(() => {
@@ -43,10 +42,11 @@ export default function OffersView(props) {
     
     const stockVal = getNum(getProp(product, "Stock"));
     const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
-    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+    const nameStr = String(getProp(product, "ProductName") || "").toUpperCase();
+    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY") || nameStr.includes("HIKVISION") || nameStr.includes("VELOCITY");
     
     const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
-    const prodType = String(getProp(product, "Type") || "").toLowerCase();
+    const prodType = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase();
     const isCable = prodName.includes("cable") || prodType.includes("cable");
     
     const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
@@ -60,25 +60,26 @@ export default function OffersView(props) {
     setCart(updated);
   };
 
-  // 🟢 SMART FILTER ENGINE FOR MODAL
+  // 🟢 STRICT SMART FILTER ENGINE
   const handleViewItems = (scheme) => {
     const targetStr = String(scheme.target || "").toLowerCase();
     const targets = targetStr.split(",").map(t => t.trim()).filter(Boolean);
 
-    // Filter based on Name, Brand, OR Category
     let eligibleProducts = products.filter(p => {
       const brand = String(getProp(p, "Brand") || "").toLowerCase();
       const name = String(getProp(p, "ProductName") || "").toLowerCase();
       const type = String(getProp(p, "Type") || getProp(p, "Category") || "").toLowerCase();
       
-      return targets.some(t => brand.includes(t) || name.includes(t) || type.includes(t));
+      return targets.some(t => brand === t || name.includes(t) || type === t);
     });
 
-    // Remove Out of Stock items immediately
     eligibleProducts = eligibleProducts.filter(p => {
       const stockVal = getNum(getProp(p, "Stock"));
       const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
-      return stockVal > 0 || brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
+      const nameStr = String(getProp(p, "ProductName") || "").toUpperCase();
+      const isAlwaysLive = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY") || nameStr.includes("HIKVISION") || nameStr.includes("VELOCITY");
+      
+      return stockVal > 0 || isAlwaysLive;
     });
 
     if (eligibleProducts.length === 0) {
@@ -131,7 +132,6 @@ export default function OffersView(props) {
     }
   };
 
-  // 🟢 GROUP ELIGIBLE PRODUCTS FOR MODAL DISPLAY
   const groupedModalProducts = groupProductsByVariant(activeSchemeProducts);
 
   return (
@@ -259,7 +259,6 @@ export default function OffersView(props) {
         </div>
       </div>
 
-      {/* 🟢 NEW: CATALOG STYLE PRODUCTS MODAL */}
       {showProductsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-end animate-fade-in">
            <div className="absolute inset-0" onClick={() => setShowProductsModal(false)}></div>
@@ -276,80 +275,83 @@ export default function OffersView(props) {
                  >✕</button>
               </div>
 
-              {/* Grid Layout Identical to Catalog */}
-              <div className="overflow-y-auto p-4 pb-32 grid grid-cols-2 gap-4 relative z-10">
-                 {groupedModalProducts.map((p, idx) => {
-                    var name = String(getProp(p, "ProductName") || "Premium Item");
-                    var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
-                                         (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
-                    var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
-                    
-                    const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
-                    const smartImg = getSmartImage(activeVariant);
-                    const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
-                    const stockVal = getNum(getProp(activeVariant, "Stock"));
-                    
-                    const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
-                    const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
-                    const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+              {/* 🟢 SCROLL FIX APPLIED: flex-1 ensures the grid is not squished */}
+              <div className="flex-1 overflow-y-auto p-4 pb-32">
+                 <div className="grid grid-cols-2 gap-4 relative z-10">
+                    {groupedModalProducts.map((p, idx) => {
+                       var name = String(getProp(p, "ProductName") || "Premium Item");
+                       var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
+                                            (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+                       var activeVariant = p.variants ? p.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
+                       
+                       const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
+                       const smartImg = getSmartImage(activeVariant);
+                       const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
+                       const stockVal = getNum(getProp(activeVariant, "Stock"));
+                       
+                       const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
+                       const nameStr = String(getProp(activeVariant, "ProductName") || "").toUpperCase();
+                       const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY") || nameStr.includes("HIKVISION") || nameStr.includes("VELOCITY");
+                       const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
 
-                    return (
-                      <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative overflow-hidden">
-                        
-                        {showOnOrder && (
-                          <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
-                            ⏳ ON ORDER
-                          </span>
-                        )}
-                        
-                        <div className="mt-1">
-                          {smartImg ? (
-                            <img 
-                              src={smartImg} 
-                              className="h-28 w-full object-contain mb-2 p-1" 
-                              onError={(e) => { e.target.outerHTML = '<div class="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; }} 
-                            /> 
-                          ) : (
-                            <div className="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
-                          )}
-                          <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">{name}</h3>
-                        </div>
-                        
-                        {p.isGrouped && (
-                          <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
-                            {p.variants.map(v => (
-                              <button 
-                                key={String(getProp(v, "ItemCode"))} 
-                                onClick={(e) => { 
-                                  e.stopPropagation(); 
-                                  setActiveVariants(prev => ({ ...prev, [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) })); 
-                                }} 
-                                className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                              >
-                                {v.capacity}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                       return (
+                         <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative overflow-hidden">
+                           
+                           {showOnOrder && (
+                             <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                               ⏳ ON ORDER
+                             </span>
+                           )}
+                           
+                           <div className="mt-1">
+                             {smartImg ? (
+                               <img 
+                                 src={smartImg} 
+                                 className="h-28 w-full object-contain mb-2 p-1" 
+                                 onError={(e) => { e.target.outerHTML = '<div class="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; }} 
+                               /> 
+                             ) : (
+                               <div className="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
+                             )}
+                             <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">{name}</h3>
+                           </div>
+                           
+                           {p.isGrouped && (
+                             <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
+                               {p.variants.map(v => (
+                                 <button 
+                                   key={String(getProp(v, "ItemCode"))} 
+                                   onClick={(e) => { 
+                                     e.stopPropagation(); 
+                                     setActiveVariants(prev => ({ ...prev, [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) })); 
+                                   }} 
+                                   className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                                 >
+                                   {v.capacity}
+                                 </button>
+                               ))}
+                             </div>
+                           )}
 
-                        <div className="mt-1 relative z-20">
-                          <div className="font-black text-lg mb-2 tracking-tight text-blue-950">₹{dealerVal}</div>
-                          
-                          {currentQty > 0 ? (
-                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                              <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
-                              <span className="font-black text-blue-900">{currentQty}</span>
-                              <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
-                              {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                 })}
+                           <div className="mt-1 relative z-20">
+                             <div className="font-black text-lg mb-2 tracking-tight text-blue-950">₹{dealerVal}</div>
+                             
+                             {currentQty > 0 ? (
+                               <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                                 <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                                 <span className="font-black text-blue-900">{currentQty}</span>
+                                 <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                               </div>
+                             ) : (
+                               <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
+                                 {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
+                               </button>
+                             )}
+                           </div>
+                         </div>
+                       );
+                    })}
+                 </div>
               </div>
 
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
