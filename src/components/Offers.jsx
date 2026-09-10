@@ -60,7 +60,6 @@ export default function OffersView(props) {
     setCart(updated);
   };
 
-  // 🟢 STRICT SMART FILTER ENGINE
   const handleViewItems = (scheme) => {
     const targetStr = String(scheme.target || "").toLowerCase();
     const targets = targetStr.split(",").map(t => t.trim()).filter(Boolean);
@@ -115,20 +114,21 @@ export default function OffersView(props) {
       }
   }
 
+  // 🟢 NAYA LOGIC: COMBO MULTIPLES OF 10
   const handleAddCombo = () => {
     if (comboP1 && comboP2) {
       let updated = Object.assign({}, cart);
       const itemCode1 = String(getProp(comboP1, "ItemCode"));
       const itemCode2 = String(getProp(comboP2, "ItemCode"));
       
-      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 1 });
-      updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 1 });
+      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 10 });
+      updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 10 });
       
       setCart(updated);
       if (window.confetti) {
         window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
       }
-      alert("✅ Combo added to cart successfully!");
+      alert("✅ 10 Pairs Combo added to cart successfully!");
     }
   };
 
@@ -187,11 +187,12 @@ export default function OffersView(props) {
                     </div>
                   </div>
 
+                  {/* 🟢 BUTTON TEXT UPDATED FOR 10 PAIRS */}
                   <button 
                     onClick={handleAddCombo} 
                     className="z-10 bg-gradient-to-r from-green-500 to-green-600 text-white font-black px-4 py-3 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex flex-col items-center text-xs border border-green-400"
                   >
-                    <span>🛒 ADD COMBO</span>
+                    <span>🛒 ADD 10 PAIRS</span>
                     <span className="text-[7px] opacity-90 font-bold uppercase tracking-widest mt-0.5">Instant Discount</span>
                   </button>
               </div>
@@ -202,42 +203,42 @@ export default function OffersView(props) {
 
       <div className="mb-6">
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
-        <div className="space-y-3">
+        
+        {/* 🟢 TARGET REWARDS CONVERTED TO 2X2 GRID */}
+        <div className="grid grid-cols-2 gap-3">
           {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((sch, i) => {
             const progress = calculateSchemeProgress(cartItems, sch);
             return (
-              <div key={i} className={`bg-white p-4 rounded-2xl shadow-sm border ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}>
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <span className="bg-blue-100 text-blue-800 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
-                      {sch.type} Scheme
-                    </span>
-                    <h4 className="font-black text-gray-800 text-sm mt-1.5 leading-snug pr-2">{sch.message}</h4>
-                    <p className="text-[10px] text-red-600 font-black mt-1 uppercase">🎁 Reward: {sch.reward}</p>
-                  </div>
+              <div key={i} className={`bg-white p-3 rounded-2xl shadow-sm border flex flex-col justify-between ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}>
+                <div>
+                  <span className="bg-blue-100 text-blue-800 text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider inline-block mb-1">
+                    {sch.type} Scheme
+                  </span>
+                  <h4 className="font-black text-gray-800 text-[10px] leading-snug line-clamp-3">{sch.message}</h4>
+                  <p className="text-[9px] text-red-600 font-black mt-1 uppercase line-clamp-2">🎁 {sch.reward}</p>
                 </div>
                 
-                <div className="mt-3 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
-                  <div className="flex justify-between items-end mb-1.5">
-                     <span className="text-[9px] font-black text-gray-500 uppercase tracking-wide">Scheme Progress</span>
-                     <span className={`text-[10px] font-black ${progress.isUnlocked ? 'text-green-600' : 'text-blue-700'}`}>
+                <div className="mt-2">
+                  <div className="flex justify-between items-end mb-1">
+                     <span className="text-[8px] font-black text-gray-500 uppercase tracking-wide">Progress</span>
+                     <span className={`text-[9px] font-black ${progress.isUnlocked ? 'text-green-600' : 'text-blue-700'}`}>
                         {progress.current} / {progress.required}
                      </span>
                   </div>
-                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2">
                      <div 
                         className={`${progress.isUnlocked ? 'bg-green-500' : 'bg-blue-600'} h-full transition-all duration-500`} 
                         style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
                      ></div>
                   </div>
-                </div>
 
-                <button 
-                  onClick={() => handleViewItems(sch)}
-                  className={`w-full mt-3 font-black text-xs px-4 py-3 rounded-xl shadow-sm active:scale-95 flex items-center justify-center gap-2 transition-colors ${progress.isUnlocked ? 'bg-green-600 text-white' : 'bg-blue-900 text-white'}`}
-                >
-                  {progress.isUnlocked ? '✅ REWARD UNLOCKED - VIEW ITEMS' : '🛒 ADD ELIGIBLE ITEMS'}
-                </button>
+                  <button 
+                    onClick={() => handleViewItems(sch)}
+                    className={`w-full font-black text-[9px] px-2 py-2 rounded-lg shadow-sm active:scale-95 transition-colors ${progress.isUnlocked ? 'bg-green-600 text-white' : 'bg-blue-900 text-white'}`}
+                  >
+                    {progress.isUnlocked ? '✅ UNLOCKED' : '🛒 ADD ITEMS'}
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -275,7 +276,6 @@ export default function OffersView(props) {
                  >✕</button>
               </div>
 
-              {/* 🟢 SCROLL FIX APPLIED: flex-1 ensures the grid is not squished */}
               <div className="flex-1 overflow-y-auto p-4 pb-32">
                  <div className="grid grid-cols-2 gap-4 relative z-10">
                     {groupedModalProducts.map((p, idx) => {

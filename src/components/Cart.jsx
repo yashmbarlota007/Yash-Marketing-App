@@ -35,7 +35,6 @@ export function Cart(props) {
   // 2. DATA FETCHING (API CALLS)
   // ==========================================
   useEffect(() => {
-    // Fetch Discounts
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getDiscounts" }),
@@ -49,7 +48,6 @@ export function Cart(props) {
     })
     .catch(() => {});
     
-    // Fetch Schemes
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getSchemes" }),
@@ -70,10 +68,8 @@ export function Cart(props) {
   const cartItems = Object.values(cart);
   const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
-  // Separate non-combo schemes to check progress
   const nonComboSchemes = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO');
   
-  // Split schemes into Locked and Unlocked
   const lockedSchemes = nonComboSchemes.filter(s => {
     return !calculateSchemeProgress(cartItems, s).isUnlocked;
   });
@@ -127,7 +123,6 @@ export function Cart(props) {
   const totalComboValue = combosApplied * singleComboEffectivePrice;
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
-  // 25 Pcs Celebration Effect
   useEffect(() => {
     if (totalItems >= 25 && !celebrated25Pcs) { 
       if (window.confetti) {
@@ -144,7 +139,6 @@ export function Cart(props) {
     }
   }, [totalItems, celebrated25Pcs]);
 
-  // Bulk Discount Calculations
   var sortedDiscountsDesc = [...discounts]
     .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
     .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
@@ -161,7 +155,21 @@ export function Cart(props) {
   const bulkDiscountAmount = nonComboAmount > 0 ? Math.round(nonComboAmount * (bulkPercent / 100)) : 0;
   const nonComboAfterBulk = nonComboAmount - bulkDiscountAmount;
   const upiDiscountAmount = (paymentMode === 'UPI' && nonComboAfterBulk > 0) ? Math.round(nonComboAfterBulk * 0.02) : 0;
-  const finalAmount = totalComboValue + (nonComboAfterBulk - upiDiscountAmount);
+
+  // 🟢 ₹1 PER FREEBIE ITEM CALCULATION FOR BACKEND & FINAL TOTAL
+  let totalFreebieCost = 0;
+  unlockedSchemes.forEach(sch => {
+    const match = sch.reward.match(/^(\d+)/);
+    const freeQty = match ? parseInt(match[1]) : 1;
+    totalFreebieCost += (freeQty * 1); // ₹1 each backend calculation
+  });
+  
+  // Add ₹1 for the 25 Target Bumper Package
+  if (totalItems >= 25) {
+    totalFreebieCost += 1;
+  }
+
+  const finalAmount = totalComboValue + (nonComboAfterBulk - upiDiscountAmount) + totalFreebieCost;
 
   // ==========================================
   // 4. EVENT HANDLERS
@@ -227,18 +235,19 @@ export function Cart(props) {
     
     setLoading(true);
     
-    // Create base items array
     var itemsList = cartItems.map(function(i) { 
       return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
     });
     
-    // 🟢 BACKEND SYNC: Inject explicit freebies into the order items list
+    // 🟢 BACKEND SYNC: Inject explicit freebies with ₹1 billing value
     unlockedSchemes.forEach(sch => {
-      itemsList.push(`🎁 FREE ITEM: ${sch.reward} (Offer Applied: ${sch.message})`);
+      const match = sch.reward.match(/^(\d+)/);
+      const freeQty = match ? parseInt(match[1]) : 1;
+      itemsList.push(`🎁 FREE ITEM: ${sch.reward} (Qty: ${freeQty} @ ₹1 each) - Offer: ${sch.message}`);
     });
     
     if (totalItems >= 25) {
-      itemsList.push("🎁 FREE ITEM: Target 25 Pcs Bumper Reward Package");
+      itemsList.push("🎁 FREE ITEM: Target 25 Pcs Bumper Reward Package (Qty: 1 @ ₹1 each)");
     }
     
     if (combosApplied > 0) {
@@ -247,7 +256,6 @@ export function Cart(props) {
 
     var finalItemsStr = itemsList.join(" | ");
     
-    // Send to Google Sheets API
     callAPI({
       action: "placeOrder",
       order: { 
@@ -286,7 +294,6 @@ export function Cart(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[180px] font-sans relative">
       
-      {/* 25 PCS BUMPER BANNER */}
       {totalItems >= 25 && (
         <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
            <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">
@@ -298,31 +305,33 @@ export function Cart(props) {
         </div>
       )}
 
-      {/* LOCKED SCHEMES PROGRESS TRACKER */}
-      {lockedSchemes.map((scheme, idx) => {
-        const progress = calculateSchemeProgress(cartItems, scheme);
-        return (
-          <div 
-            key={`locked-${idx}`} 
-            className="p-4 mb-4 rounded-2xl border-2 bg-amber-50 border-amber-300"
-          >
-            <h4 className="font-black text-xs uppercase text-amber-900">
-              {scheme.message}
-            </h4>
-            <div className="w-full bg-gray-200 h-2 rounded-full mt-2 overflow-hidden border border-gray-300 shadow-inner">
-               <div 
-                 className="bg-amber-500 h-full transition-all duration-500" 
-                 style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
-               ></div>
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        {lockedSchemes.map((scheme, idx) => {
+          const progress = calculateSchemeProgress(cartItems, scheme);
+          return (
+            <div 
+              key={`locked-${idx}`} 
+              className="p-3 rounded-2xl border-2 bg-amber-50 border-amber-300 flex flex-col justify-between"
+            >
+              <h4 className="font-black text-[10px] uppercase text-amber-900 leading-snug">
+                {scheme.message}
+              </h4>
+              <div className="mt-2">
+                <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
+                   <div 
+                     className="bg-amber-500 h-full transition-all duration-500" 
+                     style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                   ></div>
+                </div>
+                <p className="text-[9px] font-bold mt-1 text-gray-600 leading-snug">
+                  {progress.current} / {progress.required} added. Add {progress.required - progress.current} more to unlock!
+                </p>
+              </div>
             </div>
-            <p className="text-[10px] font-bold mt-1 text-gray-600">
-              {progress.current} / {progress.required} items added. Add {progress.required - progress.current} more to unlock {scheme.reward}!
-            </p>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
 
-      {/* CART ITEMS LIST */}
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
         {cartItems.length === 0 ? (
           <div className="text-center py-12">
@@ -339,7 +348,6 @@ export function Cart(props) {
           </div>
         ) : (
           <React.Fragment>
-            {/* 🟢 STRICT GRID LAYOUT FOR CART ITEMS & FREEBIES */}
             <div className="grid grid-cols-2 gap-3 mb-6">
               
               {cartItems.map(item => {
@@ -403,37 +411,41 @@ export function Cart(props) {
                 );
               })}
 
-              {/* FREE REWARDS GRID CARDS */}
-              {unlockedSchemes.map((sch, idx) => (
-                <div 
-                  key={`freebie-${idx}`} 
-                  className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden"
-                >
-                  <div className="absolute top-0 right-0 bg-green-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest shadow-md z-20">
-                    100% FREE
+              {/* 🟢 FREE REWARDS RESTORED TO "100% FREE" AND "₹0" UI */}
+              {unlockedSchemes.map((sch, idx) => {
+                const match = sch.reward.match(/^(\d+)/);
+                const freeQty = match ? parseInt(match[1]) : 1;
+
+                return (
+                  <div 
+                    key={`freebie-${idx}`} 
+                    className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 bg-green-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest shadow-md z-20">
+                      100% FREE
+                    </div>
+                    
+                    <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner mb-2 border border-green-100">
+                      🎁
+                    </div>
+                    
+                    <h4 className="text-[10px] font-black text-green-900 leading-tight line-clamp-2 h-8 w-full">
+                      {sch.reward}
+                    </h4>
+                    
+                    <div className="font-black text-green-700 text-sm mt-auto pt-2">
+                      ₹0
+                    </div>
+                    
+                    <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1">
+                      Qty: {freeQty}
+                    </div>
                   </div>
-                  
-                  <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner mb-2 border border-green-100">
-                    🎁
-                  </div>
-                  
-                  <h4 className="text-xs font-black text-green-900 leading-tight line-clamp-2 h-8 w-full">
-                    {sch.reward}
-                  </h4>
-                  
-                  <p className="text-[8px] text-green-700 font-bold mt-1 leading-snug line-clamp-2">
-                    {sch.message}
-                  </p>
-                  
-                  <div className="font-black text-green-700 text-sm mt-auto pt-2">
-                    ₹0
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               
             </div>
 
-            {/* CART SUMMARY TOTALS */}
             <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-200">
               <span className="font-bold text-gray-500 uppercase text-[10px]">
                 Net Value
@@ -442,6 +454,17 @@ export function Cart(props) {
                 ₹{baseTotalAmount.toLocaleString('en-IN')}
               </span>
             </div>
+
+            {totalFreebieCost > 0 && (
+              <div className="flex justify-between items-center mt-3 text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-200 shadow-sm">
+                <span className="font-black uppercase text-[10px] flex items-center gap-1">
+                  🎁 Freebies Billing (₹1/pc)
+                </span>
+                <span className="font-black text-sm">
+                  +₹{totalFreebieCost.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
             
             {combosApplied > 0 && comboDiscountAmount > 0 && (
               <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
@@ -479,7 +502,6 @@ export function Cart(props) {
         )}
       </div>
 
-      {/* PAYMENT OPTIONS */}
       {cartItems.length > 0 && (
         <React.Fragment>
           <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
@@ -549,7 +571,6 @@ export function Cart(props) {
                 Daily Collection (Auto-Pay)
               </div>
               
-              {/* 🟢 RESTORED: DAILY COLLECTION YOUTUBE VIDEO TUTORIAL */}
               {paymentMode === 'DAILY' && (
                 <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-purple-100">
                   <iframe 
