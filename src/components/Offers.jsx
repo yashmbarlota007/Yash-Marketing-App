@@ -62,11 +62,19 @@ export default function OffersView(props) {
     setCart(updated);
   };
 
+  // 🟢 SMART SCHEME & COMBO DETECTION
+  const isComboScheme = (s) => {
+    return String(s.type).toUpperCase().includes('COMBO') || 
+           String(s.message).toUpperCase().includes('COMBO') || 
+           String(s.target).toUpperCase().includes('COMBO') ||
+           String(s.reward).toUpperCase().includes('COMBO');
+  };
+
   const handleViewItems = (scheme) => {
     const targetStr = String(scheme.target || "").toLowerCase();
     const targets = targetStr.split(",").map(t => t.trim()).filter(Boolean);
-
-    const isCombo = String(scheme.type).toUpperCase().includes('COMBO') || String(scheme.message).toUpperCase().includes('COMBO');
+    const isCombo = isComboScheme(scheme);
+    
     setIsComboModal(isCombo);
 
     if (isCombo) {
@@ -81,6 +89,11 @@ export default function OffersView(props) {
       const name = String(getProp(p, "ProductName") || "").toLowerCase();
       const type = String(getProp(p, "Type") || getProp(p, "Category") || "").toLowerCase();
       
+      // Broad matching for combo parts
+      if (isCombo) {
+         let broadTargets = targets.map(t => t.split(" ").slice(0, 2).join(" "));
+         return broadTargets.some(t => name.includes(t) || brand.includes(t));
+      }
       return targets.some(t => brand === t || name.includes(t) || type === t);
     });
 
@@ -103,15 +116,18 @@ export default function OffersView(props) {
     setShowProductsModal(true);
   };
 
-  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
+  const comboScheme = schemes.find(s => isComboScheme(s));
   let comboP1 = null, comboP2 = null;
   let p1Price = 0, p2Price = 0, originalTotal = 0, savingsAmt = 0, savingsPct = 0, comboPrice = 400;
 
   if (comboScheme && comboScheme.target) {
       let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
       if (targets.length >= 2) {
-          comboP1 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[0]);
-          comboP2 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[1]);
+          // Broad matching (only first 2 words) so "Velocity Neckband Boss" matches "Velocity Neckband Wave" target
+          let broadTargets = targets.map(t => t.split(" ").slice(0, 2).join(" "));
+          
+          comboP1 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().includes(broadTargets[0]));
+          comboP2 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().includes(broadTargets[1]));
           
           if (comboP1 && comboP2) {
               p1Price = getNum(getProp(comboP1, "DealerPrice"));
@@ -140,6 +156,8 @@ export default function OffersView(props) {
         window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
       }
       alert("✅ 10 Pairs Combo added to cart successfully!");
+    } else {
+      alert("Combo Error: Target products not found in database.");
     }
   };
 
@@ -239,7 +257,7 @@ export default function OffersView(props) {
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
         
         <div className="grid grid-cols-2 gap-3">
-          {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((sch, i) => {
+          {schemes.filter(s => !isComboScheme(s)).map((sch, i) => {
             const progress = calculateSchemeProgress(cartItems, sch);
             return (
               <div key={i} className={`bg-white p-3 rounded-2xl shadow-sm border flex flex-col justify-between ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}>
@@ -296,6 +314,8 @@ export default function OffersView(props) {
       {showProductsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-end animate-fade-in">
            <div className="absolute inset-0" onClick={() => setShowProductsModal(false)}></div>
+           
+           {/* 🟢 FIXED: Modal container set to flex column with strict height */}
            <div className="bg-gray-50 w-full max-w-md rounded-t-3xl h-[85vh] flex flex-col relative z-10 animate-slide-up shadow-2xl overflow-hidden">
               
               <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white shadow-md z-20 shrink-0">
@@ -311,8 +331,9 @@ export default function OffersView(props) {
                  >✕</button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 pb-40">
-                 <div className="grid grid-cols-2 gap-4 relative z-10">
+              {/* 🟢 FIXED: Scrollable area takes exactly the remaining space */}
+              <div className="flex-1 overflow-y-auto p-4">
+                 <div className="grid grid-cols-2 gap-4">
                     {groupedModalProducts.map((p, idx) => {
                        var name = String(getProp(p, "ProductName") || "Premium Item");
                        var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
@@ -391,7 +412,8 @@ export default function OffersView(props) {
                  </div>
               </div>
 
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
+              {/* 🟢 FIXED: Footer is perfectly constrained at the bottom */}
+              <div className="p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] shrink-0 z-20">
                  {isComboModal ? (
                     <div>
                       <div className="flex justify-between items-center mb-2 px-1">
