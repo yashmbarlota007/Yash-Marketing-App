@@ -28,7 +28,6 @@ export function Cart(props) {
     { minAmount: 10000, percent: 1 }, 
     { minAmount: 20000, percent: 1.5 }
   ]);
-  const [celebrated25Pcs, setCelebrated25Pcs] = useState(false);
   const [orderRemarks, setOrderRemarks] = useState("");
 
   // ==========================================
@@ -66,7 +65,6 @@ export function Cart(props) {
   // 3. CART CALCULATIONS & SCHEME SPLITTING
   // ==========================================
   const cartItems = Object.values(cart);
-  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
 
   const nonComboSchemes = schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO');
   
@@ -123,38 +121,31 @@ export function Cart(props) {
   const totalComboValue = combosApplied * singleComboEffectivePrice;
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
-  useEffect(() => {
-    if (totalItems >= 25 && !celebrated25Pcs) { 
-      if (window.confetti) {
-        window.confetti({ 
-          particleCount: 200, 
-          spread: 90, 
-          origin: { y: 0.5 }, 
-          colors: ['#ffc0cb', '#87ceeb', '#ffd700'] 
-        }); 
-      }
-      setCelebrated25Pcs(true); 
-    } else if (totalItems < 25) {
-      setCelebrated25Pcs(false);
-    }
-  }, [totalItems, celebrated25Pcs]);
-
+  // 🟢 SMART DISCOUNT ENGINE (Calculates Missed Savings if COD/UPI not selected)
   var sortedDiscountsDesc = [...discounts]
     .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
     .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
     .sort((a, b) => b.minAmount - a.minAmount);
     
-  let bulkPercent = 0;
+  let potentialBulkPercent = 0;
   for (var i = 0; i < sortedDiscountsDesc.length; i++) { 
     if (totalAmount >= sortedDiscountsDesc[i].minAmount) { 
-      bulkPercent = sortedDiscountsDesc[i].percent; 
+      potentialBulkPercent = sortedDiscountsDesc[i].percent; 
       break; 
     } 
   }
   
-  const bulkDiscountAmount = nonComboAmount > 0 ? Math.round(nonComboAmount * (bulkPercent / 100)) : 0;
-  const nonComboAfterBulk = nonComboAmount - bulkDiscountAmount;
-  const upiDiscountAmount = (paymentMode === 'UPI' && nonComboAfterBulk > 0) ? Math.round(nonComboAfterBulk * 0.02) : 0;
+  const potentialBulkDiscount = nonComboAmount > 0 ? Math.round(nonComboAmount * (potentialBulkPercent / 100)) : 0;
+  const nonComboAfterPotentialBulk = nonComboAmount - potentialBulkDiscount;
+  const potentialCashDiscount = nonComboAfterPotentialBulk > 0 ? Math.round(nonComboAfterPotentialBulk * 0.02) : 0;
+
+  // 🟢 Strict application: Only if payment is COD or UPI
+  const isEligibleForDiscount = paymentMode === 'COD' || paymentMode === 'UPI';
+  const bulkDiscountAmount = isEligibleForDiscount ? potentialBulkDiscount : 0;
+  const cashDiscountAmount = isEligibleForDiscount ? potentialCashDiscount : 0;
+
+  // Missed Savings Tracker
+  const totalMissedSavings = potentialBulkDiscount + potentialCashDiscount;
 
   // 🟢 ₹1 PER FREEBIE ITEM CALCULATION FOR BACKEND & FINAL TOTAL
   let totalFreebieCost = 0;
@@ -163,13 +154,8 @@ export function Cart(props) {
     const freeQty = match ? parseInt(match[1]) : 1;
     totalFreebieCost += (freeQty * 1); // ₹1 each backend calculation
   });
-  
-  // Add ₹1 for the 25 Target Bumper Package
-  if (totalItems >= 25) {
-    totalFreebieCost += 1;
-  }
 
-  const finalAmount = totalComboValue + (nonComboAfterBulk - upiDiscountAmount) + totalFreebieCost;
+  const finalAmount = totalComboValue + (nonComboAmount - bulkDiscountAmount - cashDiscountAmount) + totalFreebieCost;
 
   // ==========================================
   // 4. EVENT HANDLERS
@@ -246,10 +232,6 @@ export function Cart(props) {
       itemsList.push(`🎁 FREE ITEM: ${sch.reward} (Qty: ${freeQty} @ ₹1 each) - Offer: ${sch.message}`);
     });
     
-    if (totalItems >= 25) {
-      itemsList.push("🎁 FREE ITEM: Target 25 Pcs Bumper Reward Package (Qty: 1 @ ₹1 each)");
-    }
-    
     if (combosApplied > 0) {
       itemsList.push(`🎁 APPLIED: Combo Offer (${combosApplied}x) - Saved ₹${comboDiscountAmount}`);
     }
@@ -267,8 +249,8 @@ export function Cart(props) {
         paymentMode: paymentMode, 
         comboDiscount: comboDiscountAmount,
         bulkDiscount: bulkDiscountAmount, 
-        bulkPercent: bulkPercent, 
-        upiDiscount: upiDiscountAmount,
+        bulkPercent: potentialBulkPercent, 
+        upiDiscount: cashDiscountAmount,
         rewards: unlockedSchemes.map(s => s.reward).join(", "), 
         remarks: orderRemarks,
         screenshot: screenshotData
@@ -293,17 +275,6 @@ export function Cart(props) {
   // ==========================================
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[180px] font-sans relative">
-      
-      {totalItems >= 25 && (
-        <div className="p-4 mb-4 rounded-2xl border-2 bg-green-50 border-green-500 shadow-md">
-           <h4 className="font-black text-xs text-green-950 uppercase flex items-center gap-1">
-             🏆 25 PCS TARGET ACHIEVED
-           </h4>
-           <p className="text-[10px] font-bold text-green-700 mt-1">
-             Bumper celebration package and direct extra reward points allocated explicitly under this master checkout request.
-           </p>
-        </div>
-      )}
 
       <div className="grid grid-cols-2 gap-3 mb-6">
         {lockedSchemes.map((scheme, idx) => {
@@ -411,10 +382,11 @@ export function Cart(props) {
                 );
               })}
 
-              {/* 🟢 FREE REWARDS RESTORED TO "100% FREE" AND "₹0" UI */}
+              {/* 🟢 UNLOCKED SCHEMES WITH ₹1 PER PIECE VISUAL IN CART */}
               {unlockedSchemes.map((sch, idx) => {
                 const match = sch.reward.match(/^(\d+)/);
                 const freeQty = match ? parseInt(match[1]) : 1;
+                const cost = freeQty * 1;
 
                 return (
                   <div 
@@ -434,11 +406,11 @@ export function Cart(props) {
                     </h4>
                     
                     <div className="font-black text-green-700 text-sm mt-auto pt-2">
-                      ₹0
+                      ₹{cost}
                     </div>
                     
                     <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1">
-                      Qty: {freeQty}
+                      Qty: {freeQty} <span className="text-[7px]">(₹1/pc)</span>
                     </div>
                   </div>
                 )
@@ -480,7 +452,7 @@ export function Cart(props) {
             {bulkDiscountAmount > 0 && (
               <div className="flex justify-between items-center mt-2 text-green-700">
                 <span className="font-black uppercase text-[10px]">
-                  Bulk Discount ({bulkPercent}%) (Non-Combo)
+                  Bulk Discount ({potentialBulkPercent}%)
                 </span>
                 <span className="font-black text-sm">
                   -₹{bulkDiscountAmount.toLocaleString('en-IN')}
@@ -488,13 +460,13 @@ export function Cart(props) {
               </div>
             )}
             
-            {paymentMode === 'UPI' && upiDiscountAmount > 0 && (
+            {cashDiscountAmount > 0 && (
               <div className="flex justify-between items-center mt-2 text-green-700">
                 <span className="font-black uppercase text-[10px]">
-                  UPI Discount (2%) (Non-Combo)
+                  Cash Discount (2%)
                 </span>
                 <span className="font-black text-sm">
-                  -₹{upiDiscountAmount.toLocaleString('en-IN')}
+                  -₹{cashDiscountAmount.toLocaleString('en-IN')}
                 </span>
               </div>
             )}
@@ -504,6 +476,19 @@ export function Cart(props) {
 
       {cartItems.length > 0 && (
         <React.Fragment>
+          
+          {/* 🟢 MISSED SAVINGS WARNING BANNER (Shows if payment mode is DAILY or empty) */}
+          {(!isEligibleForDiscount) && totalMissedSavings > 0 && (
+            <div className="mb-6 p-4 rounded-2xl bg-red-50 border-2 border-red-500 shadow-md animate-pulse">
+               <h4 className="font-black text-red-900 text-sm flex items-center gap-2">
+                 ⚠️ MISSED SAVINGS: ₹{totalMissedSavings.toLocaleString('en-IN')}
+               </h4>
+               <p className="text-[10px] font-bold text-red-700 mt-1.5 leading-snug">
+                 You are losing <strong>₹{potentialBulkDiscount} in Bulk Discount</strong> and <strong>₹{potentialCashDiscount} in Cash Discount</strong>. Select <strong>COD</strong> or <strong>UPI</strong> payment mode below to claim these savings immediately!
+               </p>
+            </div>
+          )}
+
           <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
           <div className="space-y-3 mb-8">
             
@@ -511,8 +496,14 @@ export function Cart(props) {
               onClick={() => setPaymentMode('COD')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
-              <div className="font-black text-gray-800">
-                Cash On Delivery (COD)
+              <div className="flex justify-between items-center">
+                <div className="font-black text-blue-900 flex items-center gap-1.5 tracking-tight text-sm">
+                  Cash On Delivery
+                  <span className="text-[9px] font-bold text-gray-500">(2% CASH DISCOUNT)</span>
+                </div>
+                <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">
+                  EXTRA SAVINGS
+                </div>
               </div>
             </div>
 
@@ -521,11 +512,11 @@ export function Cart(props) {
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
-                <div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight">
+                <div className="font-black text-purple-900 flex items-center gap-1.5 tracking-tight text-sm">
                   <span className="bg-purple-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">
                     PhonePe
                   </span> 
-                  UPI (2% CASH DISCOUNT ON NON-COMBO)
+                  UPI <span className="text-[9px] font-bold text-gray-500">(2% CASH DISCOUNT)</span>
                 </div>
                 <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">
                   EXTRA SAVINGS
@@ -565,14 +556,19 @@ export function Cart(props) {
             
             <div 
               onClick={() => setPaymentMode('DAILY')} 
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-gray-800 bg-gray-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
-              <div className="font-black text-purple-900">
-                Daily Collection (Auto-Pay)
+              <div className="flex justify-between items-center">
+                <div className="font-black text-gray-800 text-sm">
+                  Daily Collection (Auto-Pay)
+                </div>
+                <div className="bg-red-100 text-red-700 border border-red-200 text-[8px] px-2 py-0.5 rounded font-black uppercase">
+                  0% Discount
+                </div>
               </div>
               
               {paymentMode === 'DAILY' && (
-                <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-purple-100">
+                <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-gray-300">
                   <iframe 
                     width="100%" 
                     height="180" 
