@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   API_URL, 
   getNum, 
@@ -21,6 +21,10 @@ export function Cart(props) {
   var globalProps = props.globalProps;
   
   const [loading, setLoading] = useState(false);
+  
+  // 🟢 NAYA: INSTANT DOUBLE-CLICK LOCK
+  const submitLock = useRef(false);
+
   const [schemes, setSchemes] = useState([]); 
   const [paymentMode, setPaymentMode] = useState("");
   const [screenshotData, setScreenshotData] = useState(null);
@@ -66,7 +70,7 @@ export function Cart(props) {
   // ==========================================
   const cartItems = Object.values(cart);
   
-  // 🟢 STRICT COMBO ISOLATION: Jo combo hai use nonCombo list se hata do
+  // STRICT COMBO ISOLATION: Jo combo hai use nonCombo list se hata do
   const isComboScheme = (s) => {
     return String(s.type).toUpperCase().includes('COMBO') || 
            String(s.message).toUpperCase().includes('COMBO') || 
@@ -218,6 +222,9 @@ export function Cart(props) {
   };
 
   const handleCheckout = function() {
+    // 🟢 PREVENT DOUBLE CLICKS: Agar submit lock active hai toh turant return ho jao
+    if (submitLock.current) return;
+
     if (!paymentMode) {
       return alert("Please select Payment Mode!");
     }
@@ -226,13 +233,15 @@ export function Cart(props) {
       return alert("Upload Payment Screenshot first!");
     }
     
+    // 🟢 ACTIVATE LOCK IMMEDIATELY
+    submitLock.current = true;
     setLoading(true);
     
     var itemsList = cartItems.map(function(i) { 
       return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
     });
     
-    // 🟢 BACKEND SYNC: Inject explicit freebies with ₹1 billing value
+    // BACKEND SYNC: Inject explicit freebies with ₹1 billing value
     unlockedSchemes.forEach(sch => {
       const match = sch.reward.match(/^(\d+)/);
       const freeQty = match ? parseInt(match[1]) : 1;
@@ -263,7 +272,9 @@ export function Cart(props) {
         screenshot: screenshotData
       }
     }).then(function(res) {
+      submitLock.current = false; // RELEASE LOCK ON SUCCESS
       setLoading(false);
+      
       if (res && res.success) {
         alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount + "\n\nWe will dispatch it shortly.");
         globalProps.logSpyData("Order Placed", "Val: ₹" + finalAmount);
@@ -274,6 +285,10 @@ export function Cart(props) {
         setCart({}); 
         setView("catalog");
       }
+    }).catch(function() {
+      submitLock.current = false; // RELEASE LOCK ON ERROR
+      setLoading(false);
+      alert("Network Error: Could not place order. Please check your internet and try again.");
     });
   };
 
@@ -415,7 +430,7 @@ export function Cart(props) {
                     </div>
                     
                     <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1">
-                      Qty: {freeQty}
+                      Qty: {freeQty} <span className="text-[7px]">(₹1/pc)</span>
                     </div>
                   </div>
                 )
