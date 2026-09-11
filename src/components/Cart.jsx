@@ -22,7 +22,7 @@ export function Cart(props) {
   
   const [loading, setLoading] = useState(false);
   
-  // 🟢 NAYA: INSTANT DOUBLE-CLICK LOCK
+  // 🟢 SYNCHRONOUS LOCK FOR DOUBLE CLICKS
   const submitLock = useRef(false);
 
   const [schemes, setSchemes] = useState([]); 
@@ -43,34 +43,41 @@ export function Cart(props) {
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then(r => r.json())
-    .then(res => { 
+    .then((r) => {
+      return r.json();
+    })
+    .then((res) => { 
       if (res && res.success && res.data.length > 0) {
         setDiscounts(res.data); 
       }
     })
-    .catch(() => {});
+    .catch(() => {
+      console.log("Discount API Failed");
+    });
     
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then(r => r.json())
-    .then(res => { 
+    .then((r) => {
+      return r.json();
+    })
+    .then((res) => { 
       if (res && res.success) {
         setSchemes(res.data); 
       }
     })
-    .catch(() => {});
+    .catch(() => {
+      console.log("Schemes API Failed");
+    });
   }, []);
 
   // ==========================================
   // 3. CART CALCULATIONS & SCHEME SPLITTING
   // ==========================================
   const cartItems = Object.values(cart);
-  
-  // STRICT COMBO ISOLATION: Jo combo hai use nonCombo list se hata do
+
   const isComboScheme = (s) => {
     return String(s.type).toUpperCase().includes('COMBO') || 
            String(s.message).toUpperCase().includes('COMBO') || 
@@ -78,31 +85,44 @@ export function Cart(props) {
            String(s.reward).toUpperCase().includes('COMBO');
   };
 
-  const nonComboSchemes = schemes.filter(s => !isComboScheme(s));
-  
-  const lockedSchemes = nonComboSchemes.filter(s => {
-    return !calculateSchemeProgress(cartItems, s).isUnlocked;
+  const nonComboSchemes = schemes.filter((s) => {
+    return !isComboScheme(s);
   });
-  const unlockedSchemes = nonComboSchemes.filter(s => {
-    return calculateSchemeProgress(cartItems, s).isUnlocked;
+  
+  const lockedSchemes = nonComboSchemes.filter((s) => {
+    const progress = calculateSchemeProgress(cartItems, s);
+    return !progress.isUnlocked;
+  });
+
+  const unlockedSchemes = nonComboSchemes.filter((s) => {
+    const progress = calculateSchemeProgress(cartItems, s);
+    return progress.isUnlocked;
   });
 
   let comboDiscountAmount = 0;
   let combosApplied = 0;
   let singleComboEffectivePrice = 400; 
   
-  const comboScheme = schemes.find(s => isComboScheme(s));
+  const comboScheme = schemes.find((s) => {
+    return isComboScheme(s);
+  });
   
   if (comboScheme && comboScheme.target) {
-      let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
+      let targets = comboScheme.target.split(",").map((t) => {
+        return t.trim().toLowerCase();
+      });
       
       if (targets.length >= 2) {
-          // Broad matching (only first 2 words) so it correctly matches items in the cart
-          let broadTargets = targets.map(t => t.split(" ").slice(0, 2).join(" "));
+          let broadTargets = targets.map((t) => {
+            return t.split(" ").slice(0, 2).join(" ");
+          });
           
-          let t1Qty = 0, t2Qty = 0, t1Price = 0, t2Price = 0;
+          let t1Qty = 0;
+          let t2Qty = 0;
+          let t1Price = 0;
+          let t2Price = 0;
           
-          cartItems.forEach(item => {
+          cartItems.forEach((item) => {
               let n = String(getProp(item, "ProductName")).toLowerCase();
               if (n.includes(broadTargets[0])) { 
                 t1Qty += item.qty; 
@@ -136,10 +156,18 @@ export function Cart(props) {
   const totalComboValue = combosApplied * singleComboEffectivePrice;
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
-  var sortedDiscountsDesc = [...discounts]
-    .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
-    .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-    .sort((a, b) => b.minAmount - a.minAmount);
+  var sortedDiscountsDesc = [...discounts].map((d) => {
+      return { 
+        minAmount: getNum(d.minAmount), 
+        percent: getNum(d.percent) 
+      };
+    })
+    .filter((d) => {
+      return !isNaN(d.minAmount) && !isNaN(d.percent);
+    })
+    .sort((a, b) => {
+      return b.minAmount - a.minAmount;
+    });
     
   let potentialBulkPercent = 0;
   for (var i = 0; i < sortedDiscountsDesc.length; i++) { 
@@ -159,11 +187,12 @@ export function Cart(props) {
 
   const totalMissedSavings = potentialBulkDiscount + potentialCashDiscount;
 
+  // 🟢 ₹1 PER FREEBIE ITEM CALCULATION FOR BACKEND & FINAL TOTAL
   let totalFreebieCost = 0;
-  unlockedSchemes.forEach(sch => {
+  unlockedSchemes.forEach((sch) => {
     const match = sch.reward.match(/^(\d+)/);
     const freeQty = match ? parseInt(match[1]) : 1;
-    totalFreebieCost += (freeQty * 1); // ₹1 each backend calculation
+    totalFreebieCost += (freeQty * 1); 
   });
 
   const finalAmount = totalComboValue + (nonComboAmount - bulkDiscountAmount - cashDiscountAmount) + totalFreebieCost;
@@ -173,7 +202,9 @@ export function Cart(props) {
   // ==========================================
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
@@ -194,7 +225,9 @@ export function Cart(props) {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
     
-    if (!itemCode) return;
+    if (!itemCode) {
+      return;
+    }
     
     const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
     const stockVal = getNum(getProp(product, "Stock"));
@@ -222,8 +255,10 @@ export function Cart(props) {
   };
 
   const handleCheckout = function() {
-    // 🟢 PREVENT DOUBLE CLICKS: Agar submit lock active hai toh turant return ho jao
-    if (submitLock.current) return;
+    // 🟢 LOCK SYSTEM FOR DOUBLE CLICK BUG
+    if (submitLock.current === true) {
+      return;
+    }
 
     if (!paymentMode) {
       return alert("Please select Payment Mode!");
@@ -233,7 +268,6 @@ export function Cart(props) {
       return alert("Upload Payment Screenshot first!");
     }
     
-    // 🟢 ACTIVATE LOCK IMMEDIATELY
     submitLock.current = true;
     setLoading(true);
     
@@ -241,8 +275,7 @@ export function Cart(props) {
       return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
     });
     
-    // BACKEND SYNC: Inject explicit freebies with ₹1 billing value
-    unlockedSchemes.forEach(sch => {
+    unlockedSchemes.forEach((sch) => {
       const match = sch.reward.match(/^(\d+)/);
       const freeQty = match ? parseInt(match[1]) : 1;
       itemsList.push(`🎁 FREE ITEM: ${sch.reward} (Qty: ${freeQty} @ ₹1 each) - Offer: ${sch.message}`);
@@ -272,7 +305,7 @@ export function Cart(props) {
         screenshot: screenshotData
       }
     }).then(function(res) {
-      submitLock.current = false; // RELEASE LOCK ON SUCCESS
+      submitLock.current = false;
       setLoading(false);
       
       if (res && res.success) {
@@ -286,9 +319,9 @@ export function Cart(props) {
         setView("catalog");
       }
     }).catch(function() {
-      submitLock.current = false; // RELEASE LOCK ON ERROR
+      submitLock.current = false;
       setLoading(false);
-      alert("Network Error: Could not place order. Please check your internet and try again.");
+      alert("Network Error: Could not place order. Please try again.");
     });
   };
 
@@ -333,7 +366,9 @@ export function Cart(props) {
               Cart Khali Hai
             </p>
             <button 
-              onClick={() => setView("catalog")} 
+              onClick={() => {
+                setView("catalog");
+              }} 
               className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm"
             >
               Catalog par jayein
@@ -343,7 +378,7 @@ export function Cart(props) {
           <React.Fragment>
             <div className="grid grid-cols-2 gap-3 mb-6">
               
-              {cartItems.map(item => {
+              {cartItems.map((item) => {
                 var smartImg = getSmartImage(item);
                 var itemName = String(getProp(item, "ProductName") || "Premium Item");
                 var dealerPrice = getNum(getProp(item, "DealerPrice"));
@@ -385,7 +420,9 @@ export function Cart(props) {
                     
                     <div className="flex items-center justify-between w-full bg-gray-100 rounded-xl p-1 border border-gray-200 mt-auto">
                       <button 
-                        onClick={() => updateQty(item, -1)} 
+                        onClick={() => {
+                          updateQty(item, -1);
+                        }} 
                         className="bg-white text-gray-800 font-black w-8 h-8 rounded-lg shadow-sm flex items-center justify-center"
                       >
                         -
@@ -394,7 +431,9 @@ export function Cart(props) {
                         {item.qty}
                       </span>
                       <button 
-                        onClick={() => updateQty(item, 1)} 
+                        onClick={() => {
+                          updateQty(item, 1);
+                        }} 
                         className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm flex items-center justify-center"
                       >
                         +
@@ -407,6 +446,7 @@ export function Cart(props) {
               {unlockedSchemes.map((sch, idx) => {
                 const match = sch.reward.match(/^(\d+)/);
                 const freeQty = match ? parseInt(match[1]) : 1;
+                const cost = freeQty * 1; // 1 RS billing logic calculation
 
                 return (
                   <div 
@@ -414,7 +454,7 @@ export function Cart(props) {
                     className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden"
                   >
                     <div className="absolute top-0 right-0 bg-green-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest shadow-md z-20">
-                      100% FREE
+                      ₹1 / PC BILLING
                     </div>
                     
                     <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner mb-2 border border-green-100">
@@ -426,14 +466,14 @@ export function Cart(props) {
                     </h4>
                     
                     <div className="font-black text-green-700 text-sm mt-auto pt-2">
-                      ₹0
+                      ₹{cost}
                     </div>
                     
-                    <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1">
-                      Qty: {freeQty} <span className="text-[7px]">(₹1/pc)</span>
+                    <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1 flex flex-col items-center justify-center">
+                      <span>Qty: {freeQty}</span>
                     </div>
                   </div>
-                )
+                );
               })}
               
             </div>
@@ -497,7 +537,6 @@ export function Cart(props) {
       {cartItems.length > 0 && (
         <React.Fragment>
           
-          {/* 🟢 STRICT MARATHI TRANSLATION FOR MISSED SAVINGS */}
           {(!isEligibleForDiscount) && totalMissedSavings > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-red-50 border-2 border-red-500 shadow-md animate-pulse">
                <h4 className="font-black text-red-900 text-sm flex items-center gap-2">
@@ -513,7 +552,9 @@ export function Cart(props) {
           <div className="space-y-3 mb-8">
             
             <div 
-              onClick={() => setPaymentMode('COD')} 
+              onClick={() => {
+                setPaymentMode('COD');
+              }} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -528,7 +569,9 @@ export function Cart(props) {
             </div>
 
             <div 
-              onClick={() => setPaymentMode('UPI')} 
+              onClick={() => {
+                setPaymentMode('UPI');
+              }} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -544,7 +587,12 @@ export function Cart(props) {
               </div>
               
               {paymentMode === 'UPI' && (
-                <div className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in" onClick={(e) => e.stopPropagation()}>
+                <div 
+                  className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
                   <p className="text-xs font-bold mb-3">
                     Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span>
                   </p>
@@ -575,7 +623,9 @@ export function Cart(props) {
             </div>
             
             <div 
-              onClick={() => setPaymentMode('DAILY')} 
+              onClick={() => {
+                setPaymentMode('DAILY');
+              }} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-gray-800 bg-gray-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -605,7 +655,9 @@ export function Cart(props) {
             <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 Add Order Remarks (Optional)</h3>
             <textarea
               value={orderRemarks}
-              onChange={(e) => setOrderRemarks(e.target.value)}
+              onChange={(e) => {
+                setOrderRemarks(e.target.value);
+              }}
               placeholder="Koi specific instruction ya request hai toh yahan likhein..."
               className="w-full bg-white p-4 rounded-2xl border-2 border-gray-200 focus:border-blue-600 outline-none font-bold text-xs text-gray-700 shadow-sm transition-all"
               rows="2"
@@ -627,8 +679,8 @@ export function Cart(props) {
             </div>
             <button 
               onClick={handleCheckout} 
-              disabled={loading} 
-              className={`w-full text-white font-black text-base py-3.5 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${!paymentMode ? 'bg-gray-300' : 'bg-blue-900'}`}
+              disabled={loading || submitLock.current} 
+              className={`w-full text-white font-black text-base py-3.5 rounded-2xl shadow-lg active:scale-95 flex justify-center items-center ${(!paymentMode || submitLock.current) ? 'bg-gray-300' : 'bg-blue-900'}`}
             >
               {loading ? (
                 <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>

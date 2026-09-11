@@ -26,12 +26,17 @@ export function Catalog(props) {
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  
   const [discounts, setDiscounts] = useState([
     { minAmount: 10000, percent: 1 }, 
     { minAmount: 20000, percent: 1.5 }
   ]);
+  
   const [schemes, setSchemes] = useState([]); 
-  const [celebratedTiers, setCelebratedTiers] = useState({ tier1: false, tier2: false });
+  const [celebratedTiers, setCelebratedTiers] = useState({ 
+    tier1: false, 
+    tier2: false 
+  });
   const [activeVariants, setActiveVariants] = useState({});
   
   // Filter States
@@ -49,14 +54,18 @@ export function Catalog(props) {
         body: JSON.stringify({ action: "getProducts" }),
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }
       })
-      .then(r => r.json())
-      .then(res => { 
+      .then((r) => {
+        return r.json();
+      })
+      .then((res) => { 
         if (res && res.success && Array.isArray(res.data)) {
           setProducts(res.data);
         }
         setLoading(false); 
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoading(false);
+      });
     }
     
     // Fetch Discounts
@@ -65,8 +74,10 @@ export function Catalog(props) {
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then(r => r.json())
-    .then(res => { 
+    .then((r) => {
+      return r.json();
+    })
+    .then((res) => { 
       if (res && res.success && res.data.length > 0) {
         setDiscounts(res.data); 
       }
@@ -79,8 +90,10 @@ export function Catalog(props) {
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then(r => r.json())
-    .then(res => { 
+    .then((r) => {
+      return r.json();
+    })
+    .then((res) => { 
       if (res && res.success) {
         setSchemes(res.data); 
       }
@@ -92,11 +105,20 @@ export function Catalog(props) {
   // 3. CART & PROGRESS CALCULATIONS
   // ==========================================
   const cartItems = Object.values(cart);
-  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   
-  const totalAmount = cartItems.reduce((a, b) => a + (getNum(getProp(b, "DealerPrice")) * b.qty), 0) - (function(){
-    let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
-    cartItems.forEach(i => {
+  const totalItems = cartItems.reduce((a, b) => {
+    return a + b.qty;
+  }, 0);
+  
+  const totalAmount = cartItems.reduce((a, b) => {
+    return a + (getNum(getProp(b, "DealerPrice")) * b.qty);
+  }, 0) - (function(){
+    let nQty = 0;
+    let pQty = 0;
+    let nPrice = 0;
+    let pPrice = 0;
+    
+    cartItems.forEach((i) => {
       let n = String(getProp(i, "ProductName")).toLowerCase().trim();
       if (n === "velocity neckband wave") { 
         nQty += i.qty; 
@@ -107,15 +129,26 @@ export function Catalog(props) {
         pPrice = getNum(getProp(i, "DealerPrice")); 
       }
     });
-    return (Math.min(nQty, pQty) > 0 && (nPrice + pPrice) > 400) ? ((nPrice + pPrice) - 400) * Math.min(nQty, pQty) : 0;
+    
+    if (Math.min(nQty, pQty) > 0 && (nPrice + pPrice) > 400) {
+      return ((nPrice + pPrice) - 400) * Math.min(nQty, pQty);
+    } else {
+      return 0;
+    }
   })();
 
   // Discount Tier Celebration Logic
   useEffect(() => {
     var sortedDiscounts = [...discounts]
-      .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
-      .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-      .sort((a, b) => a.minAmount - b.minAmount);
+      .map((d) => {
+        return { minAmount: getNum(d.minAmount), percent: getNum(d.percent) };
+      })
+      .filter((d) => {
+        return !isNaN(d.minAmount) && !isNaN(d.percent);
+      })
+      .sort((a, b) => {
+        return a.minAmount - b.minAmount;
+      });
       
     var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
     var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
@@ -125,17 +158,23 @@ export function Catalog(props) {
         if (window.confetti) {
           window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); 
         }
-        setCelebratedTiers(prev => ({...prev, tier2: true })); 
+        setCelebratedTiers((prev) => {
+          return {...prev, tier2: true };
+        }); 
       }
     } else if (totalAmount >= tier1Min) {
       if (!celebratedTiers.tier1) { 
         if (window.confetti) {
           window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }
-        setCelebratedTiers(prev => ({...prev, tier1: true })); 
+        setCelebratedTiers((prev) => {
+          return {...prev, tier1: true };
+        }); 
       }
       if (celebratedTiers.tier2) {
-        setCelebratedTiers(prev => ({...prev, tier2: false }));
+        setCelebratedTiers((prev) => {
+          return {...prev, tier2: false };
+        });
       }
     } else { 
       if (celebratedTiers.tier1 || celebratedTiers.tier2) {
@@ -174,14 +213,22 @@ export function Catalog(props) {
       }
     };
     window.addEventListener('popstate', handlePop);
-    return () => window.removeEventListener('popstate', handlePop);
+    return () => {
+      window.removeEventListener('popstate', handlePop);
+    };
   }, [selectedProduct, selectedType]);
 
   const updateQty = (product, change) => {
-    if (globalProps.customerMode) return;
+    if (globalProps.customerMode) {
+      return;
+    }
+    
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
-    if (!itemCode) return;
+    
+    if (!itemCode) {
+      return;
+    }
     
     const stockVal = getNum(getProp(product, "Stock"));
     const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
@@ -204,61 +251,12 @@ export function Catalog(props) {
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
     }
+    
     setCart(updated);
   };
 
   // ==========================================
-  // 5. COMBO SCHEME LOGIC (STRICTLY 10 PAIRS)
-  // ==========================================
-  const comboScheme = schemes.find(s => String(s.type).toUpperCase() === 'COMBO' || String(s.target).toUpperCase().includes('COMBO'));
-  let comboP1 = null, comboP2 = null;
-  let p1Price = 0, p2Price = 0, originalTotal = 0, savingsAmt = 0, savingsPct = 0, comboPrice = 400;
-
-  if (comboScheme && comboScheme.target) {
-      let targets = comboScheme.target.split(",").map(t => t.trim().toLowerCase());
-      if (targets.length >= 2) {
-          comboP1 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[0]);
-          comboP2 = products.find(p => String(getProp(p, "ProductName")).toLowerCase().trim() === targets[1]);
-          
-          if (comboP1 && comboP2) {
-              p1Price = getNum(getProp(comboP1, "DealerPrice"));
-              p2Price = getNum(getProp(comboP2, "DealerPrice"));
-              
-              // Calculate for 10 pairs explicitly
-              originalTotal = (p1Price + p2Price) * 10;
-              
-              const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
-              comboPrice = match ? parseInt(match[1] || match[0]) : 400;
-              const combo10Price = comboPrice * 10;
-
-              savingsAmt = originalTotal > combo10Price ? originalTotal - combo10Price : 0;
-              savingsPct = originalTotal > 0 ? Math.round((savingsAmt / originalTotal) * 100) : 0;
-          }
-      }
-  }
-  
-  const handleAddCombo = () => {
-    if (comboP1 && comboP2) {
-      let updated = Object.assign({}, cart);
-      const itemCode1 = String(getProp(comboP1, "ItemCode"));
-      const itemCode2 = String(getProp(comboP2, "ItemCode"));
-      
-      // Adding strictly 10 quantities
-      updated[itemCode1] = Object.assign({}, comboP1, { qty: (updated[itemCode1] ? updated[itemCode1].qty : 0) + 10 });
-      updated[itemCode2] = Object.assign({}, comboP2, { qty: (updated[itemCode2] ? updated[itemCode2].qty : 0) + 10 });
-      
-      setCart(updated);
-      if (window.confetti) {
-        window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
-      }
-      alert("✅ 10 Pairs Combo added to cart successfully!");
-    } else {
-      alert("Combo Error: Target product not found in database.");
-    }
-  };
-
-  // ==========================================
-  // 6. LOADER STATE
+  // 5. LOADER STATE
   // ==========================================
   if (loading) {
     return (
@@ -270,9 +268,9 @@ export function Catalog(props) {
   }
 
   // ==========================================
-  // 7. STRICT IN-STOCK FILTER ENGINE
+  // 6. STRICT IN-STOCK FILTER ENGINE
   // ==========================================
-  const inStockFlat = products.filter(p => {
+  const inStockFlat = products.filter((p) => {
     const stockVal = getNum(getProp(p, "Stock"));
     const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
     return stockVal > 0 || brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
@@ -281,7 +279,7 @@ export function Catalog(props) {
   const inStockProducts = groupProductsByVariant(inStockFlat);
 
   // ==========================================
-  // 8. RENDER PRODUCTS ENGINE
+  // 7. RENDER PRODUCTS ENGINE
   // ==========================================
   const renderProducts = (productList) => {
     return (
@@ -333,7 +331,9 @@ export function Catalog(props) {
               
               <div 
                 className="mt-1 cursor-pointer" 
-                onClick={() => openProductModal(p)}
+                onClick={() => {
+                  openProductModal(p);
+                }}
               >
                 {smartImg ? (
                   <img 
@@ -356,21 +356,25 @@ export function Catalog(props) {
               
               {p.isGrouped && (
                 <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
-                  {p.variants.map(v => (
-                    <button 
-                      key={String(getProp(v, "ItemCode"))} 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        setActiveVariants(prev => ({
-                          ...prev, 
-                          [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) 
-                        })); 
-                      }} 
-                      className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                    >
-                      {v.capacity}
-                    </button>
-                  ))}
+                  {p.variants.map((v) => {
+                    return (
+                      <button 
+                        key={String(getProp(v, "ItemCode"))} 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setActiveVariants((prev) => {
+                            return {
+                              ...prev, 
+                              [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) 
+                            };
+                          }); 
+                        }} 
+                        className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                      >
+                        {v.capacity}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
@@ -404,14 +408,20 @@ export function Catalog(props) {
                       ) : currentQty > 0 ? (
                         <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                           <button 
-                            onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, -1); }} 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              updateQty(activeVariant, -1); 
+                            }} 
                             className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm"
                           >
                             -
                           </button>
                           <span className="font-black text-blue-900">{currentQty}</span>
                           <button 
-                            onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              updateQty(activeVariant, 1); 
+                            }} 
                             className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm"
                           >
                             +
@@ -419,7 +429,10 @@ export function Catalog(props) {
                         </div>
                       ) : (
                         <button 
-                          onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            updateQty(activeVariant, 1); 
+                          }} 
                           className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm"
                         >
                           {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
@@ -452,7 +465,7 @@ export function Catalog(props) {
   };
 
   // ==========================================
-  // 9. MAIN CONTENT ROUTER
+  // 8. MAIN CONTENT ROUTER
   // ==========================================
   let mainContent;
   
@@ -463,7 +476,9 @@ export function Catalog(props) {
         <h3 className="font-black text-gray-800 text-lg mb-2">Inventory Sync Failed</h3>
         <p className="text-xs text-gray-500 font-bold mb-6">Database se items fetch nahi ho paaye. Please refresh manually.</p>
         <button 
-          onClick={() => window.location.reload()} 
+          onClick={() => {
+            window.location.reload();
+          }} 
           className="bg-blue-900 text-white text-xs font-black px-6 py-3 rounded-xl shadow-md active:scale-95"
         >
           🔄 FORCE REFRESH
@@ -471,12 +486,14 @@ export function Catalog(props) {
       </div>
     );
   } else if (searchQuery.trim() !== "") {
-    mainContent = renderProducts(inStockProducts.filter(p => 
-      String(getProp(p, "ProductName") || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
-      String(getProp(p, "Brand") || "").toLowerCase().includes(searchQuery.toLowerCase())
-    ));
+    mainContent = renderProducts(inStockProducts.filter((p) => {
+      return String(getProp(p, "ProductName") || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+             String(getProp(p, "Brand") || "").toLowerCase().includes(searchQuery.toLowerCase());
+    }));
   } else if (!selectedType) {
-    const types = [...new Set(inStockFlat.map(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim()).filter(Boolean))].sort();
+    const types = [...new Set(inStockFlat.map((p) => {
+      return String(getProp(p, "Type") || getProp(p, "Category") || "").trim();
+    }).filter(Boolean))].sort();
     
     mainContent = (
       <div className="p-4 pb-[140px]">
@@ -487,14 +504,21 @@ export function Catalog(props) {
            </div>
         )}
         <div className="grid grid-cols-2 gap-4">
-          {types.map(type => {
-            const cover = getSmartImage(inStockFlat.find(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type));
-            const categoryCount = inStockProducts.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type).length;
+          {types.map((type) => {
+            const cover = getSmartImage(inStockFlat.find((p) => {
+              return String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type;
+            }));
+            
+            const categoryCount = inStockProducts.filter((p) => {
+              return String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type;
+            }).length;
             
             return (
               <div 
                 key={type} 
-                onClick={() => openCategory(type)} 
+                onClick={() => {
+                  openCategory(type);
+                }} 
                 className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40 border border-gray-100"
               >
                 {cover ? (
@@ -516,19 +540,30 @@ export function Catalog(props) {
     );
   } else {
     // ACTIVE CATEGORY VIEW
-    let displayProducts = inStockProducts.filter(p => String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === selectedType);
-    const categoryBrands = [...new Set(displayProducts.map(p => String(getProp(p, "Brand") || "").trim()).filter(Boolean))].sort();
+    let displayProducts = inStockProducts.filter((p) => {
+      return String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === selectedType;
+    });
+    
+    const categoryBrands = [...new Set(displayProducts.map((p) => {
+      return String(getProp(p, "Brand") || "").trim();
+    }).filter(Boolean))].sort();
 
     // Filtering by Brand
     if (brandFilter) {
-      displayProducts = displayProducts.filter(p => String(getProp(p, "Brand") || "").trim() === brandFilter);
+      displayProducts = displayProducts.filter((p) => {
+        return String(getProp(p, "Brand") || "").trim() === brandFilter;
+      });
     }
     
     // Sorting by Price (Default High to Low)
     if (sortFilter === "low") {
-      displayProducts.sort((a,b) => getNum(getProp(a, "DealerPrice")) - getNum(getProp(b, "DealerPrice")));
+      displayProducts.sort((a,b) => {
+        return getNum(getProp(a, "DealerPrice")) - getNum(getProp(b, "DealerPrice"));
+      });
     } else {
-      displayProducts.sort((a,b) => getNum(getProp(b, "DealerPrice")) - getNum(getProp(a, "DealerPrice")));
+      displayProducts.sort((a,b) => {
+        return getNum(getProp(b, "DealerPrice")) - getNum(getProp(a, "DealerPrice"));
+      });
     }
 
     mainContent = (
@@ -571,18 +606,24 @@ export function Catalog(props) {
         <div className="bg-white px-4 py-3 border-b flex gap-3 overflow-x-auto no-scrollbar shadow-sm">
            <select 
              value={brandFilter} 
-             onChange={e => setBrandFilter(e.target.value)} 
+             onChange={(e) => {
+               setBrandFilter(e.target.value);
+             }} 
              className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
            >
              <option value="">All Brands</option>
-             {categoryBrands.map(b => (
-               <option key={b} value={b}>{b}</option>
-             ))}
+             {categoryBrands.map((b) => {
+               return (
+                 <option key={b} value={b}>{b}</option>
+               );
+             })}
            </select>
            
            <select 
              value={sortFilter} 
-             onChange={e => setSortFilter(e.target.value)} 
+             onChange={(e) => {
+               setSortFilter(e.target.value);
+             }} 
              className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
            >
              <option value="">Price: High to Low</option>
@@ -602,7 +643,7 @@ export function Catalog(props) {
   }
 
   // ==========================================
-  // 10. FINAL COMPONENT RETURN
+  // 9. FINAL COMPONENT RETURN
   // ==========================================
   return (
     <div className="max-w-md mx-auto relative flex flex-col">
@@ -610,36 +651,7 @@ export function Catalog(props) {
         {cartItems.length > 0 && !globalProps.customerMode && (
           <React.Fragment>
             <ProgressBar totalAmount={totalAmount} discounts={discounts} />
-            
-            {/* 🟢 HEADER SCHEMES DISPLAYED IN 2X2 GRID */}
-            {schemes.length > 0 && (
-              <div className="bg-white p-2 grid grid-cols-2 gap-2 border-b border-gray-100">
-                {schemes.filter(s => String(s.type).toUpperCase() !== 'COMBO').map((scheme, idx) => {
-                  const progress = calculateSchemeProgress(cartItems, scheme);
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`p-2 rounded-xl border flex flex-col justify-between ${progress.isUnlocked ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-100'}`}
-                    >
-                      <div className="flex justify-between items-start mb-1.5 gap-1">
-                        <span className={`text-[8px] font-black uppercase ${progress.isUnlocked ? 'text-green-800' : 'text-blue-900'} leading-tight line-clamp-2`}>
-                          {scheme.message}
-                        </span>
-                        <span className={`text-[9px] font-black shrink-0 ${progress.isUnlocked ? 'text-green-700' : 'text-blue-800'}`}>
-                          {progress.current}/{progress.required}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner mt-auto">
-                        <div 
-                          className={`${progress.isUnlocked ? 'bg-green-600' : 'bg-blue-600'} h-full transition-all`} 
-                          style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            {/* 🟢 THE ENTIRE SCHEMES TRACKER GRID HAS BEEN REMOVED FROM HERE AS PER YOUR INSTRUCTION */}
           </React.Fragment>
         )}
         
@@ -653,7 +665,9 @@ export function Catalog(props) {
           />
           {searchQuery && (
             <button 
-              onClick={() => setSearchQuery("")} 
+              onClick={() => {
+                setSearchQuery("");
+              }} 
               className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl"
             >
               ✕
@@ -662,98 +676,14 @@ export function Catalog(props) {
         </div>
       </div>
 
-      {comboScheme && !searchQuery && !selectedType && !globalProps.customerMode && comboP1 && comboP2 && (
-        <div className="p-4 bg-gray-50 border-b border-gray-100 animate-slide-up">
-            <div className="bg-gradient-to-br from-indigo-950 via-blue-900 to-indigo-950 rounded-3xl p-1 shadow-2xl relative overflow-hidden border border-indigo-800">
-              <div className="bg-indigo-950 rounded-[22px] p-4 relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-xl uppercase tracking-widest animate-pulse shadow-md z-20">
-                  ⚡ Limited Time Deal
-                </div>
-                <span className="bg-yellow-400 text-indigo-950 text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wide inline-block mb-3">
-                  🔥 EXCLUSIVE COMBO
-                </span>
-                
-                <div className="flex items-center justify-between gap-2 mb-4 relative z-10">
-                    <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
-                      <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
-                        {getSmartImage(comboP1) ? (
-                          <img src={getSmartImage(comboP1)} className="w-full h-full object-contain" alt="Combo 1" /> 
-                        ) : (
-                          "📦"
-                        )}
-                      </div>
-                      <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">
-                        {getProp(comboP1, "ProductName")}
-                      </div>
-                      <div className="text-red-300 text-[10px] font-bold line-through">
-                        ₹{p1Price}
-                      </div>
-                    </div>
-
-                    <div className="bg-yellow-400 rounded-full w-8 h-8 flex items-center justify-center font-black text-indigo-900 text-sm shadow-xl z-20 shrink-0 border-2 border-indigo-950">
-                      +
-                    </div>
-                    
-                    <div className="flex-1 bg-white bg-opacity-10 p-2 rounded-2xl border border-white border-opacity-20 flex flex-col items-center text-center">
-                      <div className="bg-white rounded-xl w-16 h-16 flex items-center justify-center p-1 mb-2 shadow-inner">
-                        {getSmartImage(comboP2) ? (
-                          <img src={getSmartImage(comboP2)} className="w-full h-full object-contain" alt="Combo 2" /> 
-                        ) : (
-                          "📦"
-                        )}
-                      </div>
-                      <div className="text-white text-[9px] font-bold leading-tight h-6 line-clamp-2 mb-1">
-                        {getProp(comboP2, "ProductName")}
-                      </div>
-                      <div className="text-red-300 text-[10px] font-bold line-through">
-                        ₹{p2Price}
-                      </div>
-                    </div>
-                </div>
-                
-                <div className="bg-white rounded-2xl p-3 shadow-inner flex justify-between items-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-full blur-xl -mr-8 -mt-8"></div>
-                    
-                    <div className="z-10">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">
-                          Original:
-                        </span>
-                        <span className="text-[11px] text-gray-400 font-black line-through">
-                          ₹{originalTotal}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-green-600 font-black text-3xl tracking-tighter">
-                          ₹{comboPrice * 10}
-                        </span>
-                      </div>
-                      <div className="text-[9px] text-green-700 font-black tracking-wider uppercase mt-1 bg-green-100 inline-block px-1.5 py-0.5 rounded">
-                        ✨ YOU SAVE ₹{savingsAmt}
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={handleAddCombo} 
-                      className="z-10 bg-gradient-to-r from-green-500 to-green-600 text-white font-black px-4 py-3 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 transition-all flex flex-col items-center text-xs border border-green-400"
-                    >
-                      <span>🛒 ADD 10 PAIRS</span>
-                      <span className="text-[7px] opacity-90 font-bold uppercase tracking-widest mt-0.5">
-                        Instant Discount
-                      </span>
-                    </button>
-                </div>
-              </div>
-            </div>
-        </div>
-      )}
-
       {mainContent}
       
       {selectedProduct && (
         <ProductDetailModal 
           product={selectedProduct} 
-          onClose={() => window.history.back()} 
+          onClose={() => {
+            window.history.back();
+          }} 
           cart={cart} 
           updateQty={updateQty} 
           user={user} 
@@ -767,7 +697,7 @@ export function Catalog(props) {
 }
 
 // ==========================================
-// 11. PRODUCT DETAIL MODAL COMPONENT
+// 10. PRODUCT DETAIL MODAL COMPONENT
 // ==========================================
 export function ProductDetailModal(props) {
   var product = props.product;
@@ -781,7 +711,10 @@ export function ProductDetailModal(props) {
   
   var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || 
                        (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
-  var activeVariant = product.variants ? product.variants.find(v => String(getProp(v, "ItemCode") || "") === activeItemCode) || product : product;
+  
+  var activeVariant = product.variants ? product.variants.find((v) => {
+    return String(getProp(v, "ItemCode") || "") === activeItemCode;
+  }) || product : product;
 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [imagesList, setImagesList] = useState([]);
@@ -805,8 +738,11 @@ export function ProductDetailModal(props) {
         const dMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
         const idMatch = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
         
-        if (dMatch) fileId = dMatch[1];
-        else if (idMatch) fileId = idMatch[1];
+        if (dMatch) {
+          fileId = dMatch[1];
+        } else if (idMatch) {
+          fileId = idMatch[1];
+        }
         
         if (fileId) {
           return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1000";
@@ -821,13 +757,14 @@ export function ProductDetailModal(props) {
     }
     
     var allVariants = product.variants || [product];
+    
     allVariants.forEach(function(v) {
-      Object.keys(v).forEach(key => {
+      Object.keys(v).forEach((key) => {
         const keyLower = key.toLowerCase();
         if (keyLower.includes("image") || keyLower.includes("photo") || keyLower.includes("pic")) {
            const val = String(v[key] || "").trim();
            if (val) {
-              val.split("|").forEach(imgRaw => {
+              val.split("|").forEach((imgRaw) => {
                  const img = imgRaw.trim();
                  if (img.startsWith("http") || img.includes("drive.google.com") || img.includes("meesho")) {
                     const formatted = formatImg(img);
@@ -849,9 +786,13 @@ export function ProductDetailModal(props) {
 
   const featuresList = [];
   var activeFeatures = String(getProp(activeVariant, "Features") || "");
+  
   if (activeFeatures && activeFeatures.trim() !== "") {
-    const parsed = activeFeatures.split(" | ").map(f => f.trim());
-    parsed.forEach(f => { 
+    const parsed = activeFeatures.split(" | ").map((f) => {
+      return f.trim();
+    });
+    
+    parsed.forEach((f) => { 
       if (f !== "") {
         featuresList.push(f); 
       }
@@ -863,10 +804,21 @@ export function ProductDetailModal(props) {
   const hasDiscount = mrpVal > dealerVal && dealerVal > 0;
   const discountPercent = hasDiscount ? Math.round(((mrpVal - dealerVal) / mrpVal) * 100) : 0;
   
-  const handleNextImage = () => setCurrentImgIndex((prev) => (prev + 1) % imagesList.length);
-  const handlePrevImage = () => setCurrentImgIndex((prev) => (prev - 1 + imagesList.length) % imagesList.length);
+  const handleNextImage = () => {
+    setCurrentImgIndex((prev) => {
+      return (prev + 1) % imagesList.length;
+    });
+  };
+  
+  const handlePrevImage = () => {
+    setCurrentImgIndex((prev) => {
+      return (prev - 1 + imagesList.length) % imagesList.length;
+    });
+  };
 
-  if (imagesList.length === 0) return null;
+  if (imagesList.length === 0) {
+    return null;
+  }
 
   var activeName = String(getProp(product, "ProductName") || "Premium Item");
   var activeBrand = String(getProp(activeVariant, "Brand") || "Premium");
@@ -894,7 +846,9 @@ export function ProductDetailModal(props) {
         <div className="overflow-y-auto no-scrollbar pb-32">
           <div 
             className="relative bg-white p-4 flex items-center justify-center border-b border-gray-100 h-80 select-none cursor-zoom-in" 
-            onClick={() => setIsZoomed(true)}
+            onClick={() => {
+              setIsZoomed(true);
+            }}
           >
             <img 
               src={imagesList[currentImgIndex]} 
@@ -916,24 +870,32 @@ export function ProductDetailModal(props) {
             {imagesList.length > 1 && (
               <React.Fragment>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handlePrevImage(); 
+                  }} 
                   className="absolute left-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50"
                 >
                   ←
                 </button>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); handleNextImage(); }} 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleNextImage(); 
+                  }} 
                   className="absolute right-3 bg-white bg-opacity-95 text-gray-800 font-black p-2.5 rounded-full shadow-md hover:bg-gray-50"
                 >
                   →
                 </button>
                 <div className="absolute bottom-3 flex gap-1.5 justify-center w-full">
-                  {imagesList.map((_, idx) => ( 
-                    <div 
-                      key={idx} 
-                      className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}
-                    ></div> 
-                  ))}
+                  {imagesList.map((_, idx) => {
+                    return ( 
+                      <div 
+                        key={idx} 
+                        className={`h-2 rounded-full transition-all ${idx === currentImgIndex ? 'w-5 bg-blue-900' : 'w-2 bg-gray-300'}`}
+                      ></div> 
+                    );
+                  })}
                 </div>
               </React.Fragment>
             )}
@@ -958,7 +920,7 @@ export function ProductDetailModal(props) {
                   Select Variant Size
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {product.variants.map(v => {
+                  {product.variants.map((v) => {
                     const vItemCode = String(getProp(v, "ItemCode") || "");
                     return (
                       <button 
@@ -1027,12 +989,14 @@ export function ProductDetailModal(props) {
                 </p>
               ) : (
                 <ul className="space-y-2.5">
-                  {featuresList.map((f, i) => ( 
-                    <li key={i} className="text-xs text-gray-700 font-bold flex items-start gap-2 leading-snug">
-                      <span className="text-green-600 text-sm leading-none mt-0.5">⚡</span>
-                      <span>{f}</span>
-                    </li> 
-                  ))}
+                  {featuresList.map((f, i) => {
+                    return ( 
+                      <li key={i} className="text-xs text-gray-700 font-bold flex items-start gap-2 leading-snug">
+                        <span className="text-green-600 text-sm leading-none mt-0.5">⚡</span>
+                        <span>{f}</span>
+                      </li> 
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -1059,14 +1023,18 @@ export function ProductDetailModal(props) {
                 ) : currentQty > 0 ? (
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
                     <button 
-                      onClick={() => updateQty(activeVariant, -1)} 
+                      onClick={() => {
+                        updateQty(activeVariant, -1);
+                      }} 
                       className="bg-white text-blue-900 font-black w-10 h-10 rounded-lg shadow-sm"
                     >
                       -
                     </button>
                     <span className="font-black text-blue-900 text-lg">{currentQty}</span>
                     <button 
-                      onClick={() => updateQty(activeVariant, 1)} 
+                      onClick={() => {
+                        updateQty(activeVariant, 1);
+                      }} 
                       className="bg-blue-900 text-white font-black w-10 h-10 rounded-lg shadow-sm"
                     >
                       +
@@ -1074,7 +1042,9 @@ export function ProductDetailModal(props) {
                   </div>
                 ) : (
                   <button 
-                    onClick={() => updateQty(activeVariant, 1)} 
+                    onClick={() => {
+                      updateQty(activeVariant, 1);
+                    }} 
                     className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95"
                   >
                     {showOnOrder ? "Add To Order (Next Day)" : "Add To Order"}
@@ -1104,7 +1074,9 @@ export function ProductDetailModal(props) {
       {isZoomed && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-95 z-[90] flex flex-col justify-center items-center p-4 animate-fade-in cursor-zoom-out" 
-          onClick={() => setIsZoomed(false)}
+          onClick={() => {
+            setIsZoomed(false);
+          }}
         >
           <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md">
             ✕
@@ -1113,13 +1085,19 @@ export function ProductDetailModal(props) {
           {imagesList.length > 1 && (
             <div className="absolute left-4 right-4 flex justify-between z-[100] pointer-events-none">
               <button 
-                onClick={(e) => { e.stopPropagation(); handlePrevImage(); }} 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handlePrevImage(); 
+                }} 
                 className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40"
               >
                 ←
               </button>
               <button 
-                onClick={(e) => { e.stopPropagation(); handleNextImage(); }} 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleNextImage(); 
+                }} 
                 className="pointer-events-auto bg-white bg-opacity-20 text-white font-black w-12 h-12 rounded-full flex items-center justify-center shadow-lg hover:bg-opacity-40"
               >
                 →
