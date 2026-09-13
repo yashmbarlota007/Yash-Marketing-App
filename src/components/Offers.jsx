@@ -12,7 +12,6 @@ export default function OffersView(props) {
 
   const [schemes, setSchemes] = useState([]);
   const [discounts, setDiscounts] = useState([]);
-  
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [activeSchemeProducts, setActiveSchemeProducts] = useState([]);
   const [activeSchemeTitle, setActiveSchemeTitle] = useState("");
@@ -29,14 +28,8 @@ export default function OffersView(props) {
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then((r) => {
-      return r.json();
-    })
-    .then((res) => { 
-      if (res && res.success) {
-        setSchemes(res.data); 
-      }
-    })
+    .then((r) => r.json())
+    .then((res) => { if (res && res.success) setSchemes(res.data); })
     .catch(() => {});
 
     fetch(API_URL, {
@@ -44,14 +37,8 @@ export default function OffersView(props) {
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then((r) => {
-      return r.json();
-    })
-    .then((res) => { 
-      if (res && res.success) {
-        setDiscounts(res.data); 
-      }
-    })
+    .then((r) => r.json())
+    .then((res) => { if (res && res.success) setDiscounts(res.data); })
     .catch(() => {});
   }, []);
 
@@ -63,10 +50,7 @@ export default function OffersView(props) {
   const updateQty = (product, change) => {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
-    
-    if (!itemCode) {
-      return;
-    }
+    if (!itemCode) return;
     
     const stockVal = getNum(getProp(product, "Stock"));
     const brandStr = String(getProp(product, "Brand") || "").toUpperCase();
@@ -76,12 +60,12 @@ export default function OffersView(props) {
     const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
     const prodType = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase();
     const isCable = prodName.includes("cable") || prodType.includes("cable");
-    
     const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
-    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
+    
+    const newQty = getNum(updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
     
-    if (newQty > maxLimit && maxLimit > 0) {
+    if (newQty > maxLimit && maxLimit > 0 && !isAlwaysLiveBrand) {
       return alert("Maximum stock limit reached!");
     }
     
@@ -90,7 +74,6 @@ export default function OffersView(props) {
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
     }
-    
     setCart(updated);
   };
 
@@ -106,11 +89,7 @@ export default function OffersView(props) {
 
   const handleViewItems = (scheme) => {
     const targetStr = String(scheme.target || "").toLowerCase();
-    
-    const targets = targetStr.split(",").map((t) => {
-      return t.trim();
-    }).filter(Boolean);
-
+    const targets = targetStr.split(",").map((t) => t.trim()).filter(Boolean);
     const isCombo = isComboScheme(scheme);
     setIsComboModal(isCombo);
 
@@ -127,18 +106,10 @@ export default function OffersView(props) {
       const type = String(getProp(p, "Type") || getProp(p, "Category") || "").toLowerCase();
       
       if (isCombo) {
-         let broadTargets = targets.map((t) => {
-           return t.split(" ").slice(0, 2).join(" ");
-         });
-         
-         return broadTargets.some((t) => {
-           return name.includes(t) || brand.includes(t);
-         });
+        let broadTargets = targets.map((t) => t.split(" ").slice(0, 2).join(" "));
+        return broadTargets.some((t) => name.includes(t) || brand.includes(t));
       }
-      
-      return targets.some((t) => {
-        return brand === t || name.includes(t) || type === t;
-      });
+      return targets.some((t) => brand === t || name.includes(t) || type === t);
     });
 
     eligibleProducts = eligibleProducts.filter((p) => {
@@ -146,7 +117,6 @@ export default function OffersView(props) {
       const brandStr = String(getProp(p, "Brand") || "").toUpperCase();
       const nameStr = String(getProp(p, "ProductName") || "").toUpperCase();
       const isAlwaysLive = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY") || nameStr.includes("HIKVISION") || nameStr.includes("VELOCITY");
-      
       return stockVal > 0 || isAlwaysLive;
     });
 
@@ -162,20 +132,16 @@ export default function OffersView(props) {
 
   const handleAddModalCombo = () => {
     let updated = Object.assign({}, cart);
-    
     groupedModalProducts.forEach((p) => {
       var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
-                           (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
-                           
-      var activeVariant = p.variants ? p.variants.find((v) => {
-        return String(getProp(v, "ItemCode") || "") === activeItemCode;
-      }) || p : p;
-      
+        (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+      var activeVariant = p.variants ? p.variants.find((v) => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
       const itemCode = String(getProp(activeVariant, "ItemCode"));
-      updated[itemCode] = Object.assign({}, activeVariant, { qty: (updated[itemCode]?.qty || 0) + 10 });
+      
+      updated[itemCode] = Object.assign({}, activeVariant, { qty: getNum(updated[itemCode]?.qty || 0) + 10 });
     });
-    
     setCart(updated);
+    
     if (window.confetti) {
       window.confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
     }
@@ -184,11 +150,7 @@ export default function OffersView(props) {
   };
 
   const groupedModalProducts = groupProductsByVariant(activeSchemeProducts);
-  
-  const orig10PairPrice = groupedModalProducts.reduce((sum, p) => {
-    return sum + (getNum(getProp(p, "DealerPrice")) * 10);
-  }, 0);
-  
+  const orig10PairPrice = groupedModalProducts.reduce((sum, p) => sum + (getNum(getProp(p, "DealerPrice")) * 10), 0);
   const combo10PairPrice = activeComboPrice * 10;
   const modalSavings = orig10PairPrice > combo10PairPrice ? orig10PairPrice - combo10PairPrice : 0;
 
@@ -204,18 +166,13 @@ export default function OffersView(props) {
 
       <div className="mb-6">
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
-        
-        {/* 🟢 UNIFIED 2x2 GRID FOR ALL OFFERS INCLUDING COMBO */}
         <div className="grid grid-cols-2 gap-3">
           {schemes.map((sch, i) => {
             const isCombo = isComboScheme(sch);
             const progress = isCombo ? { isUnlocked: false, current: 0, required: 10 } : calculateSchemeProgress(cartItems, sch);
 
             return (
-              <div 
-                key={i} 
-                className={`bg-white p-3 rounded-2xl shadow-sm border flex flex-col justify-between ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}
-              >
+              <div key={i} className={`bg-white p-3 rounded-2xl shadow-sm border flex flex-col justify-between ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}>
                 <div>
                   <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider inline-block mb-1 ${isCombo ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
                     {isCombo ? 'COMBO SCHEME' : sch.type + ' Scheme'}
@@ -227,27 +184,23 @@ export default function OffersView(props) {
                     🎁 {sch.reward}
                   </p>
                 </div>
-                
                 <div className="mt-2">
                   <div className="flex justify-between items-end mb-1">
-                     <span className="text-[8px] font-black text-gray-500 uppercase tracking-wide">
-                       {isCombo ? "Package Size" : "Progress"}
-                     </span>
-                     <span className={`text-[9px] font-black ${progress.isUnlocked ? 'text-green-600' : 'text-blue-700'}`}>
-                        {isCombo ? "10 Pairs" : `${progress.current} / ${progress.required}`}
-                     </span>
+                    <span className="text-[8px] font-black text-gray-500 uppercase tracking-wide">
+                      {isCombo ? "Package Size" : "Progress"}
+                    </span>
+                    <span className={`text-[9px] font-black ${progress.isUnlocked ? 'text-green-600' : 'text-blue-700'}`}>
+                      {isCombo ? "10 Pairs" : `${progress.current} / ${progress.required}`}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2">
-                     <div 
-                        className={`${progress.isUnlocked ? 'bg-green-500' : 'bg-blue-600'} h-full transition-all duration-500`} 
-                        style={{ width: isCombo ? '100%' : Math.min((progress.current / progress.required) * 100, 100) + '%' }}
-                     ></div>
+                    <div 
+                      className={`${progress.isUnlocked ? 'bg-green-500' : 'bg-blue-600'} h-full transition-all duration-500`} 
+                      style={{ width: isCombo ? '100%' : Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                    ></div>
                   </div>
-
                   <button 
-                    onClick={() => {
-                      handleViewItems(sch);
-                    }}
+                    onClick={() => handleViewItems(sch)}
                     className={`w-full font-black text-[9px] px-2 py-2 rounded-lg shadow-sm active:scale-95 transition-colors ${progress.isUnlocked ? 'bg-green-600 text-white' : (isCombo ? 'bg-indigo-900 text-white' : 'bg-blue-900 text-white')}`}
                   >
                     {progress.isUnlocked ? '✅ UNLOCKED' : (isCombo ? '🛒 VIEW COMBO' : '🛒 ADD ITEMS')}
@@ -262,207 +215,147 @@ export default function OffersView(props) {
       <div>
         <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 Volume Discount Slabs</h3>
         <div className="grid grid-cols-2 gap-3">
-          {discounts.map((d, i) => {
-            return (
-              <div 
-                key={i} 
-                className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center"
-              >
-                <div className="text-[9px] text-gray-400 font-black uppercase">
-                  Min Order Value
-                </div>
-                <div className="font-black text-blue-950 text-base mt-0.5">
-                  ₹{Number(d.minAmount).toLocaleString('en-IN')}
-                </div>
-                <div className="mt-2 bg-green-50 text-green-700 text-xs font-black py-1 px-2 rounded-lg border border-green-100 inline-block">
-                  🎉 {d.percent}% EXTRA OFF
-                </div>
+          {discounts.map((d, i) => (
+            <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+              <div className="text-[9px] text-gray-400 font-black uppercase">Min Order Value</div>
+              <div className="font-black text-blue-950 text-base mt-0.5">
+                ₹{Number(d.minAmount).toLocaleString('en-IN')}
               </div>
-            );
-          })}
+              <div className="mt-2 bg-green-50 text-green-700 text-xs font-black py-1 px-2 rounded-lg border border-green-100 inline-block">
+                🎉 {d.percent}% EXTRA OFF
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {showProductsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-end animate-fade-in">
-           <div className="absolute inset-0" onClick={() => { setShowProductsModal(false); }}></div>
-           
-           <div className="bg-gray-50 w-full max-w-md rounded-t-3xl h-[85vh] flex flex-col relative z-10 animate-slide-up shadow-2xl overflow-hidden">
-              
-              <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white shadow-md z-20 shrink-0">
-                 <div>
-                    <h3 className="font-black text-sm uppercase leading-tight pr-4">
-                      {activeSchemeTitle}
-                    </h3>
-                    <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">
-                      {isComboModal ? "Combo Package Items" : "Eligible Scheme Items"}
-                    </p>
-                 </div>
-                 <button 
-                   onClick={() => {
-                     setShowProductsModal(false);
-                   }} 
-                   className="w-8 h-8 bg-blue-800 rounded-full font-black text-lg flex items-center justify-center shrink-0 border border-blue-700"
-                 >
-                   ✕
-                 </button>
+          <div className="absolute inset-0" onClick={() => setShowProductsModal(false)}></div>
+          <div className="bg-gray-50 w-full max-w-md rounded-t-3xl h-[85vh] flex flex-col relative z-10 animate-slide-up shadow-2xl overflow-hidden">
+            <div className="p-4 border-b flex justify-between items-center bg-blue-900 text-white shadow-md z-20 shrink-0">
+              <div>
+                <h3 className="font-black text-sm uppercase leading-tight pr-4">{activeSchemeTitle}</h3>
+                <p className="text-[10px] font-bold text-blue-200 mt-1 uppercase tracking-wider">
+                  {isComboModal ? "Combo Package Items" : "Eligible Scheme Items"}
+                </p>
               </div>
+              <button 
+                onClick={() => setShowProductsModal(false)} 
+                className="w-8 h-8 bg-blue-800 rounded-full font-black text-lg flex items-center justify-center shrink-0 border border-blue-700"
+              >
+                ✕
+              </button>
+            </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
-                 <div className="grid grid-cols-2 gap-4">
-                    {groupedModalProducts.map((p, idx) => {
-                       var name = String(getProp(p, "ProductName") || "Premium Item");
-                       var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
-                                            (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
-                       var activeVariant = p.variants ? p.variants.find((v) => {
-                         return String(getProp(v, "ItemCode") || "") === activeItemCode;
-                       }) || p : p;
-                       
-                       const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
-                       const smartImg = getSmartImage(activeVariant);
-                       const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
-                       const stockVal = getNum(getProp(activeVariant, "Stock"));
-                       
-                       const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
-                       const nameStr = String(getProp(activeVariant, "ProductName") || "").toUpperCase();
-                       const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY") || nameStr.includes("HIKVISION") || nameStr.includes("VELOCITY");
-                       const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="grid grid-cols-2 gap-4">
+                {groupedModalProducts.map((p, idx) => {
+                  var name = String(getProp(p, "ProductName") || "Premium Item");
+                  var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
+                    (p.variants && p.variants[0] ? String(getProp(p.variants[0], "ItemCode") || "") : String(getProp(p, "ItemCode") || ""));
+                  var activeVariant = p.variants ? p.variants.find((v) => String(getProp(v, "ItemCode") || "") === activeItemCode) || p : p;
+                  
+                  const currentQty = cart[String(getProp(activeVariant, "ItemCode") || "")] ? cart[String(getProp(activeVariant, "ItemCode") || "")].qty : 0;
+                  const smartImg = getSmartImage(activeVariant);
+                  const dealerVal = getNum(getProp(activeVariant, "DealerPrice"));
+                  const stockVal = getNum(getProp(activeVariant, "Stock"));
+                  const brandStr = String(getProp(activeVariant, "Brand") || "").toUpperCase();
+                  const nameStr = String(getProp(activeVariant, "ProductName") || "").toUpperCase();
+                  const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY") || nameStr.includes("HIKVISION") || nameStr.includes("VELOCITY");
+                  const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
 
-                       return (
-                         <div 
-                           key={`${activeItemCode}-${idx}`} 
-                           className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative overflow-hidden"
-                         >
-                           {showOnOrder && (
-                             <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
-                               ⏳ ON ORDER
-                             </span>
-                           )}
-                           
-                           <div className="mt-1">
-                             {smartImg ? (
-                               <img 
-                                 src={smartImg} 
-                                 className="h-28 w-full object-contain mb-2 p-1" 
-                                 onError={(e) => { 
-                                   e.target.outerHTML = '<div class="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>'; 
-                                 }} 
-                               /> 
-                             ) : (
-                               <div className="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">
-                                 No Image
-                               </div>
-                             )}
-                             <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">
-                               {name}
-                             </h3>
-                           </div>
-                           
-                           {p.isGrouped && (
-                             <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
-                               {p.variants.map((v) => {
-                                 return (
-                                   <button 
-                                     key={String(getProp(v, "ItemCode"))} 
-                                     onClick={(e) => { 
-                                       e.stopPropagation(); 
-                                       setActiveVariants((prev) => {
-                                         return { 
-                                           ...prev, 
-                                           [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) 
-                                         };
-                                       }); 
-                                     }} 
-                                     className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
-                                   >
-                                     {v.capacity}
-                                   </button>
-                                 );
-                               })}
-                             </div>
-                           )}
-
-                           <div className="mt-1 relative z-20">
-                             <div className="font-black text-lg mb-2 tracking-tight text-blue-950">
-                               ₹{dealerVal}
-                             </div>
-                             
-                             {!isComboModal && (
-                               currentQty > 0 ? (
-                                 <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
-                                   <button 
-                                     onClick={() => {
-                                       updateQty(activeVariant, -1);
-                                     }} 
-                                     className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm"
-                                   >
-                                     -
-                                   </button>
-                                   <span className="font-black text-blue-900">
-                                     {currentQty}
-                                   </span>
-                                   <button 
-                                     onClick={() => {
-                                       updateQty(activeVariant, 1);
-                                     }} 
-                                     className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm"
-                                   >
-                                     +
-                                   </button>
-                                 </div>
-                               ) : (
-                                 <button 
-                                   onClick={() => {
-                                     updateQty(activeVariant, 1);
-                                   }} 
-                                   className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm"
-                                 >
-                                   {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
-                                 </button>
-                               )
-                             )}
-                           </div>
-                         </div>
-                       );
-                    })}
-                 </div>
-              </div>
-
-              <div className="p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] shrink-0 z-20">
-                 {isComboModal ? (
-                    <div>
-                      <div className="flex justify-between items-center mb-2 px-1">
-                         <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">
-                           Original: <span className="line-through">₹{orig10PairPrice}</span>
-                         </div>
-                         <div className="text-[11px] text-green-700 font-black uppercase bg-green-100 px-2 py-0.5 rounded">
-                           You Save ₹{modalSavings}!
-                         </div>
-                      </div>
-                      <button 
-                        onClick={handleAddModalCombo} 
-                        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-black text-sm py-4 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 flex flex-col items-center justify-center border border-green-400"
-                      >
-                        <span>🛒 ADD 10 PAIRS COMBO</span>
-                        <span className="text-[8px] opacity-90 font-bold uppercase tracking-widest mt-0.5">
-                          Pay only ₹{combo10PairPrice}
+                  return (
+                    <div key={`${activeItemCode}-${idx}`} className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-100 relative overflow-hidden">
+                      {showOnOrder && (
+                        <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                          ⏳ ON ORDER
                         </span>
-                      </button>
-                    </div>
-                 ) : (
-                   <button 
-                     onClick={() => { 
-                       setShowProductsModal(false); 
-                       setView('cart'); 
-                     }} 
-                     className="w-full bg-blue-900 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
-                   >
-                     🛒 PROCEED TO CART
-                   </button>
-                 )}
-              </div>
+                      )}
+                      <div className="mt-1">
+                        {smartImg ? (
+                          <img 
+                            src={smartImg} 
+                            className="h-28 w-full object-contain mb-2 p-1" 
+                            onError={(e) => { 
+                              e.target.onerror = null; 
+                              e.target.src = 'https://ui-avatars.com/api/?name=No+Image&background=f3f4f6&color=9ca3af'; 
+                            }} 
+                          /> 
+                        ) : (
+                          <div className="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
+                        )}
+                        <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">{name}</h3>
+                      </div>
+                      
+                      {p.isGrouped && (
+                        <div className="flex flex-wrap gap-1 mt-1 mb-2 relative z-20">
+                          {p.variants.map((v, vIdx) => (
+                            <button 
+                              key={String(getProp(v, "ItemCode")) || vIdx} 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                setActiveVariants((prev) => ({ ...prev, [String(getProp(p, "ItemCode"))]: String(getProp(v, "ItemCode")) })); 
+                              }} 
+                              className={`text-[9px] font-black px-1.5 py-0.5 rounded border ${String(getProp(v, "ItemCode")) === activeItemCode ? 'bg-blue-900 text-white border-blue-900' : 'bg-gray-50 text-gray-500 border-gray-100'}`}
+                            >
+                              {v.capacity}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
-           </div>
+                      <div className="mt-1 relative z-20">
+                        <div className="font-black text-lg mb-2 tracking-tight text-blue-950">₹{dealerVal}</div>
+                        {!isComboModal && (
+                          currentQty > 0 ? (
+                            <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
+                              <button onClick={() => updateQty(activeVariant, -1)} className="bg-white text-blue-900 font-black w-8 h-8 rounded-lg shadow-sm">-</button>
+                              <span className="font-black text-blue-900">{currentQty}</span>
+                              <button onClick={() => updateQty(activeVariant, 1)} className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm">+</button>
+                            </div>
+                          ) : (
+                            <button onClick={() => updateQty(activeVariant, 1)} className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm">
+                              {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 bg-white border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] shrink-0 z-20">
+              {isComboModal ? (
+                <div>
+                  <div className="flex justify-between items-center mb-2 px-1">
+                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">
+                      Original: <span className="line-through">₹{orig10PairPrice}</span>
+                    </div>
+                    <div className="text-[11px] text-green-700 font-black uppercase bg-green-100 px-2 py-0.5 rounded">
+                      You Save ₹{modalSavings}!
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleAddModalCombo} 
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white font-black text-sm py-4 rounded-xl shadow-[0_5px_15px_rgba(34,197,94,0.4)] active:scale-95 flex flex-col items-center justify-center border border-green-400"
+                  >
+                    <span>🛒 ADD 10 PAIRS COMBO</span>
+                    <span className="text-[8px] opacity-90 font-bold uppercase tracking-widest mt-0.5">Pay only ₹{combo10PairPrice}</span>
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => { setShowProductsModal(false); setView('cart'); }} 
+                  className="w-full bg-blue-900 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95 flex justify-center items-center gap-2"
+                >
+                  🛒 PROCEED TO CART
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -11,22 +11,21 @@ export default function ReplacementsView(props) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
-
+  
   const [brand, setBrand] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [productName, setProductName] = useState(""); 
   const [defectType, setDefectType] = useState("");
   const [remarks, setRemarks] = useState("");
   const [mediaData, setMediaData] = useState(null);
-
   const [isScanning, setIsScanning] = useState(false);
 
   const uniqueBrands = [...new Set(products.map(p => String(getProp(p, "Brand") || "").trim()).filter(b => b !== ""))].sort();
   const filteredProducts = products.filter(p => 
     String(getProp(p, "Brand") || "").trim() === brand &&
     (productSearch === "" || 
-     String(getProp(p, "ProductName") || "").toLowerCase().includes(productSearch.toLowerCase()) || 
-     String(getProp(p, "ItemCode") || "").toLowerCase().includes(productSearch.toLowerCase()))
+    String(getProp(p, "ProductName") || "").toLowerCase().includes(productSearch.toLowerCase()) || 
+    String(getProp(p, "ItemCode") || "").toLowerCase().includes(productSearch.toLowerCase()))
   );
 
   useEffect(() => {
@@ -58,11 +57,9 @@ export default function ReplacementsView(props) {
   const handleMediaUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
       return alert("Please upload a valid photo. Videos and voice notes are disabled to ensure fast uploads.");
     }
-
     const reader = new FileReader();
     reader.onload = (ev) => { 
       setMediaData({ 
@@ -134,7 +131,6 @@ export default function ReplacementsView(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans">
       {isScanning && <ScannerModal onScan={handleScanSuccess} onClose={() => setIsScanning(false)} />}
-      
       <div className="flex justify-between bg-white rounded-xl shadow-sm border p-1 mb-4">
         <button 
           onClick={() => setActiveTab("new")} 
@@ -154,23 +150,16 @@ export default function ReplacementsView(props) {
         <div className="bg-white rounded-2xl shadow-sm border p-5 animate-fade-in">
           <h2 className="font-black text-gray-800 text-lg mb-1">Replacement Request</h2>
           <p className="text-xs text-gray-400 mb-4 font-bold">Simple text and photo collection.</p>
-
           <div className="space-y-4">
             <div>
               <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">1. Select Brand</label>
               <select 
                 value={brand} 
-                onChange={(e) => { 
-                  setBrand(e.target.value); 
-                  setProductSearch(""); 
-                  setProductName(""); 
-                }} 
+                onChange={(e) => { setBrand(e.target.value); setProductSearch(""); setProductName(""); }} 
                 className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
               >
                 <option value="">-- Choose Brand --</option>
-                {uniqueBrands.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
+                {uniqueBrands.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
             </div>
 
@@ -198,9 +187,9 @@ export default function ReplacementsView(props) {
                   className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
                 >
                   <option value="">-- Select from list --</option>
-                  {filteredProducts.map(p => {
+                  {filteredProducts.map((p, i) => {
                     const name = String(getProp(p, "ProductName") || "Unknown Item");
-                    return <option key={name} value={name}>{name}</option>;
+                    return <option key={`${name}-${i}`} value={name}>{name}</option>;
                   })}
                 </select>
               </div>
@@ -256,18 +245,16 @@ export default function ReplacementsView(props) {
             >
               {formLoading ? (
                 <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
-              ) : (
-                "SUBMIT REQUEST"
-              )}
+              ) : "SUBMIT REQUEST"}
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           {loading ? (
-             <div className="flex justify-center p-10">
-               <div className="border-4 border-blue-900 border-t-transparent w-8 h-8 rounded-full spinner"></div>
-             </div>
+            <div className="flex justify-center p-10">
+              <div className="border-4 border-blue-900 border-t-transparent w-8 h-8 rounded-full spinner"></div>
+            </div>
           ) : tickets.length === 0 ? (
             <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
               No Tracking Data Found.
@@ -308,19 +295,19 @@ export default function ReplacementsView(props) {
                     ></div>
                   </div>
                   <div className="text-[10px] text-gray-500 font-bold mt-3 text-center">
-                     Current Stage: <span className="text-gray-800 font-black">{ticket.status}</span>
+                    Current Stage: <span className="text-gray-800 font-black">{ticket.status}</span>
                   </div>
                 </div>
 
                 {(ticket.resolutionType || ticket.resolutionDetails) && (
-                   <div className="mt-3 bg-green-50 p-3 rounded-xl border border-green-100">
-                     <div className="text-[9px] text-green-700 font-black uppercase mb-1">
-                       Resolution ({ticket.resolutionType})
-                     </div>
-                     <div className="text-xs font-bold text-green-900">
-                       {ticket.resolutionDetails}
-                     </div>
-                   </div>
+                  <div className="mt-3 bg-green-50 p-3 rounded-xl border border-green-100">
+                    <div className="text-[9px] text-green-700 font-black uppercase mb-1">
+                      Resolution ({ticket.resolutionType})
+                    </div>
+                    <div className="text-xs font-bold text-green-900">
+                      {ticket.resolutionDetails}
+                    </div>
+                  </div>
                 )}
               </div>
             ))

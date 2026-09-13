@@ -4,7 +4,6 @@ import { API_URL } from '../utils/helpers';
 export function LedgerView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
-  
   const [ledgerData, setLedgerData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -112,7 +111,6 @@ export function LedgerView(props) {
 export function OrdersHistoryView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
-  
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState(null); 
@@ -153,7 +151,6 @@ export function OrdersHistoryView(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans relative">
       <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
-      
       {orders.length === 0 ? (
         <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
           Koi order record nahi mila.
@@ -175,37 +172,36 @@ export function OrdersHistoryView(props) {
                 </div>
 
                 {ord.attachments && ord.attachments.length > 0 && (
-                    <div className="py-3 border-b border-dashed border-gray-100">
-                        <div className="text-[9px] text-gray-400 font-black uppercase mb-2">Order Documents & Tracking</div>
-                        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-                            {ord.attachments.map((att, i) => {
-                                const fileId = getFileId(att.url);
-                                let icon = "📄";
-                                if(att.type === 'image' || att.label.toLowerCase().includes("screenshot")) icon = "📸";
-                                if(att.type === 'audio') icon = "🎧";
-                                if(att.type === 'rating') icon = "⭐";
-                                
-                                return (
-                                    <div 
-                                      key={i} 
-                                      onClick={() => setZoomedMedia({ ...att, fileId })} 
-                                      className="min-w-[70px] w-[70px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
-                                    >
-                                        <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm relative">
-                                            {att.type === 'rating' ? (
-                                              <span className="text-xl font-black text-amber-500">{att.url}</span>
-                                            ) : (
-                                              <span className="text-2xl opacity-80">{icon}</span>
-                                            )}
-                                        </div>
-                                        <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">
-                                          {att.label}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                  <div className="py-3 border-b border-dashed border-gray-100">
+                    <div className="text-[9px] text-gray-400 font-black uppercase mb-2">Order Documents & Tracking</div>
+                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                      {ord.attachments.map((att, i) => {
+                        const fileId = getFileId(att.url);
+                        let icon = "📄";
+                        if(att.type === 'image' || att.label.toLowerCase().includes("screenshot")) icon = "📸";
+                        if(att.type === 'audio') icon = "🎧";
+                        if(att.type === 'rating') icon = "⭐";
+                        return (
+                          <div 
+                            key={i} 
+                            onClick={() => setZoomedMedia({ ...att, fileId })} 
+                            className="min-w-[70px] w-[70px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                          >
+                            <div className="w-14 h-14 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden flex items-center justify-center shadow-sm relative">
+                              {att.type === 'rating' ? (
+                                <span className="text-xl font-black text-amber-500">{att.url}</span>
+                              ) : (
+                                <span className="text-2xl opacity-80">{icon}</span>
+                              )}
+                            </div>
+                            <span className="text-[8px] font-bold text-gray-600 text-center leading-tight line-clamp-2 w-full">
+                              {att.label}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
+                  </div>
                 )}
 
                 <div className="py-3 border-b border-dashed border-gray-100">
@@ -240,49 +236,48 @@ export function OrdersHistoryView(props) {
       )}
 
       {zoomedMedia && (
-         <div className="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
-            <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50">
-              ✕
-            </button>
-            
-            <div className="text-white font-black mb-4 uppercase tracking-wider text-center flex flex-col gap-1">
-              <span>{zoomedMedia.label}</span>
-              <span className="text-[9px] text-gray-400">Secure Viewer</span>
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
+          <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50">
+            ✕
+          </button>
+          <div className="text-white font-black mb-4 uppercase tracking-wider text-center flex flex-col gap-1">
+            <span>{zoomedMedia.label}</span>
+            <span className="text-[9px] text-gray-400">Secure Viewer</span>
+          </div>
+          {zoomedMedia.type === 'rating' ? (
+            <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 border-b-8 border-amber-500 max-w-xs w-full" onClick={(e) => e.stopPropagation()}>
+              <span className="text-6xl">⭐</span>
+              <h3 className="text-gray-900 font-black text-4xl">{zoomedMedia.url}</h3>
+              <p className="text-gray-400 text-xs font-bold uppercase tracking-widest text-center">Order Rating</p>
             </div>
-            
-            {zoomedMedia.type === 'rating' ? (
-                <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-4 border-b-8 border-amber-500 max-w-xs w-full" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-6xl">⭐</span>
-                    <h3 className="text-gray-900 font-black text-4xl">{zoomedMedia.url}</h3>
-                    <p className="text-gray-400 text-xs font-bold uppercase tracking-widest text-center">Order Rating</p>
-                </div>
-            ) : zoomedMedia.fileId ? (
-                <div className="w-full h-[65vh] max-w-sm bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative border border-gray-800" onClick={(e) => e.stopPropagation()}>
-                    <iframe 
-                      src={`https://drive.google.com/file/d/${zoomedMedia.fileId}/preview`} 
-                      className="w-full h-full border-0" 
-                      allow="autoplay"
-                    ></iframe>
-                </div>
-            ) : (
-                <div className="bg-gray-800 p-8 rounded-3xl flex flex-col items-center gap-4 border border-gray-700 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-5xl">🔗</span>
-                    <h3 className="text-white font-black text-lg text-center">External Link</h3>
-                    <p className="text-gray-400 text-xs font-bold text-center mb-2">Click below to open the file securely.</p>
-                    <a 
-                      href={zoomedMedia.url} 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm"
-                    >
-                      OPEN FILE ↗
-                    </a>
-                </div>
-            )}
-            <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
-              Tap anywhere outside to close preview.
-            </p>
-         </div>
+          ) : zoomedMedia.fileId ? (
+            <div className="w-full h-[65vh] max-w-sm bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative border border-gray-800" onClick={(e) => e.stopPropagation()}>
+              <iframe 
+                src={`https://drive.google.com/file/d/${zoomedMedia.fileId}/preview`} 
+                title="Document Preview"
+                className="w-full h-full border-0" 
+                allow="autoplay"
+              ></iframe>
+            </div>
+          ) : (
+            <div className="bg-gray-800 p-8 rounded-3xl flex flex-col items-center gap-4 border border-gray-700 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+              <span className="text-5xl">🔗</span>
+              <h3 className="text-white font-black text-lg text-center">External Link</h3>
+              <p className="text-gray-400 text-xs font-bold text-center mb-2">Click below to open the file securely.</p>
+              <a 
+                href={zoomedMedia.url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="w-full bg-blue-600 text-white font-black px-6 py-4 rounded-xl shadow-lg active:scale-95 flex items-center justify-center gap-2 text-sm"
+              >
+                OPEN FILE ↗
+              </a>
+            </div>
+          )}
+          <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
+            Tap anywhere outside to close preview.
+          </p>
+        </div>
       )}
     </div>
   );
