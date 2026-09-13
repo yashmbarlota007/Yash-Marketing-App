@@ -21,7 +21,6 @@ export function Cart(props) {
   var globalProps = props.globalProps;
   
   const [loading, setLoading] = useState(false);
-  
   // 🟢 SYNCHRONOUS LOCK FOR DOUBLE CLICKS
   const submitLock = useRef(false);
 
@@ -43,9 +42,7 @@ export function Cart(props) {
       body: JSON.stringify({ action: "getDiscounts" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then((r) => {
-      return r.json();
-    })
+    .then((r) => r.json())
     .then((res) => { 
       if (res && res.success && res.data.length > 0) {
         setDiscounts(res.data); 
@@ -54,15 +51,13 @@ export function Cart(props) {
     .catch(() => {
       console.log("Discount API Failed");
     });
-    
+
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "getSchemes" }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then((r) => {
-      return r.json();
-    })
+    .then((r) => r.json())
     .then((res) => { 
       if (res && res.success) {
         setSchemes(res.data); 
@@ -85,9 +80,7 @@ export function Cart(props) {
            String(s.reward).toUpperCase().includes('COMBO');
   };
 
-  const nonComboSchemes = schemes.filter((s) => {
-    return !isComboScheme(s);
-  });
+  const nonComboSchemes = schemes.filter((s) => !isComboScheme(s));
   
   const lockedSchemes = nonComboSchemes.filter((s) => {
     const progress = calculateSchemeProgress(cartItems, s);
@@ -103,53 +96,46 @@ export function Cart(props) {
   let combosApplied = 0;
   let singleComboEffectivePrice = 400; 
   
-  const comboScheme = schemes.find((s) => {
-    return isComboScheme(s);
-  });
+  const comboScheme = schemes.find((s) => isComboScheme(s));
   
   if (comboScheme && comboScheme.target) {
-      let targets = comboScheme.target.split(",").map((t) => {
-        return t.trim().toLowerCase();
+    let targets = comboScheme.target.split(",").map((t) => t.trim().toLowerCase());
+    
+    if (targets.length >= 2) {
+      let broadTargets = targets.map((t) => t.split(" ").slice(0, 2).join(" "));
+      let t1Qty = 0;
+      let t2Qty = 0;
+      let t1Price = 0;
+      let t2Price = 0;
+      
+      cartItems.forEach((item) => {
+        let n = String(getProp(item, "ProductName")).toLowerCase();
+        let itemQty = getNum(item.qty); // Enforced Number typing
+        if (n.includes(broadTargets[0])) { 
+          t1Qty += itemQty; 
+          t1Price = getNum(getProp(item, "DealerPrice")); 
+        }
+        else if (n.includes(broadTargets[1])) { 
+          t2Qty += itemQty; 
+          t2Price = getNum(getProp(item, "DealerPrice")); 
+        }
       });
       
-      if (targets.length >= 2) {
-          let broadTargets = targets.map((t) => {
-            return t.split(" ").slice(0, 2).join(" ");
-          });
-          
-          let t1Qty = 0;
-          let t2Qty = 0;
-          let t1Price = 0;
-          let t2Price = 0;
-          
-          cartItems.forEach((item) => {
-              let n = String(getProp(item, "ProductName")).toLowerCase();
-              if (n.includes(broadTargets[0])) { 
-                t1Qty += item.qty; 
-                t1Price = getNum(getProp(item, "DealerPrice")); 
-              }
-              else if (n.includes(broadTargets[1])) { 
-                t2Qty += item.qty; 
-                t2Price = getNum(getProp(item, "DealerPrice")); 
-              }
-          });
-          
-          combosApplied = Math.min(t1Qty, t2Qty);
-          
-          if (combosApplied > 0) {
-              const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
-              singleComboEffectivePrice = match ? parseInt(match[1] || match[0]) : 400; 
-              
-              const originalComboPrice = t1Price + t2Price;
-              if (originalComboPrice > singleComboEffectivePrice) {
-                comboDiscountAmount = (originalComboPrice - singleComboEffectivePrice) * combosApplied;
-              }
-          }
+      combosApplied = Math.min(t1Qty, t2Qty);
+      
+      if (combosApplied > 0) {
+        const match = String(comboScheme.message).match(/₹(\d+)/) || String(comboScheme.reward).match(/₹(\d+)/) || String(comboScheme.reward).match(/(\d+)/);
+        singleComboEffectivePrice = match ? parseInt(match[1] || match[0]) : 400; 
+        const originalComboPrice = t1Price + t2Price;
+        if (originalComboPrice > singleComboEffectivePrice) {
+          comboDiscountAmount = (originalComboPrice - singleComboEffectivePrice) * combosApplied;
+        }
       }
+    }
   }
 
   const baseTotalAmount = cartItems.reduce((acc, item) => {
-    return acc + (getNum(getProp(item, "DealerPrice")) * item.qty);
+    return acc + (getNum(getProp(item, "DealerPrice")) * getNum(item.qty));
   }, 0);
   
   const totalAmount = baseTotalAmount - comboDiscountAmount;
@@ -157,18 +143,11 @@ export function Cart(props) {
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
   var sortedDiscountsDesc = [...discounts].map((d) => {
-      return { 
-        minAmount: getNum(d.minAmount), 
-        percent: getNum(d.percent) 
-      };
-    })
-    .filter((d) => {
-      return !isNaN(d.minAmount) && !isNaN(d.percent);
-    })
-    .sort((a, b) => {
-      return b.minAmount - a.minAmount;
-    });
-    
+    return { minAmount: getNum(d.minAmount), percent: getNum(d.percent) };
+  })
+  .filter((d) => !isNaN(d.minAmount) && !isNaN(d.percent))
+  .sort((a, b) => b.minAmount - a.minAmount);
+  
   let potentialBulkPercent = 0;
   for (var i = 0; i < sortedDiscountsDesc.length; i++) { 
     if (totalAmount >= sortedDiscountsDesc[i].minAmount) { 
@@ -184,7 +163,6 @@ export function Cart(props) {
   const isEligibleForDiscount = paymentMode === 'COD' || paymentMode === 'UPI';
   const bulkDiscountAmount = isEligibleForDiscount ? potentialBulkDiscount : 0;
   const cashDiscountAmount = isEligibleForDiscount ? potentialCashDiscount : 0;
-
   const totalMissedSavings = potentialBulkDiscount + potentialCashDiscount;
 
   // 🟢 ₹1 PER FREEBIE ITEM CALCULATION FOR BACKEND & FINAL TOTAL
@@ -202,9 +180,7 @@ export function Cart(props) {
   // ==========================================
   const handleScreenshotUpload = (e) => {
     const file = e.target.files[0];
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
@@ -224,24 +200,20 @@ export function Cart(props) {
   const updateQty = (product, change) => {
     const updated = Object.assign({}, cart);
     const itemCode = String(getProp(product, "ItemCode") || "");
-    
-    if (!itemCode) {
-      return;
-    }
+    if (!itemCode) return;
     
     const isAlwaysLiveBrand = String(getProp(product, "Brand") || "").toUpperCase().includes("HIKVISION") || String(getProp(product, "Brand") || "").toUpperCase().includes("VELOCITY");
     const stockVal = getNum(getProp(product, "Stock"));
-    
     const prodName = String(getProp(product, "ProductName") || "").toLowerCase();
     const prodType = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase();
-    const isCable = prodName.includes("cable") || prodType.includes("cable");
     
+    const isCable = prodName.includes("cable") || prodType.includes("cable");
     const actualChange = isCable ? (change > 0 ? 5 : -5) : change;
     
-    const newQty = (updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
+    const newQty = getNum(updated[itemCode] ? updated[itemCode].qty : 0) + actualChange;
     const maxLimit = isAlwaysLiveBrand ? 99999 : stockVal;
     
-    if (newQty > maxLimit && maxLimit > 0) {
+    if (newQty > maxLimit && maxLimit > 0 && !isAlwaysLiveBrand) {
       return alert("Maximum stock limit reached!");
     }
     
@@ -250,20 +222,16 @@ export function Cart(props) {
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
     }
-    
     setCart(updated);
   };
 
   const handleCheckout = function() {
     // 🟢 LOCK SYSTEM FOR DOUBLE CLICK BUG
-    if (submitLock.current === true) {
-      return;
-    }
+    if (submitLock.current === true) return;
 
     if (!paymentMode) {
       return alert("Please select Payment Mode!");
     }
-    
     if (paymentMode === 'UPI' && !screenshotData) {
       return alert("Upload Payment Screenshot first!");
     }
@@ -272,7 +240,7 @@ export function Cart(props) {
     setLoading(true);
     
     var itemsList = cartItems.map(function(i) { 
-      return String(getProp(i, "ProductName") || "Premium Item") + " x" + i.qty; 
+      return String(getProp(i, "ProductName") || "Premium Item") + " x" + getNum(i.qty); 
     });
     
     unlockedSchemes.forEach((sch) => {
@@ -307,9 +275,8 @@ export function Cart(props) {
     }).then(function(res) {
       submitLock.current = false;
       setLoading(false);
-      
       if (res && res.success) {
-        alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount + "\n\nWe will dispatch it shortly.");
+        alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nWe will dispatch it shortly.");
         globalProps.logSpyData("Order Placed", "Val: ₹" + finalAmount);
         setCart({}); 
         setView("catalog");
@@ -335,19 +302,16 @@ export function Cart(props) {
         {lockedSchemes.map((scheme, idx) => {
           const progress = calculateSchemeProgress(cartItems, scheme);
           return (
-            <div 
-              key={`locked-${idx}`} 
-              className="p-3 rounded-2xl border-2 bg-amber-50 border-amber-300 flex flex-col justify-between"
-            >
+            <div key={`locked-${idx}`} className="p-3 rounded-2xl border-2 bg-amber-50 border-amber-300 flex flex-col justify-between">
               <h4 className="font-black text-[10px] uppercase text-amber-900 leading-snug">
                 {scheme.message}
               </h4>
               <div className="mt-2">
                 <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
-                   <div 
-                     className="bg-amber-500 h-full transition-all duration-500" 
-                     style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
-                   ></div>
+                  <div 
+                    className="bg-amber-500 h-full transition-all duration-500" 
+                    style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                  ></div>
                 </div>
                 <p className="text-[9px] font-bold mt-1 text-gray-600 leading-snug">
                   {progress.current} / {progress.required} added. Add {progress.required - progress.current} more to unlock!
@@ -362,13 +326,9 @@ export function Cart(props) {
         {cartItems.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-4xl">🛒</span>
-            <p className="font-black text-gray-400 mt-2 text-sm uppercase">
-              Cart Khali Hai
-            </p>
+            <p className="font-black text-gray-400 mt-2 text-sm uppercase">Cart Khali Hai</p>
             <button 
-              onClick={() => {
-                setView("catalog");
-              }} 
+              onClick={() => setView("catalog")} 
               className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm"
             >
               Catalog par jayein
@@ -377,63 +337,47 @@ export function Cart(props) {
         ) : (
           <React.Fragment>
             <div className="grid grid-cols-2 gap-3 mb-6">
-              
               {cartItems.map((item) => {
                 var smartImg = getSmartImage(item);
                 var itemName = String(getProp(item, "ProductName") || "Premium Item");
                 var dealerPrice = getNum(getProp(item, "DealerPrice"));
                 var itemCode = String(getProp(item, "ItemCode") || "");
                 var brandStr = String(getProp(item, "Brand") || "").toUpperCase();
-                
                 var showOnOrder = (brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY")) && getNum(getProp(item, "Stock")) <= 0;
+                var currentQty = getNum(item.qty);
 
                 return (
-                  <div 
-                    key={itemCode} 
-                    className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden"
-                  >
+                  <div key={itemCode} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
                     {showOnOrder && (
                       <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
                         ⏳ ON ORDER
                       </span>
                     )}
-                    
                     {smartImg ? (
-                      <img 
-                        src={smartImg} 
-                        className="w-16 h-16 object-contain mb-2 p-1" 
-                        alt={itemName}
-                      />
+                      <img src={smartImg} className="w-16 h-16 object-contain mb-2 p-1" alt={itemName} />
                     ) : (
                       <div className="w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center text-gray-300 text-[10px] mb-2">
                         No Img
                       </div>
                     )}
-                    
                     <h4 className="text-xs font-black leading-tight line-clamp-2 h-8 text-gray-800 w-full px-1">
                       {itemName}
                     </h4>
-                    
                     <div className="font-black text-blue-900 text-sm mt-1 mb-2">
-                      ₹{(dealerPrice * item.qty).toLocaleString('en-IN')}
+                      ₹{(dealerPrice * currentQty).toLocaleString('en-IN')}
                     </div>
-                    
                     <div className="flex items-center justify-between w-full bg-gray-100 rounded-xl p-1 border border-gray-200 mt-auto">
                       <button 
-                        onClick={() => {
-                          updateQty(item, -1);
-                        }} 
+                        onClick={() => updateQty(item, -1)} 
                         className="bg-white text-gray-800 font-black w-8 h-8 rounded-lg shadow-sm flex items-center justify-center"
                       >
                         -
                       </button>
                       <span className="font-black text-blue-900 text-sm w-full text-center">
-                        {item.qty}
+                        {currentQty}
                       </span>
                       <button 
-                        onClick={() => {
-                          updateQty(item, 1);
-                        }} 
+                        onClick={() => updateQty(item, 1)} 
                         className="bg-blue-900 text-white font-black w-8 h-8 rounded-lg shadow-sm flex items-center justify-center"
                       >
                         +
@@ -446,42 +390,32 @@ export function Cart(props) {
               {unlockedSchemes.map((sch, idx) => {
                 const match = sch.reward.match(/^(\d+)/);
                 const freeQty = match ? parseInt(match[1]) : 1;
-                const cost = freeQty * 1; // 1 RS billing logic calculation
+                const cost = freeQty * 1; 
 
                 return (
-                  <div 
-                    key={`freebie-${idx}`} 
-                    className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden"
-                  >
+                  <div key={`freebie-${idx}`} className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-green-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest shadow-md z-20">
                       ₹1 / PC BILLING
                     </div>
-                    
                     <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner mb-2 border border-green-100">
                       🎁
                     </div>
-                    
                     <h4 className="text-[10px] font-black text-green-900 leading-tight line-clamp-2 h-8 w-full">
                       {sch.reward}
                     </h4>
-                    
                     <div className="font-black text-green-700 text-sm mt-auto pt-2">
                       ₹{cost}
                     </div>
-                    
                     <div className="text-[9px] font-black text-green-800 bg-green-200 px-2 py-0.5 rounded mt-1 flex flex-col items-center justify-center">
                       <span>Qty: {freeQty}</span>
                     </div>
                   </div>
                 );
               })}
-              
             </div>
 
             <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-200">
-              <span className="font-bold text-gray-500 uppercase text-[10px]">
-                Net Value
-              </span>
+              <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
               <span className="font-black text-lg text-gray-900">
                 ₹{baseTotalAmount.toLocaleString('en-IN')}
               </span>
@@ -536,25 +470,22 @@ export function Cart(props) {
 
       {cartItems.length > 0 && (
         <React.Fragment>
-          
           {(!isEligibleForDiscount) && totalMissedSavings > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-red-50 border-2 border-red-500 shadow-md animate-pulse">
-               <h4 className="font-black text-red-900 text-sm flex items-center gap-2">
-                 ⚠️ MISSED SAVINGS: ₹{totalMissedSavings.toLocaleString('en-IN')}
-               </h4>
-               <p className="text-[10px] font-bold text-red-700 mt-1.5 leading-snug">
-                 तुम्ही <strong>₹{potentialBulkDiscount} चे Bulk Discount</strong> आणि <strong>₹{potentialCashDiscount} चे Cash Discount</strong> गमावत आहात! तुमचे पैसे वाचवण्यासाठी कृपया खाली <strong>COD</strong> किंवा <strong>UPI</strong> पेमेंट पर्याय निवडा.
-               </p>
+              <h4 className="font-black text-red-900 text-sm flex items-center gap-2">
+                ⚠️ MISSED SAVINGS: ₹{totalMissedSavings.toLocaleString('en-IN')}
+              </h4>
+              <p className="text-[10px] font-bold text-red-700 mt-1.5 leading-snug">
+                तुम्ही <strong>₹{potentialBulkDiscount.toLocaleString('en-IN')} चे Bulk Discount</strong> आणि <strong>₹{potentialCashDiscount.toLocaleString('en-IN')} चे Cash Discount</strong> गमावत आहात! तुमचे पैसे वाचवण्यासाठी कृपया खाली <strong>COD</strong> किंवा <strong>UPI</strong> पेमेंट पर्याय निवडा.
+              </p>
             </div>
           )}
 
           <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
+          
           <div className="space-y-3 mb-8">
-            
             <div 
-              onClick={() => {
-                setPaymentMode('COD');
-              }} 
+              onClick={() => setPaymentMode('COD')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -569,9 +500,7 @@ export function Cart(props) {
             </div>
 
             <div 
-              onClick={() => {
-                setPaymentMode('UPI');
-              }} 
+              onClick={() => setPaymentMode('UPI')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -589,12 +518,10 @@ export function Cart(props) {
               {paymentMode === 'UPI' && (
                 <div 
                   className="mt-4 bg-white p-4 rounded-xl border border-purple-200 text-center animate-fade-in" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <p className="text-xs font-bold mb-3">
-                    Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount}</span>
+                    Scan & Pay Exactly: <span className="text-purple-700 text-xl font-black">₹{finalAmount.toLocaleString('en-IN')}</span>
                   </p>
                   <div className="relative inline-block border-4 border-purple-700 p-2 rounded-2xl bg-white shadow-md mb-2">
                     <img 
@@ -623,9 +550,7 @@ export function Cart(props) {
             </div>
             
             <div 
-              onClick={() => {
-                setPaymentMode('DAILY');
-              }} 
+              onClick={() => setPaymentMode('DAILY')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-gray-800 bg-gray-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -640,6 +565,7 @@ export function Cart(props) {
               {paymentMode === 'DAILY' && (
                 <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-gray-300">
                   <iframe 
+                    title="Daily Collection Guide"
                     width="100%" 
                     height="180" 
                     src="https://www.youtube.com/embed/tgbNymZ7vqY" 
@@ -655,9 +581,7 @@ export function Cart(props) {
             <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 Add Order Remarks (Optional)</h3>
             <textarea
               value={orderRemarks}
-              onChange={(e) => {
-                setOrderRemarks(e.target.value);
-              }}
+              onChange={(e) => setOrderRemarks(e.target.value)}
               placeholder="Koi specific instruction ya request hai toh yahan likhein..."
               className="w-full bg-white p-4 rounded-2xl border-2 border-gray-200 focus:border-blue-600 outline-none font-bold text-xs text-gray-700 shadow-sm transition-all"
               rows="2"

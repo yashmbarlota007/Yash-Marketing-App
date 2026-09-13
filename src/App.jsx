@@ -17,6 +17,7 @@ function LoginScreen(props) {
   const handleLogin = function() {
     if (phone.length < 10) return alert("Enter 10-digit number");
     setLoading(true);
+    
     fetch(API_URL, {
       method: 'POST',
       body: JSON.stringify({ action: "verifyDealer", phone: phone }),
@@ -199,7 +200,6 @@ export default function App() {
           body: JSON.stringify(payload),
           headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
-        
         return { 
           success: true, 
           ticketId: "TKT-" + Math.floor(1000 + Math.random() * 9000),
@@ -261,17 +261,18 @@ export default function App() {
   }
 
   const cartItems = Object.values(cart);
-  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
+  const totalItems = cartItems.reduce((a, b) => a + (getNum(b.qty) || 0), 0);
   
   const totalAmount = cartItems.reduce((a, b) => {
     const itemPrice = getNum(getProp(b, "DealerPrice"));
-    return a + (itemPrice * b.qty);
+    return a + (itemPrice * (getNum(b.qty) || 0));
   }, 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
     cartItems.forEach(i => {
       let n = String(getProp(i, "ProductName")).toLowerCase().trim();
-      if (n === "velocity neckband wave") { nQty += i.qty; nPrice = getNum(getProp(i, "DealerPrice")); }
-      if (n === "velocity airpods tws pods") { pQty += i.qty; pPrice = getNum(getProp(i, "DealerPrice")); }
+      let qty = getNum(i.qty) || 0;
+      if (n === "velocity neckband wave") { nQty += qty; nPrice = getNum(getProp(i, "DealerPrice")); }
+      if (n === "velocity airpods tws pods") { pQty += qty; pPrice = getNum(getProp(i, "DealerPrice")); }
     });
     let combos = Math.min(nQty, pQty);
     let stPrice = nPrice + pPrice;
@@ -288,6 +289,7 @@ export default function App() {
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
+        
         <div className="flex gap-1.5 items-center">
           <button onClick={() => {
             const m = !customerMode;
@@ -300,8 +302,8 @@ export default function App() {
           <button onClick={handleLogout} className="text-white text-[10px] font-bold bg-red-600 px-2.5 py-2 rounded-lg shadow-sm">LOGOUT</button>
         </div>
       </div>
-      
-    {view === "catalog" ? (
+
+      {view === "catalog" ? (
         <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
       ) : view === "cart" ? (
         <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
@@ -319,13 +321,13 @@ export default function App() {
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} />
 
       {view === "catalog" && totalItems > 0 && !customerMode && (
-         <div className="fixed bottom-[80px] left-4 right-4 max-w-md mx-auto bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-30 opacity-95">
-           <div>
-             <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
-             <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')}</div>
-           </div>
-           <button onClick={() => handleSetView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
-         </div>
+        <div className="fixed bottom-[80px] left-4 right-4 max-w-md mx-auto bg-green-600 text-white rounded-2xl shadow-2xl p-4 flex justify-between items-center z-30 opacity-95">
+          <div>
+            <div className="text-[10px] uppercase font-black opacity-80">{totalItems} Total Qty</div>
+            <div className="font-black text-lg leading-none">₹{totalAmount.toLocaleString('en-IN')}</div>
+          </div>
+          <button onClick={() => handleSetView("cart")} className="bg-white text-green-700 font-black px-6 py-2 rounded-xl shadow-md active:scale-95">VIEW CART →</button>
+        </div>
       )}
 
       {user && showNotice && announcements.length > 0 && (

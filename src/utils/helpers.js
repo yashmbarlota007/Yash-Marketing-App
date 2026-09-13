@@ -1,7 +1,11 @@
 export const cacheBypass = "?v=" + new Date().getTime();
+
 export const API_URL = "https://script.google.com/macros/s/AKfycbw_HtJl9dqW4J4OnjMZkDTM98nKmuvcwfnh7vnoBKWJGdlB2afWqKRi2nn19AgVkm1t8A/exec";
+
 export const LOGO_URL = "https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_VUpH4G6yRPwhc03t&sz=w500";
+
 export const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
+
 export const OFFICE_NUMBER = "918378811922"; 
 
 export const getNum = (val) => {
@@ -15,9 +19,11 @@ export function getProp(obj, propName) {
   if (obj[propName] !== undefined) return obj[propName];
   var cleanTarget = propName.toLowerCase().replace(/[^a-z0-9]/g, "");
   for (var key in obj) {
-    var cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (cleanKey === cleanTarget) {
-      return obj[key];
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      var cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (cleanKey === cleanTarget) {
+        return obj[key];
+      }
     }
   }
   return "";
@@ -26,26 +32,21 @@ export function getProp(obj, propName) {
 export function getSmartImage(product) {
   if (!product) return null;
   var imageUrl = getProp(product, "ImageURL");
-  
   if (imageUrl && String(imageUrl).trim() !== "") {
     let url = String(imageUrl).trim();
     if (url.indexOf("//") === 0) {
       url = "https:" + url;
     }
-    
     if (url.includes("drive.google.com")) {
       let fileId = "";
       const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
       const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      
       if (dMatch) fileId = dMatch[1];
       else if (idMatch) fileId = idMatch[1];
-      
       if (fileId) {
         return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w1000";
       }
     }
-    
     return url;
   }
 
@@ -54,7 +55,9 @@ export function getSmartImage(product) {
   if (brand.indexOf("PORTRONICS") > -1) return "https://portronics.com/cdn/shop/files/Portronics_Logo_01_1.png";
   if (brand.indexOf("JBL") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/JBL_logo.svg/512px-JBL_logo.svg.png";
   if (brand.indexOf("HIKVISION") > -1) return "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Hikvision_logo.svg/512px-Hikvision_logo.svg.png";
-  
+  if (brand.indexOf("VELOCITY") > -1) return "https://via.placeholder.com/512x512.png?text=Velocity"; 
+  if (brand.indexOf("KNOPPIE") > -1) return "https://via.placeholder.com/512x512.png?text=Knoppie";
+
   return null;
 }
 
@@ -82,8 +85,8 @@ export function groupProductsByVariant(flatList) {
     }
 
     var groupKey = capacity
-    ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
-    : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
+      ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
+      : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
 
     if (!grouped[groupKey]) {
       grouped[groupKey] = {
@@ -143,7 +146,7 @@ export function calculateSchemeProgress(cartItems, scheme) {
     });
 
     if (isMatch) {
-      currentQty += item.qty;
+      currentQty += getNum(item.qty);
     }
   });
 

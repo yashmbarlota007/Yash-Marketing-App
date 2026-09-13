@@ -3,9 +3,9 @@ import { getNum, OFFICE_NUMBER } from '../utils/helpers';
 
 export function ProgressBar({ totalAmount, discounts }) {
   var sortedDiscounts = [...discounts]
-  .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
-  .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
-  .sort((a, b) => a.minAmount - b.minAmount);
+    .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
+    .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
+    .sort((a, b) => a.minAmount - b.minAmount);
 
   if (sortedDiscounts.length === 0) return null;
 
@@ -29,7 +29,7 @@ export function ProgressBar({ totalAmount, discounts }) {
     progress = (totalAmount / first.minAmount) * 100;
     message = "Add ₹" + (first.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + first.percent + "% discount";
   } else if (nextTier) {
-    var range = nextTier.minAmount - activeTier.minAmount;
+    var range = (nextTier.minAmount - activeTier.minAmount) || 1;
     var currentInRange = totalAmount - activeTier.minAmount;
     progress = (currentInRange / range) * 100;
     message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + (nextTier.minAmount - totalAmount).toLocaleString('en-IN') + " more to get " + nextTier.percent + "% discount";
@@ -84,7 +84,7 @@ export function BottomNav({ view, setView, totalItems, customerMode }) {
         <span className="text-xl mb-0.5">🎁</span>
         <span className="text-[10px] font-black">Offers</span>
       </button>
-      
+
       {!customerMode && (
         <button onClick={() => setView('orders')} className={`flex flex-col items-center flex-1 ${view==='orders'?'text-blue-900':'text-gray-400'}`}>
           <span className="text-xl mb-0.5">📦</span>
@@ -145,24 +145,26 @@ export function ScannerModal({ onScan, onClose }) {
     }
     
     return () => {
-      if(html5QrCode && html5QrCode.isScanning) {
-        html5QrCode.stop().catch(() => {});
+      if(html5QrCode) {
+        try {
+          html5QrCode.stop().catch(() => {});
+        } catch(e) {}
       }
     };
   }, []);
-  
+
   return (
     <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-fade-in">
-       <div className="p-4 flex justify-between items-center text-white bg-gray-900">
-          <span className="font-black uppercase text-sm">Scan Product Barcode</span>
-          <button onClick={onClose} className="font-black text-xl text-gray-300">✕</button>
-       </div>
-       <div className="flex-1 flex flex-col justify-center items-center p-4">
-          <div id="reader" className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl bg-black border-2 border-dashed border-gray-600"></div>
-          <p className="text-white text-center mt-6 text-xs font-bold bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm leading-relaxed">
-             Box pe jaha colour likha hota hai thik wahi pe jo barcode hai wo scan karo.
-          </p>
-       </div>
+      <div className="p-4 flex justify-between items-center text-white bg-gray-900">
+        <span className="font-black uppercase text-sm">Scan Product Barcode</span>
+        <button onClick={onClose} className="font-black text-xl text-gray-300">✕</button>
+      </div>
+      <div className="flex-1 flex flex-col justify-center items-center p-4">
+        <div id="reader" className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl bg-black border-2 border-dashed border-gray-600"></div>
+        <p className="text-white text-center mt-6 text-xs font-bold bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm leading-relaxed">
+          Box pe jaha colour likha hota hai thik wahi pe jo barcode hai wo scan karo.
+        </p>
+      </div>
     </div>
   );
 }
