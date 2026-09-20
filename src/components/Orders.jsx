@@ -57,7 +57,7 @@ export default function Orders(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans animate-fade-in">
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="font-black text-gray-900 text-xl tracking-tight uppercase">My Past Orders 2.0</h2>
+        <h2 className="font-black text-gray-900 text-xl tracking-tight uppercase">My Past Orders</h2>
         <button 
           onClick={() => setView("catalog")} 
           className="bg-blue-100 text-blue-900 text-[10px] font-black px-3 py-1.5 rounded-lg border border-blue-200 active:scale-95"
