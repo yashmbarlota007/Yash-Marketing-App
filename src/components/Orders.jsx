@@ -46,7 +46,7 @@ export default function Orders(props) {
         href={String(url).trim()} 
         target="_blank" 
         rel="noreferrer" 
-        className={`flex-1 min-w-[80px] flex flex-col items-center justify-center p-2.5 rounded-xl border shadow-sm transition-all active:scale-95 ${bgClass}`}
+        className={`flex-1 min-w-[80px] flex flex-col items-center justify-center p-2.5 rounded-xl border shadow-sm transition-all active:scale-95 shrink-0 ${bgClass}`}
       >
         <span className="text-xl mb-1">{icon}</span>
         <span className="text-[8px] font-black uppercase text-center leading-tight">{label}</span>
@@ -95,11 +95,16 @@ export default function Orders(props) {
             const paymentMode = String(getProp(order, "PaymentMode") || getProp(order, "Payment Mode") || "N/A");
             const totalAmount = getNum(getProp(order, "FinalAmount") || getProp(order, "Total Amount") || getProp(order, "Final Amount"));
             
-            const stockPhoto = String(getProp(order, "StockPhoto") || getProp(order, "Stock Photo") || "");
-            const invoicePhoto = String(getProp(order, "InvoicePhoto") || getProp(order, "Invoice") || "");
-            const lrPhoto = String(getProp(order, "LrPhoto") || getProp(order, "LR Copy") || getProp(order, "Courier Receipt") || "");
-            const trackingLink = String(getProp(order, "TrackingLink") || getProp(order, "Tracking") || "");
-            const hasDocuments = stockPhoto || invoicePhoto || lrPhoto || trackingLink;
+            // Explicitly fetching data matched to columns L, M, N, O, P, R, S
+            const call1 = String(getProp(order, "Call1") || "");
+            const stockPhoto = String(getProp(order, "StockPhoto") || "");
+            const invoicePhoto = String(getProp(order, "InvoicePhoto") || "");
+            const boxPhoto = String(getProp(order, "BoxPhoto") || "");
+            const logistics = String(getProp(order, "Logistics") || "");
+            const lrPhoto = String(getProp(order, "LrPhoto") || "");
+            const finalCall = String(getProp(order, "FinalCall") || "");
+            
+            const hasDocuments = call1 || stockPhoto || invoicePhoto || boxPhoto || lrPhoto || finalCall || logistics;
 
             return (
               <div key={idx} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col relative overflow-hidden">
@@ -153,13 +158,21 @@ export default function Orders(props) {
                 {hasDocuments && (
                   <div className="pt-4 border-t border-gray-100 mt-2 bg-gray-50 -mx-5 px-5 pb-1 mb:-5 rounded-b-3xl">
                     <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">
-                      Order Documents & Tracking
+                      Order Tracking & Documents
                     </div>
+                    {logistics && (
+                      <div className="mb-3 bg-white p-2 rounded-lg border border-gray-200 text-[10px] font-bold text-gray-700 flex items-start gap-2">
+                        <span className="text-orange-500">🚚</span> 
+                        <span>{logistics}</span>
+                      </div>
+                    )}
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
+                      {renderDocButton(call1, "Call 1", "🎧", "bg-white border-gray-200 text-gray-700")}
                       {renderDocButton(stockPhoto, "Stock Photo", "📦", "bg-white border-blue-100 text-blue-900")}
                       {renderDocButton(invoicePhoto, "Tax Invoice", "📄", "bg-white border-purple-100 text-purple-900")}
+                      {renderDocButton(boxPhoto, "Box Photo", "🗃️", "bg-white border-indigo-100 text-indigo-900")}
                       {renderDocButton(lrPhoto, "LR / Courier", "🚚", "bg-white border-orange-100 text-orange-900")}
-                      {renderDocButton(trackingLink, "Live Track", "📍", "bg-green-50 border-green-200 text-green-900")}
+                      {renderDocButton(finalCall, "Final Call", "📞", "bg-white border-gray-200 text-gray-700")}
                     </div>
                   </div>
                 )}
