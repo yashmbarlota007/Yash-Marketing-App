@@ -95,16 +95,16 @@ export default function Orders(props) {
             const paymentMode = String(getProp(order, "PaymentMode") || getProp(order, "Payment Mode") || "N/A");
             const totalAmount = getNum(getProp(order, "FinalAmount") || getProp(order, "Total Amount") || getProp(order, "Final Amount"));
             
-            // Explicitly fetching data matched to columns L, M, N, O, P, R, S
-            const call1 = String(getProp(order, "Call1") || "");
+            // Strictly fetching only the columns you requested
             const stockPhoto = String(getProp(order, "StockPhoto") || "");
             const invoicePhoto = String(getProp(order, "InvoicePhoto") || "");
             const boxPhoto = String(getProp(order, "BoxPhoto") || "");
-            const logistics = String(getProp(order, "Logistics") || "");
-            const lrPhoto = String(getProp(order, "LrPhoto") || "");
-            const finalCall = String(getProp(order, "FinalCall") || "");
+            const deliveryDetails = String(getProp(order, "DeliveryDetails") || "");
+            const podPhoto = String(getProp(order, "POD") || "");
+            const callRecording = String(getProp(order, "CallRecording") || "");
+            const orderRating = String(getProp(order, "OrderRating") || "");
             
-            const hasDocuments = call1 || stockPhoto || invoicePhoto || boxPhoto || lrPhoto || finalCall || logistics;
+            const hasDocuments = stockPhoto || invoicePhoto || boxPhoto || deliveryDetails || podPhoto || callRecording || orderRating;
 
             return (
               <div key={idx} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex flex-col relative overflow-hidden">
@@ -160,20 +160,33 @@ export default function Orders(props) {
                     <div className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">
                       Order Tracking & Documents
                     </div>
-                    {logistics && (
-                      <div className="mb-3 bg-white p-2 rounded-lg border border-gray-200 text-[10px] font-bold text-gray-700 flex items-start gap-2">
-                        <span className="text-orange-500">🚚</span> 
-                        <span>{logistics}</span>
+                    
+                    {/* Delivery Details Text Box */}
+                    {deliveryDetails && (
+                      <div className="mb-3 bg-white p-2.5 rounded-lg border border-gray-200 text-[10px] font-bold text-gray-700 flex items-start gap-2 shadow-sm">
+                        <span className="text-orange-500 text-sm">🚚</span> 
+                        <span>{deliveryDetails}</span>
                       </div>
                     )}
+                    
+                    {/* Only specific media buttons requested */}
                     <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
-                      {renderDocButton(call1, "Call 1", "🎧", "bg-white border-gray-200 text-gray-700")}
                       {renderDocButton(stockPhoto, "Stock Photo", "📦", "bg-white border-blue-100 text-blue-900")}
                       {renderDocButton(invoicePhoto, "Tax Invoice", "📄", "bg-white border-purple-100 text-purple-900")}
                       {renderDocButton(boxPhoto, "Box Photo", "🗃️", "bg-white border-indigo-100 text-indigo-900")}
-                      {renderDocButton(lrPhoto, "LR / Courier", "🚚", "bg-white border-orange-100 text-orange-900")}
-                      {renderDocButton(finalCall, "Final Call", "📞", "bg-white border-gray-200 text-gray-700")}
+                      {renderDocButton(podPhoto, "POD", "✅", "bg-white border-green-100 text-green-900")}
+                      {renderDocButton(callRecording, "Call Rec", "📞", "bg-white border-gray-200 text-gray-700")}
                     </div>
+
+                    {/* Order Rating Display */}
+                    {orderRating && !isNaN(Number(orderRating)) && (
+                      <div className="mt-1 mb-3 bg-white p-2 rounded-lg border border-yellow-200 text-[10px] font-black text-gray-700 flex items-center justify-between shadow-sm">
+                        <span>ORDER RATING:</span>
+                        <span className="text-yellow-500 text-sm tracking-widest">
+                          {"★".repeat(Math.min(5, Math.max(1, Number(orderRating))))}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
