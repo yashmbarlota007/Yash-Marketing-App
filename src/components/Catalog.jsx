@@ -1,8 +1,3 @@
-Catalog module ka logic verify aur upgrade kar diya gaya hai, Yash Sir. Ahmednagar wholesale market ke dealers ko ek seamless aur lag-free experience dene ke liye backend stability aur UI rendering mein kuch critical bottlenecks the, jinhe solve kar diya gaya hai.
- * Virtual DOM Crash Prevention: App mein broken images aane par e.target.outerHTML ka use kiya ja raha tha, jo React ke virtual DOM structure ko bypass karke mutate karta hai. Isse component unmount hone par app directly crash ho sakti thi (data errors hatane ke chakkar mein pura data wipe hone jaisa risk). Ise ek secure React-safe image URL fallback se replace kiya gaya hai taaki data integrity bani rahe.
- * Variant Re-rendering Leak: Sizes/capacities ke map function mein Math.random() ko key banane se dealer jab bhi kisi boAt ya Portronics item ka color/variant select karta, toh har baar list re-render (flicker) hoti. Ise ab strict index-based tracking se secure kiya gaya hai taaki performance lightning-fast rahe.
- * Always-Live Stock Override: Aapke 'Always Live' brands (Velocity aur Hikvision) ke liye maxLimit aur showOnOrder ki calculation ko fortify kiya gaya hai, taaki agar stock 0 bhi ho, tab bhi dealer ko order block ka samna na karna pade aur aapka 15% margin cycle chalta rahe.
- * Share Function Failsafe: Customer mode mein WhatsApp share karte waqt agar kisi item ka image available nahi tha, toh Web Share API silent fail ho jati thi. Ek safe fallback URL inject kiya gaya hai taaki catalog sharing kabhi ruke nahi.
 import React, { useState, useEffect } from 'react';
 import { 
   API_URL, 
@@ -971,4 +966,3 @@ export function ProductDetailModal(props) {
     </div>
   );
 }
-
