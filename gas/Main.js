@@ -19,28 +19,78 @@ function createEditTrigger() {
     .forSpreadsheet(ss)
     .onEdit()
     .create();
-  SpreadsheetApp.getUi().alert("✅ Success: Yash Marketing setup poora ho gaya hai! Ab Column E ka box check karke notification bhej sakte hain.");
+  SpreadsheetApp.getUi().alert("✅ Success: Yash Marketing setup poora ho gaya hai! Announcements sheet mein 'Send Push Notification' checkbox tick karke push bhej sakte hain.");
 }
 
 function installedOnEdit(e) {
+  if (!e || !e.range) return;
   var range = e.range;
   var sheet = range.getSheet();
   var sheetName = sheet.getName().toLowerCase();
-  if ((sheetName === "announcements" || sheetName === "schemes") && range.getColumn() === 5) {
-    var value = range.getValue();
-    if (value === true || value === "TRUE" || value === "YES") {
-      var row = range.getRow();
-      var title = sheet.getRange(row, 2).getValue(); 
-      var message = sheet.getRange(row, 3).getValue(); 
-      if (title && message) {
-        sendPushNotificationToOneSignal(title, message);
-        range.setValue(false); 
-      } else {
-        range.setValue(false);
-        SpreadsheetApp.getUi().alert("❌ Error: Column B (Title) aur Column C (Message) dono bhare hone chahiye!");
-      }
+  if (sheetName === "announcements") {
+    sendAnnouncementPush_(sheet, range);
+    return;
+  }
+
+  if (sheetName === "schemes" && range.getColumn() === 5 && isPushChecked_(range.getValue())) {
+    var row = range.getRow();
+    var title = sheet.getRange(row, 2).getDisplayValue().trim();
+    var message = sheet.getRange(row, 3).getDisplayValue().trim();
+    if (title && message && sendPushNotificationToOneSignal(title, message)) {
+      range.setValue(false);
     }
   }
+}
+
+function sendAnnouncementPush_(sheet, range) {
+  if (range.getRow() < 2 || !isPushChecked_(range.getValue())) return;
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+  var pushColumn = findSheetHeaderColumn_(headers, ["send push notification"]);
+  if (!pushColumn || range.getColumn() !== pushColumn) return;
+
+  var titleColumn = findSheetHeaderColumn_(headers, ["title", "announcement title"]) || 1;
+  var messageColumn = findSheetHeaderColumn_(headers, ["message", "announcement message"]) || 2;
+  var lock = LockService.getScriptLock();
+
+  try {
+    lock.waitLock(30000);
+    if (!isPushChecked_(sheet.getRange(range.getRow(), pushColumn).getValue())) return;
+
+    var title = sheet.getRange(range.getRow(), titleColumn).getDisplayValue().trim();
+    var message = sheet.getRange(range.getRow(), messageColumn).getDisplayValue().trim();
+    if (!title || !message) {
+      sheet.getRange(range.getRow(), pushColumn).setValue(false);
+      sheet.getParent().toast("Push bhejne se pehle title aur message bharein.", "Announcement", 6);
+      return;
+    }
+
+    if (sendPushNotificationToOneSignal(title, message)) {
+      sheet.getRange(range.getRow(), pushColumn).setValue(false);
+      sheet.getParent().toast("Push notification send ho gaya.", "Announcement", 5);
+    } else {
+      sheet.getParent().toast("Push send nahi hua. OneSignal API key check karke checkbox ko uncheck aur recheck karein.", "Announcement", 8);
+    }
+  } catch (error) {
+    Logger.log("Announcement push failed: " + error.toString());
+  } finally {
+    if (lock.hasLock()) lock.releaseLock();
+  }
+}
+
+function findSheetHeaderColumn_(headers, expectedHeaders) {
+  var expected = expectedHeaders.map(function(header) {
+    return header.toLowerCase().replace(/[^a-z0-9]/g, "");
+  });
+  for (var i = 0; i < headers.length; i++) {
+    var normalized = String(headers[i] || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (expected.indexOf(normalized) !== -1) return i + 1;
+  }
+  return 0;
+}
+
+function isPushChecked_(value) {
+  return value === true || ["TRUE", "YES"].indexOf(String(value).toUpperCase()) !== -1;
 }
 
 function doGet(e) {

@@ -1,6 +1,10 @@
 function sendPushNotificationToOneSignal(title, message) {
   var appId = "73a96bf6-8439-4452-b6ae-53d97d28c89f"; 
-  var apiKey = "73a96bf6-8439-4452-b6ae-53d97d28c89f"; 
+  var apiKey = PropertiesService.getScriptProperties().getProperty("ONESIGNAL_REST_API_KEY");
+  if (!apiKey) {
+    Logger.log("OneSignal push skipped: ONESIGNAL_REST_API_KEY is not configured.");
+    return false;
+  }
   
   var payload = {
     "app_id": appId,
@@ -21,9 +25,15 @@ function sendPushNotificationToOneSignal(title, message) {
   
   try {
     var response = UrlFetchApp.fetch("https://onesignal.com/api/v1/notifications", options);
-    Logger.log(response.getContentText());
+    var responseCode = response.getResponseCode();
+    var responseText = response.getContentText();
+    Logger.log("OneSignal response " + responseCode + ": " + responseText);
+    var responseData = JSON.parse(responseText);
+    var hasErrors = responseData.errors && (!Array.isArray(responseData.errors) || responseData.errors.length > 0);
+    return responseCode >= 200 && responseCode < 300 && !!responseData.id && !hasErrors;
   } catch (err) {
     Logger.log("Push failed: " + err.toString());
+    return false;
   }
 }
 

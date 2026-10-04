@@ -220,13 +220,26 @@ export default function App() {
   };
 
   const handleRequestPermission = () => {
-    if (window.Notification) {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') {
-          setIsNotificationGranted(true);
-        } else {
-          alert("App use karne ke liye Permission allow karna compulsory hai!");
+    if (window.OneSignalDeferred && window.Notification) {
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        try {
+          await OneSignal.Notifications.requestPermission();
+          if (Notification.permission === 'granted') {
+            setIsNotificationGranted(true);
+          } else {
+            alert("App use karne ke liye Permission allow karna compulsory hai!");
+          }
+        } catch (error) {
+          alert("Notification permission request failed. Please try again.");
         }
+      });
+      return;
+    }
+
+    if (window.Notification) {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') setIsNotificationGranted(true);
+        else alert("App use karne ke liye Permission allow karna compulsory hai!");
       });
     }
   };
