@@ -281,9 +281,7 @@ export function Cart(props) {
         setCart({}); 
         setView("catalog");
       } else {
-        alert("Order completed. We will process it shortly.");
-        setCart({}); 
-        setView("catalog");
+        alert("❌ Order was not saved. " + (res && res.message ? res.message : "Please try again."));
       }
     }).catch(function() {
       submitLock.current = false;

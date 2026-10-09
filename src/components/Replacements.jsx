@@ -103,7 +103,12 @@ export default function ReplacementsView(props) {
         setRemarks(""); 
         setMediaData(null); 
         setActiveTab("track");
+      } else {
+        alert("❌ Replacement request was not saved. " + (res && res.message ? res.message : "Please try again."));
       }
+    }).catch(error => {
+      setFormLoading(false);
+      alert("❌ Replacement request could not be submitted. " + (error.message || "Please try again."));
     });
   };
 

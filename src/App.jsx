@@ -191,31 +191,16 @@ export default function App() {
   const globalProps = { logSpyData, customerMode };
 
   const callAPI = async function(payload) {
-    const isHeavyUpload = payload.media || payload.screenshot;
     try {
-      if (isHeavyUpload) {
-        fetch(API_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        });
-        return { 
-          success: true, 
-          ticketId: "TKT-" + Math.floor(1000 + Math.random() * 9000),
-          orderId: "YM-" + Math.floor(1000 + Math.random() * 9000)
-        };
-      } else {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        });
-        return await response.json();
-      }
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      });
+      return await response.json();
     } catch (e) {
       alert("🚨 NETWORK ERROR: Please check your internet connection.");
-      return { success: false, message: "Network Error" };
+      return { success: false, message: e.message || "Network Error" };
     }
   };
 
