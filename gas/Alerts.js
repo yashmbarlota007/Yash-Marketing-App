@@ -38,8 +38,20 @@ function sendPushNotificationToOneSignal(title, message) {
 }
 
 function sendTelegramAlert(msg, imageBlob) {
-  var botToken = "8847444782:AAH9jA8ijqthLBec62eY22gYyuD-ggjMtx0"; 
-  var chatId = "8975979526"; 
+  sendTelegramAlertToConfiguredBot_(msg, imageBlob, "SALES_TELEGRAM_BOT_TOKEN", "SALES_TELEGRAM_CHAT_ID");
+}
+
+function sendReplacementTelegramAlert(msg, imageBlob) {
+  sendTelegramAlertToConfiguredBot_(msg, imageBlob, "REPLACEMENT_TELEGRAM_BOT_TOKEN", "REPLACEMENT_TELEGRAM_CHAT_ID");
+}
+
+function sendTelegramAlertToConfiguredBot_(msg, imageBlob, tokenProperty, chatProperty) {
+  var properties = PropertiesService.getScriptProperties();
+  var botToken = properties.getProperty(tokenProperty);
+  var chatId = properties.getProperty(chatProperty);
+  if (!botToken || !chatId) {
+    throw new Error("Telegram configuration is missing script properties: " + tokenProperty + " and/or " + chatProperty);
+  }
 
   if (imageBlob) {
     var photoUrl = "https://api.telegram.org/bot" + botToken + "/sendPhoto";
@@ -60,7 +72,10 @@ function sendTelegramAlert(msg, imageBlob) {
       
       if (result1.ok) return; 
       
-    } catch (e) {} 
+      Logger.log("Telegram photo send failed: " + (result1.description || "Unknown Telegram API error."));
+    } catch (e) {
+      Logger.log("Telegram photo send failed: " + e.toString());
+    }
 
     var docUrl = "https://api.telegram.org/bot" + botToken + "/sendDocument";
     var payloadDoc = {
@@ -80,26 +95,34 @@ function sendTelegramAlert(msg, imageBlob) {
       
       if (result2.ok) return; 
       
-    } catch (e) {}
+      Logger.log("Telegram document send failed: " + (result2.description || "Unknown Telegram API error."));
+    } catch (e) {
+      Logger.log("Telegram document send failed: " + e.toString());
+    }
   }
 
   var textUrl = "https://api.telegram.org/bot" + botToken + "/sendMessage";
   try {
-    UrlFetchApp.fetch(textUrl, {
+    var response = UrlFetchApp.fetch(textUrl, {
       "method": "post",
       "contentType": "application/json",
       "payload": JSON.stringify({
         "chat_id": chatId,
-        "text": msg + "\n\n⚠️ *SYSTEM NOTE:* Live photo upload failed. Please use the Drive Backup Link above to view the screenshot.",
+        "text": imageBlob ? msg + "\n\n⚠️ *SYSTEM NOTE:* Live photo upload failed. Please use the Drive Backup Link above to view the screenshot." : msg,
         "parse_mode": "Markdown"
-      }),
-      "muteHttpExceptions": true
+      })
     });
+    var result = JSON.parse(response.getContentText());
+    if (!result.ok) throw new Error(result.description || "Telegram text message failed.");
   } catch (e) {
-    UrlFetchApp.fetch(textUrl, {
+    Logger.log("Telegram text send with Markdown failed: " + e.toString());
+    var fallbackResponse = UrlFetchApp.fetch(textUrl, {
       "method": "post",
       "contentType": "application/json",
-      "payload": JSON.stringify({ "chat_id": chatId, "text": msg })
+      "payload": JSON.stringify({ "chat_id": chatId, "text": msg }),
+      "muteHttpExceptions": true
     });
+    var fallbackResult = JSON.parse(fallbackResponse.getContentText());
+    if (!fallbackResult.ok) throw new Error(fallbackResult.description || "Telegram text message failed.");
   }
 }

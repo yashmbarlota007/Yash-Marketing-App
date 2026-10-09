@@ -223,7 +223,11 @@ function raiseReplacement(payload) {
     if (audioUrl !== "") msg += "\n🎙️ *Voice Note:* [Listen](" + audioUrl + ")";
 
     // 🟢 UPDATE: Yahan par alert bhejte waqt 'mediaBlob' bhi sath me pass kar diya
-    try { sendTelegramAlert(msg, mediaBlob); } catch(e) {}
+    try {
+      sendReplacementTelegramAlert(msg, mediaBlob);
+    } catch(e) {
+      Logger.log("Replacement Telegram alert failed for " + ticketId + ": " + e.toString());
+    }
 
     return { success: true, ticketId: ticketId };
   } catch(e) {
@@ -1207,8 +1211,20 @@ function generateWebsiteLinks() {
 // 7. TELEGRAM SYSTEM ALERTS ENGINE
 // =====================================================================
 function sendTelegramAlert(msg, imageBlob) {
-  var botToken = "8847444782:AAH9jA8ijqthLBec62eY22gYyuD-ggjMtx0"; 
-  var chatId = "8975979526"; 
+  sendTelegramAlertToConfiguredBot_(msg, imageBlob, "SALES_TELEGRAM_BOT_TOKEN", "SALES_TELEGRAM_CHAT_ID");
+}
+
+function sendReplacementTelegramAlert(msg, imageBlob) {
+  sendTelegramAlertToConfiguredBot_(msg, imageBlob, "REPLACEMENT_TELEGRAM_BOT_TOKEN", "REPLACEMENT_TELEGRAM_CHAT_ID");
+}
+
+function sendTelegramAlertToConfiguredBot_(msg, imageBlob, tokenProperty, chatProperty) {
+  var properties = PropertiesService.getScriptProperties();
+  var botToken = properties.getProperty(tokenProperty);
+  var chatId = properties.getProperty(chatProperty);
+  if (!botToken || !chatId) {
+    throw new Error("Telegram configuration is missing script properties: " + tokenProperty + " and/or " + chatProperty);
+  }
 
   if (imageBlob) {
     // ATTEMPT 1: Send as Standard Photo (Best visual experience)
@@ -1276,4 +1292,3 @@ function sendTelegramAlert(msg, imageBlob) {
     });
   }
 }
-

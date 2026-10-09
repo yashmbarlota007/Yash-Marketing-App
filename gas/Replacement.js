@@ -76,7 +76,11 @@ function raiseReplacement(payload) {
     if (fileUrl !== "") msg += "\n🔗 *Drive Backup Link:* [View Link](" + fileUrl + ")";
     if (audioUrl !== "") msg += "\n🎙️ *Voice Note:* [Listen](" + audioUrl + ")";
 
-    try { sendTelegramAlert(msg, mediaBlob); } catch(e) {}
+    try {
+      sendReplacementTelegramAlert(msg, mediaBlob);
+    } catch (e) {
+      Logger.log("Replacement Telegram alert failed for " + ticketId + ": " + e.toString());
+    }
 
     return { success: true, ticketId: ticketId };
   } catch(e) {
