@@ -5,6 +5,7 @@ import {
   getProp, 
   getSmartImage, 
   calculateSchemeProgress, 
+  compressImageFile,
   PHONEPE_QR_URL, 
   OFFICE_NUMBER 
 } from '../utils/helpers';
@@ -168,7 +169,8 @@ export function Cart(props) {
   // 🟢 ₹1 PER FREEBIE ITEM CALCULATION FOR BACKEND & FINAL TOTAL
   let totalFreebieCost = 0;
   unlockedSchemes.forEach((sch) => {
-    const match = sch.reward.match(/^(\d+)/);
+    const rewardStr = String(sch.reward || "");
+    const match = rewardStr.match(/^(\d+)/);
     const freeQty = match ? parseInt(match[1]) : 1;
     totalFreebieCost += (freeQty * 1); 
   });
@@ -178,20 +180,22 @@ export function Cart(props) {
   // ==========================================
   // 4. EVENT HANDLERS
   // ==========================================
-  const handleScreenshotUpload = (e) => {
+  const handleScreenshotUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setScreenshotData({
-          base64: ev.target.result.split(',')[1],
-          mimeType: file.type,
-          filename: file.name
-        });
-      };
-      reader.readAsDataURL(file);
+      try {
+        setLoading(true);
+        // High fidelity compression: 1920px max dimension, 0.85 quality
+        // Razor-sharp text, UTR/numbers & QR readable while reducing 10MB to ~400KB
+        const compressed = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
+        setScreenshotData(compressed);
+      } catch (err) {
+        alert("Screenshot optimize karne me samasya aayi: " + (err.message || "Please try again."));
+      } finally {
+        setLoading(false);
+      }
     } else {
       alert("Please upload a valid image file for the screenshot.");
     }
@@ -244,9 +248,10 @@ export function Cart(props) {
     });
     
     unlockedSchemes.forEach((sch) => {
-      const match = sch.reward.match(/^(\d+)/);
+      const rewardStr = String(sch.reward || "");
+      const match = rewardStr.match(/^(\d+)/);
       const freeQty = match ? parseInt(match[1]) : 1;
-      itemsList.push(`🎁 FREE ITEM: ${sch.reward} (Qty: ${freeQty} @ ₹1 each) - Offer: ${sch.message}`);
+      itemsList.push(`🎁 FREE ITEM: ${rewardStr} (Qty: ${freeQty} @ ₹1 each) - Offer: ${sch.message}`);
     });
     
     if (combosApplied > 0) {
@@ -534,8 +539,8 @@ export function Cart(props) {
                   <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
                     UPI NO: {OFFICE_NUMBER}
                   </div>
-                  <p className="text-[10px] text-gray-400 font-bold mb-3">
-                    Upload Screenshot after payment to confirm order
+                  <p className="text-[10px] font-bold mb-3 text-gray-400">
+                    {screenshotData ? "✅ Screenshot Uploaded & Sharp Ready" : "Upload Screenshot after payment to confirm order"}
                   </p>
                   <input 
                     type="file" 

@@ -3,7 +3,6 @@ import { API_URL } from '../utils/helpers';
 
 export function LedgerView(props) {
   var user = props.user;
-  var callAPI = props.callAPI;
   const [ledgerData, setLedgerData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -110,7 +109,6 @@ export function LedgerView(props) {
 
 export function OrdersHistoryView(props) {
   var user = props.user;
-  var callAPI = props.callAPI;
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState(null); 

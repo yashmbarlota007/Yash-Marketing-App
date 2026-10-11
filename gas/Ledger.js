@@ -1,11 +1,6 @@
 function verifyDealer(phone) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Dealers");
   var data = sheet.getDataRange().getValues();
-  
-  if (phone && phone.toString().indexOf("SSO_") === 0) {
-    var staffId = phone.toString().replace("SSO_", "");
-    return { success: true, shopName: "Staff Portal (" + staffId + ")" };
-  }
 
   var targetPhoneClean = phone ? phone.toString().replace(/\D/g, '').slice(-10) : "";
   if (targetPhoneClean === "") {
@@ -76,7 +71,7 @@ function getLedger(phone) {
       if (colA !== "" && colA.toLowerCase().indexOf("ledger:") > -1) {
         isTargetSection = false; 
         var normSection = cleanStr(colB);
-        if (normSection.indexOf(normTarget) === 0) {
+        if (normSection === normTarget) {
           isTargetSection = true;
           lastSeenDate = ""; 
           drIdx = 6; crIdx = 7; vchTypeIdx = 4; vchNoIdx = 5; partIdx = 2;

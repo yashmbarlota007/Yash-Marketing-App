@@ -156,3 +156,103 @@ export function calculateSchemeProgress(cartItems, scheme) {
     isUnlocked: currentQty >= getNum(scheme.minQty)
   };
 }
+
+/**
+ * High-Fidelity Client-side Image Compression
+ * Maintains razor-sharp text, invoice details and barcodes
+ * while reducing typical 5-15MB camera files to ~300-600KB for instant upload
+ */
+export function compressImageFile(file, options = {}) {
+  const maxWidth = options.maxWidth || 1920;
+  const maxHeight = options.maxHeight || 1920;
+  const quality = options.quality !== undefined ? options.quality : 0.85;
+
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error("Please select a valid image file."));
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Image reading failed."));
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => {
+        try {
+          const rawBase64 = String(e.target.result).split(',')[1];
+          resolve({
+            base64: rawBase64,
+            mimeType: file.type || 'image/jpeg',
+            filename: file.name
+          });
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+              }
+            } else {
+              if (height > maxHeight) {
+                width = Math.round((width * maxHeight) / height);
+                height = maxHeight;
+              }
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            const rawBase64 = String(e.target.result).split(',')[1];
+            return resolve({
+              base64: rawBase64,
+              mimeType: file.type || 'image/jpeg',
+              filename: file.name
+            });
+          }
+
+          // Use high quality image smoothing so text, barcodes & numbers don't blur
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+
+          // White background fallback for transparent PNGs
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          const base64 = dataUrl.split(',')[1];
+          const cleanName = (file.name || 'photo').replace(/\.[^/.]+$/, "") + ".jpg";
+
+          resolve({
+            base64: base64,
+            mimeType: 'image/jpeg',
+            filename: cleanName
+          });
+        } catch (canvasErr) {
+          const rawBase64 = String(e.target.result).split(',')[1];
+          resolve({
+            base64: rawBase64,
+            mimeType: file.type || 'image/jpeg',
+            filename: file.name
+          });
+        }
+      };
+
+      img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+

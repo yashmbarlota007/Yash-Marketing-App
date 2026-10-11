@@ -124,30 +124,6 @@ function saveOrder(order) {
 
   var dateFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "ddMMyy");
   
-  var localOrderSheet = ss.getSheetByName("Orders"); 
-  var nextSerial = 1;
-  
-  if (localOrderSheet) {
-    var lastRow = localOrderSheet.getLastRow();
-    if (lastRow > 1) { 
-      var lastOrderId = localOrderSheet.getRange(lastRow, 2).getValue().toString();
-      var parts = lastOrderId.split("-");
-      if (parts.length >= 4) {
-        var lastSerialNum = parseInt(parts[parts.length - 1], 10);
-        if (!isNaN(lastSerialNum)) {
-          nextSerial = lastSerialNum + 1;
-        }
-      }
-    }
-  }
-  
-  var serialString = nextSerial.toString();
-  while (serialString.length < 6) {
-    serialString = "0" + serialString;
-  }
-
-  var orderId = "YM-" + dealerCode + "-" + dateFormatted + "-" + serialString;
-
   var screenshotUrl = "";
   var screenshotBlob = null; 
   if (order.screenshot) {
@@ -184,22 +160,58 @@ function saveOrder(order) {
     formattedItems = "N/A";
   }
 
+  // 🟢 P1 CONCURRENCY LOCK: Atomic Order ID Generation & Insertion
+  var orderLock = LockService.getScriptLock();
+  var lockAcquired = false;
+  var orderId = "";
   var sheetSavedSuccessfully = false;
-  if (localOrderSheet) {
-    var maxRetries = 3; 
-    for (var attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        var rowData = [
-          new Date(), orderId, order.shopName, order.phone, 
-          detailedItems, order.finalAmount, order.paymentMode, 
-          "Pending", "", "", "", "", "", "", "", "", "", screenshotUrl
-        ];
-        localOrderSheet.appendRow(rowData);
-        sheetSavedSuccessfully = true;
-        break; 
-      } catch(err) {
-        Utilities.sleep(2000); 
+
+  try {
+    lockAcquired = orderLock.tryLock(25000);
+    var localOrderSheet = ss.getSheetByName("Orders"); 
+    var nextSerial = 1;
+    
+    if (localOrderSheet) {
+      var lastRow = localOrderSheet.getLastRow();
+      if (lastRow > 1) { 
+        var lastOrderId = localOrderSheet.getRange(lastRow, 2).getValue().toString();
+        var parts = lastOrderId.split("-");
+        if (parts.length >= 4) {
+          var lastSerialNum = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastSerialNum)) {
+            nextSerial = lastSerialNum + 1;
+          }
+        }
       }
+    }
+
+    // Fallback if lock acquisition timed out under extreme load
+    if (!lockAcquired) {
+      nextSerial = Math.floor(100000 + Math.random() * 900000);
+    }
+    
+    var serialString = nextSerial.toString();
+    while (serialString.length < 6) {
+      serialString = "0" + serialString;
+    }
+
+    orderId = "YM-" + dealerCode + "-" + dateFormatted + "-" + serialString;
+
+    if (localOrderSheet) {
+      var rowData = [
+        new Date(), orderId, order.shopName, order.phone, 
+        detailedItems, order.finalAmount, order.paymentMode, 
+        "Pending", "", "", "", "", "", "", "", "", "", screenshotUrl
+      ];
+      localOrderSheet.appendRow(rowData);
+      SpreadsheetApp.flush();
+      sheetSavedSuccessfully = true;
+    }
+  } catch (err) {
+    Logger.log("Order Lock / Save Error: " + err.toString());
+  } finally {
+    if (lockAcquired && orderLock.hasLock()) {
+      orderLock.releaseLock();
     }
   }
 

@@ -4,8 +4,7 @@ import {
   getNum, 
   getProp, 
   getSmartImage, 
-  groupProductsByVariant, 
-  calculateSchemeProgress 
+  groupProductsByVariant 
 } from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
 
@@ -14,12 +13,10 @@ export function Catalog(props) {
   // 1. PROPS & STATE INITIALIZATION
   // ==========================================
   var user = props.user;
-  var callAPI = props.callAPI;
   var cart = props.cart;
   var setCart = props.setCart;
   var products = props.products;
   var setProducts = props.setProducts;
-  var setView = props.setView;
   var globalProps = props.globalProps;
   
   const [loading, setLoading] = useState(products.length === 0);
@@ -30,7 +27,6 @@ export function Catalog(props) {
     { minAmount: 10000, percent: 1 }, 
     { minAmount: 20000, percent: 1.5 }
   ]);
-  const [schemes, setSchemes] = useState([]); 
   const [celebratedTiers, setCelebratedTiers] = useState({ 
     tier1: false, 
     tier2: false 
@@ -77,27 +73,12 @@ export function Catalog(props) {
       }
     })
     .catch(() => {});
-
-    // Fetch Schemes
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "getSchemes" }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    })
-    .then((r) => r.json())
-    .then((res) => { 
-      if (res && res.success) {
-        setSchemes(res.data); 
-      }
-    })
-    .catch(() => {});
   }, []);
 
   // ==========================================
   // 3. CART & PROGRESS CALCULATIONS
   // ==========================================
   const cartItems = Object.values(cart);
-  const totalItems = cartItems.reduce((a, b) => a + b.qty, 0);
   const totalAmount = cartItems.reduce((a, b) => {
     return a + (getNum(getProp(b, "DealerPrice")) * b.qty);
   }, 0) - (function(){

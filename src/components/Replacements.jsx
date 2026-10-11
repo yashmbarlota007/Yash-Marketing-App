@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_URL, getProp } from '../utils/helpers';
+import { API_URL, getProp, compressImageFile } from '../utils/helpers';
 import { ScannerModal } from './SharedUI';
 
 export default function ReplacementsView(props) {
@@ -54,21 +54,21 @@ export default function ReplacementsView(props) {
     }
   };
 
-  const handleMediaUpload = (e) => {
+  const handleMediaUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      return alert("Please upload a valid photo. Videos and voice notes are disabled to ensure fast uploads.");
+      return alert("Please upload a valid photo.");
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => { 
-      setMediaData({ 
-        base64: ev.target.result.split(',')[1], 
-        mimeType: file.type, 
-        filename: file.name 
-      }); 
-    };
-    reader.readAsDataURL(file);
+    try {
+      setFormLoading(true);
+      const compressed = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
+      setMediaData(compressed);
+    } catch (err) {
+      alert("Photo processing failed: " + (err.message || "Please try again."));
+    } finally {
+      setFormLoading(false);
+    }
   };
 
   const handleSubmit = () => {

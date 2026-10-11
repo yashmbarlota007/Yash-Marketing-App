@@ -114,21 +114,12 @@ export default function App() {
 
   useEffect(() => {
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const portalEmpId = urlParams.get('empId');
-
-      if (portalEmpId && portalEmpId.trim() !== "") {
-        const dealerData = { phone: "SSO_" + portalEmpId, shopName: "Staff Portal (" + portalEmpId + ")" };
-        localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
-        setUser(dealerData);
-      } else {
-        const savedUser = localStorage.getItem("yashDealerSession");
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
+      const savedUser = localStorage.getItem("yashDealerSession");
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
       }
     } catch (e) {
-      console.error(e);
+      console.error("Session restore failed:", e);
     }
   }, []);
 
@@ -137,11 +128,23 @@ export default function App() {
   }, [cart]);
 
   useEffect(() => {
-    if (window.Notification) {
-      if (Notification.permission !== "granted") {
-        setIsNotificationGranted(false);
+    const checkNotification = () => {
+      if (window.Notification) {
+        if (Notification.permission === "granted") {
+          setIsNotificationGranted(true);
+        } else {
+          setIsNotificationGranted(false);
+        }
       }
-    }
+    };
+
+    checkNotification();
+    window.addEventListener('focus', checkNotification);
+    document.addEventListener('visibilitychange', checkNotification);
+    return () => {
+      window.removeEventListener('focus', checkNotification);
+      document.removeEventListener('visibilitychange', checkNotification);
+    };
   }, []);
 
   useEffect(() => {
@@ -204,28 +207,40 @@ export default function App() {
     }
   };
 
-  const handleRequestPermission = () => {
-    if (window.OneSignalDeferred && window.Notification) {
+  const handleRequestPermission = async () => {
+    if (window.OneSignalDeferred) {
       window.OneSignalDeferred.push(async (OneSignal) => {
         try {
           await OneSignal.Notifications.requestPermission();
-          if (Notification.permission === 'granted') {
+          if (window.Notification && Notification.permission === 'granted') {
             setIsNotificationGranted(true);
-          } else {
-            alert("App use karne ke liye Permission allow karna compulsory hai!");
+            return;
           }
         } catch (error) {
-          alert("Notification permission request failed. Please try again.");
+          console.error("OneSignal permission error:", error);
         }
       });
-      return;
     }
 
     if (window.Notification) {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') setIsNotificationGranted(true);
-        else alert("App use karne ke liye Permission allow karna compulsory hai!");
-      });
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          setIsNotificationGranted(true);
+          return;
+        }
+      } catch (err) {
+        console.error("Notification request error:", err);
+      }
+
+      if (Notification.permission === 'denied') {
+        alert("⚠️ Notifications browser me Blocked hain!\n\nKripya browser ke address bar me Lock (🔒) icon par click karein aur Notifications ko 'Allow' karke 'CHECK AGAIN' dabayein.");
+      } else {
+        alert("App use karne ke liye Permission allow karna compulsory hai!");
+      }
+    } else {
+      // If browser doesn't support Notification at all, don't lock them out
+      setIsNotificationGranted(true);
     }
   };
 
@@ -242,6 +257,8 @@ export default function App() {
   }
 
   if (!isNotificationGranted) {
+    const isDenied = window.Notification && Notification.permission === "denied";
+
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
         <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
@@ -250,9 +267,34 @@ export default function App() {
           <p className="text-xs font-semibold text-gray-500 mt-4 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
             Yash Marketing Portal ka use karne ke liye Push Notification allow karna compulsory hai. Isse aapko naye schemes, payments aur order updates instantly mobile screen par milenge.
           </p>
-          <button onClick={handleRequestPermission} className="w-full bg-red-600 text-white font-black text-md py-4 rounded-xl mt-6 shadow-lg active:scale-95">
-            ENABLE NOTIFICATIONS NOW
-          </button>
+
+          {isDenied && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-xl text-left">
+              <p className="text-[11px] font-bold text-amber-900">
+                ⚠️ <strong>Browser me permission Blocked hai:</strong>
+              </p>
+              <ol className="text-[10px] text-amber-800 list-decimal ml-4 mt-1 space-y-0.5 font-medium">
+                <li>Browser ke address bar me Lock (🔒) icon dabayein.</li>
+                <li>Notifications ko <strong>Allow</strong> karein.</li>
+                <li>Neeche <strong>Check Again</strong> button dabayein.</li>
+              </ol>
+            </div>
+          )}
+
+          <div className="space-y-2 mt-6">
+            <button 
+              onClick={handleRequestPermission} 
+              className="w-full bg-red-600 text-white font-black text-sm py-4 rounded-xl shadow-lg active:scale-95"
+            >
+              {isDenied ? "🔄 CHECK AGAIN" : "ENABLE NOTIFICATIONS NOW"}
+            </button>
+            <button 
+              onClick={handleLogout} 
+              className="w-full bg-gray-100 text-gray-600 font-bold text-xs py-2.5 rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              Logout Account
+            </button>
+          </div>
         </div>
       </div>
     );
