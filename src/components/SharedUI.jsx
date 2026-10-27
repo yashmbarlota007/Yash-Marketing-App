@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { getNum, OFFICE_NUMBER } from '../utils/helpers';
 
 export function ProgressBar({ totalAmount, discounts }) {
@@ -101,8 +101,8 @@ export function BottomNav({ view, setView, totalItems, customerMode }) {
 
       {!customerMode && (
         <button onClick={() => setView('replacements')} className={`flex flex-col items-center flex-1 ${view==='replacements'?'text-blue-900':'text-gray-400'}`}>
-          <span className="text-xl mb-0.5">♻️</span>
-          <span className="text-[10px] font-black">Replacement</span>
+          <span className="text-xl mb-0.5">🎫</span>
+          <span className="text-[10px] font-black">Help Ticket</span>
         </button>
       )}
 

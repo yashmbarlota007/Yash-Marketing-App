@@ -1,4 +1,4 @@
-function getWarrantyRules() {
+﻿function getWarrantyRules() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("WarrantyRules");
@@ -26,7 +26,9 @@ function raiseReplacement(payload) {
   try {
     var dateFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MMyy");
     var randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
-    var ticketId = "REP-YM-" + dateFormatted + "-" + randomDigits;
+    var category = payload.category || "Replacement";
+    var isRep = category.toLowerCase().indexOf("replacement") !== -1;
+    var ticketId = (isRep ? "REP-YM-" : "HLP-YM-") + dateFormatted + "-" + randomDigits;
     var fileUrl = "";
     var audioUrl = "";
     var mediaBlob = null; 
@@ -66,7 +68,8 @@ function raiseReplacement(payload) {
       "Raised", "", "", payload.remarks || "", audioUrl
     ]);
 
-    var msg = "♻️ *NEW REPLACEMENT TICKET* ♻️\n\n" +
+    var headerEmoji = isRep ? "♻️ *NEW REPLACEMENT TICKET* ♻️" : "🎫 *NEW HELP TICKET (" + category.toUpperCase() + ")* 🎫";
+    var msg = headerEmoji + "\n\n" +
               "*Ticket ID:* " + ticketId + "\n" +
               "*Shop Name:* " + payload.shopName + "\n" +
               "*Item:* " + payload.productName + " (" + payload.brand + ")\n" +
