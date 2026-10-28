@@ -754,6 +754,22 @@ function saveOrder(order) {
     }
   }
 
+  // CRITICAL DUAL-POST: Also post directly to Main Yash Marketing Catalogue Backend Sheet
+  var mainBackendSpreadsheetId = "1nFxdcul3UiAgOoEaF2y-ejqSaMhFwDDGTnbp8BMvmvI";
+  try {
+    if (ss.getId() !== mainBackendSpreadsheetId) {
+      var mainBackendSs = SpreadsheetApp.openById(mainBackendSpreadsheetId);
+      var mainOrdersSheet = mainBackendSs ? mainBackendSs.getSheetByName("Orders") : null;
+      if (mainOrdersSheet) {
+        mainOrdersSheet.appendRow(rowData);
+        SpreadsheetApp.flush();
+        sheetSavedSuccessfully = true;
+      }
+    }
+  } catch(backendErr) {
+    Logger.log("Main Backend Sheet Append Error: " + backendErr.toString());
+  }
+
   var fmsSpreadsheetId = "1VTbtmkLL5R8PVdqv6PcTNn7I5aVjkjsT99QvNJMMHAA";
   var fmsSavedSuccessfully = false;
   try {
