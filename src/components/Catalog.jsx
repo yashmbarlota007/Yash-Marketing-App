@@ -4,7 +4,9 @@ import {
   getNum, 
   getProp, 
   getSmartImage, 
-  groupProductsByVariant 
+  groupProductsByVariant,
+  calculateSchemeProgress,
+  getProductSchemes
 } from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
 
@@ -18,8 +20,10 @@ export function Catalog(props) {
   var products = props.products;
   var setProducts = props.setProducts;
   var globalProps = props.globalProps;
+  var passedSchemes = props.schemes || [];
   
   const [loading, setLoading] = useState(products.length === 0);
+  const [schemes, setSchemes] = useState(passedSchemes);
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -36,6 +40,12 @@ export function Catalog(props) {
   // Filter States
   const [brandFilter, setBrandFilter] = useState("");
   const [sortFilter, setSortFilter] = useState("");
+
+  useEffect(() => {
+    if (props.schemes && props.schemes.length > 0) {
+      setSchemes(props.schemes);
+    }
+  }, [props.schemes]);
 
   // ==========================================
   // 2. DATA FETCHING (API CALLS)
@@ -58,6 +68,22 @@ export function Catalog(props) {
       .catch(() => {
         setLoading(false);
       });
+    }
+
+    // Sync & Fetch Schemes
+    if (!passedSchemes || passedSchemes.length === 0) {
+      fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "getSchemes" }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          setSchemes(res.data);
+        }
+      })
+      .catch(() => {});
     }
 
     // Fetch Discounts
@@ -589,6 +615,7 @@ export function Catalog(props) {
           globalProps={globalProps} 
           activeVariants={activeVariants} 
           setActiveVariants={setActiveVariants} 
+          schemes={schemes}
         />
       )}
     </div>
@@ -607,6 +634,7 @@ export function ProductDetailModal(props) {
   var globalProps = props.globalProps;
   var activeVariants = props.activeVariants;
   var setActiveVariants = props.setActiveVariants;
+  var schemes = props.schemes || [];
   
   var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || 
     (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
@@ -825,6 +853,84 @@ export function ProductDetailModal(props) {
               </div>
             )}
 
+            {/* ðŸŽ DETAILED ACTIVE SCHEME & OFFER BOX */}
+            {(() => {
+              const itemSchemes = getProductSchemes(product, schemes);
+              if (!itemSchemes || itemSchemes.length === 0) return null;
+
+              return (
+                <div className="mt-4 bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-600 text-white px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm border border-amber-300">
+                      <span>ðŸŽ</span> ACTIVE SCHEME & OFFER
+                    </span>
+                    <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md">
+                      {itemSchemes.length} Offer{itemSchemes.length > 1 ? 's' : ''} Available
+                    </span>
+                  </div>
+
+                  {itemSchemes.map((sch, sIdx) => {
+                    const progress = calculateSchemeProgress(Object.values(cart), sch);
+                    const remainingNeeded = Math.max(0, progress.required - progress.current);
+
+                    return (
+                      <div key={sIdx} className="bg-white p-3.5 rounded-xl border border-amber-200 mt-2.5 shadow-sm">
+                        <div className="text-xs font-black text-gray-900 leading-snug">
+                          {sch.message}
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-bold">
+                          <span className="bg-blue-50 text-blue-900 px-2 py-0.5 rounded-md border border-blue-100 flex items-center gap-1">
+                            <span>ðŸŽ</span> <span>Reward: <b className="font-black">{sch.reward}</b></span>
+                          </span>
+                          <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md border border-gray-200">
+                            ðŸ“¦ Min Target: <b>{sch.minQty} units</b>
+                          </span>
+                        </div>
+
+                        {/* Live Cart Threshold Progress Box */}
+                        <div className="mt-3 bg-amber-50/90 p-3 rounded-xl border border-amber-200">
+                          <div className="flex justify-between items-center text-[10px] mb-1.5 font-bold">
+                            <span className="text-gray-700">
+                              Cart me added: <b className="text-blue-900 text-xs font-black">{progress.current}</b> / {progress.required}
+                            </span>
+                            {progress.isUnlocked ? (
+                              <span className="font-black text-green-700 bg-green-100 px-2 py-0.5 rounded-md border border-green-300 uppercase tracking-wide">
+                                ðŸŽ‰ OFFER UNLOCKED!
+                              </span>
+                            ) : (
+                              <span className="font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 uppercase tracking-wide">
+                                Add {remainingNeeded} more
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
+                            <div 
+                              className={h-full transition-all duration-500 } 
+                              style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                            ></div>
+                          </div>
+
+                          <div className="text-[10px] font-extrabold mt-2 text-center leading-tight">
+                            {progress.isUnlocked ? (
+                              <span className="text-green-700 bg-green-50 px-2 py-1 rounded block border border-green-200">
+                                âœ… Badhaai ho! Aapko is order ke saath <b>{sch.reward}</b> milega!
+                              </span>
+                            ) : (
+                              <span className="text-amber-950 bg-amber-100/70 px-2 py-1 rounded block border border-amber-200">
+                                âš¡ Bas <b>{remainingNeeded} units aur add karein</b> aur paayein: <b>{sch.reward}</b>!
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             <div className="mt-6">
               <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">
                 Product Key Highlights
@@ -947,3 +1053,4 @@ export function ProductDetailModal(props) {
     </div>
   );
 }
+
