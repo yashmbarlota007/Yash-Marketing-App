@@ -5,6 +5,7 @@ import {
   getProp, 
   getSmartImage, 
   calculateSchemeProgress, 
+  getProductSchemes,
   compressImageFile,
   PHONEPE_QR_URL, 
   OFFICE_NUMBER 
@@ -33,6 +34,12 @@ export function Cart(props) {
     { minAmount: 20000, percent: 1.5 }
   ]);
   const [orderRemarks, setOrderRemarks] = useState("");
+
+  useEffect(() => {
+    if (props.schemes && props.schemes.length > 0) {
+      setSchemes(props.schemes);
+    }
+  }, [props.schemes]);
 
   // ==========================================
   // 2. DATA FETCHING (API CALLS)
@@ -386,6 +393,43 @@ export function Cart(props) {
                         +
                       </button>
                     </div>
+
+                    {/* ðŸŽ LIVE ITEM SCHEME STATUS & REMAINING STOCK NEEDED */}
+                    {(() => {
+                      const itemSchemes = getProductSchemes(item, schemes);
+                      if (!itemSchemes || itemSchemes.length === 0) return null;
+                      return (
+                        <div className="w-full mt-2">
+                          {itemSchemes.map((sch, sIdx) => {
+                            const progress = calculateSchemeProgress(cartItems, sch);
+                            const remainingNeeded = Math.max(0, progress.required - progress.current);
+                            return (
+                              <div key={sIdx} className="w-full mt-1">
+                                {progress.isUnlocked ? (
+                                  <div className="w-full py-1 px-1.5 bg-green-50 border border-green-300 text-green-800 rounded-lg text-[8px] font-black flex items-center justify-center gap-1 shadow-xs">
+                                    <span>ðŸŽ‰</span>
+                                    <span className="truncate">Offer Unlocked: {sch.reward}</span>
+                                  </div>
+                                ) : (
+                                  <div className="w-full py-1.5 px-2 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg text-[8px] font-bold flex flex-col items-center justify-center gap-1 shadow-xs">
+                                    <div className="flex items-center justify-between w-full text-[8px]">
+                                      <span>âš¡ Need <b>{remainingNeeded} more</b></span>
+                                      <span className="font-extrabold text-amber-800 truncate max-w-[70px]">{sch.reward}</span>
+                                    </div>
+                                    <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
+                                      <div 
+                                        className="bg-amber-600 h-full transition-all duration-300" 
+                                        style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -621,3 +665,5 @@ export function Cart(props) {
     </div>
   );
 }
+
+
