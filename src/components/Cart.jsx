@@ -10,6 +10,7 @@ import {
   PHONEPE_QR_URL, 
   OFFICE_NUMBER 
 } from '../utils/helpers';
+import { t } from '../utils/translations';
 
 export function Cart(props) {
   // ==========================================
@@ -408,13 +409,12 @@ export function Cart(props) {
                                 {progress.isUnlocked ? (
                                   <div className="w-full py-1 px-1.5 bg-green-50 border border-green-300 text-green-800 rounded-lg text-[8px] font-black flex items-center justify-center gap-1 shadow-xs">
                                     <span>ðŸŽ‰</span>
-                                    <span className="truncate">Offer Unlocked: {sch.reward}</span>
+                                    <span className="truncate">{t('offer_unlocked', lang)}: {sch.reward}</span>
                                   </div>
                                 ) : (
                                   <div className="w-full py-1.5 px-2 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg text-[8px] font-bold flex flex-col items-center justify-center gap-1 shadow-xs">
                                     <div className="flex items-center justify-between w-full text-[8px]">
-                                      <span>âš¡ Need <b>{remainingNeeded} more</b></span>
-                                      <span className="font-extrabold text-amber-800 truncate max-w-[70px]">{sch.reward}</span>
+                                      <span>âš¡ {t('need_more_for_reward', lang, { count: remainingNeeded, reward: sch.reward })}</span>
                                     </div>
                                     <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
                                       <div 
@@ -528,7 +528,7 @@ export function Cart(props) {
             </div>
           )}
 
-          <h2 className="font-black text-gray-800 text-xl mb-4">Payment Options</h2>
+          <h2 className="font-black text-gray-800 text-xl mb-4">{t('payment_mode_title', lang)}</h2>
           
           <div className="space-y-3 mb-8">
             <div 
@@ -537,7 +537,7 @@ export function Cart(props) {
             >
               <div className="flex justify-between items-center">
                 <div className="font-black text-blue-900 flex items-center gap-1.5 tracking-tight text-sm">
-                  Cash On Delivery
+                  {t('payment_cod', lang)}
                   <span className="text-[9px] font-bold text-gray-500">(2% CASH DISCOUNT)</span>
                 </div>
                 <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">
@@ -602,7 +602,7 @@ export function Cart(props) {
             >
               <div className="flex justify-between items-center">
                 <div className="font-black text-gray-800 text-sm">
-                  Daily Collection (Auto-Pay)
+                  {t('payment_daily', lang)}
                 </div>
                 <div className="bg-red-100 text-red-700 border border-red-200 text-[8px] px-2 py-0.5 rounded font-black uppercase">
                   0% Discount
@@ -665,5 +665,7 @@ export function Cart(props) {
     </div>
   );
 }
+
+
 
 
