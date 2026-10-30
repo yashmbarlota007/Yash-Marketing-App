@@ -76,6 +76,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("catalog");
   const [products, setProducts] = useState([]);
+  const [schemes, setSchemes] = useState([]);
 
   const [cart, setCart] = useState(() => {
     try {
@@ -126,6 +127,22 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("yashDealerCart", JSON.stringify(cart));
   }, [cart]);
+
+  // Fetch real-time schemes globally so all views (Catalog, Cart, Offers) are synchronized
+  useEffect(() => {
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getSchemes" }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    })
+    .then((r) => r.json())
+    .then((res) => {
+      if (res && res.success && Array.isArray(res.data)) {
+        setSchemes(res.data);
+      }
+    })
+    .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const checkNotification = () => {
@@ -344,11 +361,11 @@ export default function App() {
       </div>
 
       {view === "catalog" ? (
-        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} />
+        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} />
       ) : view === "cart" ? (
-        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} />
+        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} />
       ) : view === "offers" ? (
-        <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} />
+        <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} />
       ) : view === "ledger" ? (
         <LedgerView user={user} callAPI={callAPI} />
       ) : view === "replacements" ? (
