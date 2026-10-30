@@ -1,7 +1,40 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { getNum, OFFICE_NUMBER } from '../utils/helpers';
+import { LANGUAGES, t } from '../utils/translations';
 
-export function ProgressBar({ totalAmount, discounts }) {
+export function LanguageBar({ currentLang, onSelectLang }) {
+  return (
+    <div className="bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 p-2.5 px-3 flex items-center justify-between text-white shadow-md border-b border-blue-800">
+      <div className="flex items-center gap-1.5 text-xs font-black tracking-wide">
+        <span className="text-base animate-pulse">🌐</span>
+        <span className="uppercase text-[10px] text-blue-200">
+          {t('select_language', currentLang)}:
+        </span>
+      </div>
+      <div className="flex items-center gap-1 bg-black/30 p-1 rounded-xl border border-blue-700/60 shadow-inner">
+        {LANGUAGES.map((l) => {
+          const isActive = currentLang === l.code;
+          return (
+            <button
+              key={l.code}
+              onClick={() => onSelectLang(l.code)}
+              className={`flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-lg transition-all active:scale-95 ${
+                isActive
+                  ? 'bg-white text-blue-950 shadow-md font-extrabold ring-1 ring-blue-300'
+                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <span>{l.flag}</span>
+              <span>{l.native}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function ProgressBar({ totalAmount, discounts, lang = 'en' }) {
   var sortedDiscounts = [...discounts]
     .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
     .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
@@ -27,23 +60,43 @@ export function ProgressBar({ totalAmount, discounts }) {
   if (!activeTier) {
     var first = sortedDiscounts[0];
     progress = (totalAmount / first.minAmount) * 100;
-    message = "Add ₹" + (first.minAmount - totalAmount).toLocaleString('en-IN') + " more to unlock " + first.percent + "% discount";
+    const needMore = (first.minAmount - totalAmount).toLocaleString('en-IN');
+    if (lang === 'mr') {
+      message = first.percent + "% डिस्काउंट अनलॉक करण्यासाठी अजून ₹" + needMore + " जोडा";
+    } else if (lang === 'hi') {
+      message = first.percent + "% डिस्काउंट पाने के लिए ₹" + needMore + " का सामान और जोड़ें";
+    } else {
+      message = "Add ₹" + needMore + " more to unlock " + first.percent + "% discount";
+    }
   } else if (nextTier) {
     var range = (nextTier.minAmount - activeTier.minAmount) || 1;
     var currentInRange = totalAmount - activeTier.minAmount;
     progress = (currentInRange / range) * 100;
-    message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + (nextTier.minAmount - totalAmount).toLocaleString('en-IN') + " more to get " + nextTier.percent + "% discount";
+    const needMore = (nextTier.minAmount - totalAmount).toLocaleString('en-IN');
+    if (lang === 'mr') {
+      message = "🎉 " + activeTier.percent + "% अनलॉक! " + nextTier.percent + "% साठी अजून ₹" + needMore + " जोडा";
+    } else if (lang === 'hi') {
+      message = "🎉 " + activeTier.percent + "% अनलॉक! " + nextTier.percent + "% छूट के लिए ₹" + needMore + " और जोड़ें";
+    } else {
+      message = "🎉 " + activeTier.percent + "% Unlocked! Add ₹" + needMore + " more to get " + nextTier.percent + "% discount";
+    }
   } else {
     progress = 100;
-    message = "🎉 Maximum " + activeTier.percent + "% Bulk Discount Unlocked!";
+    if (lang === 'mr') {
+      message = "🎉 कमाल " + activeTier.percent + "% मोठ्या खरेदीवर डिस्काउंट अनलॉक!";
+    } else if (lang === 'hi') {
+      message = "🎉 अधिकतम " + activeTier.percent + "% बल्क डिस्काउंट अनलॉक हो गया!";
+    } else {
+      message = "🎉 Maximum " + activeTier.percent + "% Bulk Discount Unlocked!";
+    }
   }
 
   return (
     <div className="bg-amber-50 p-4 border-b-2 border-amber-200 shadow-sm">
       <div className="flex justify-between text-xs font-black text-amber-900 mb-1.5 uppercase tracking-wider">
-        <span>Bulk Discount Tracker</span>
+        <span>{t('bulk_tracker', lang)}</span>
         <span className="bg-amber-200 px-2 py-0.5 rounded-full text-[11px]">
-          {activeTier ? activeTier.percent + "% Active" : "No Discount"} (₹{totalAmount.toLocaleString('en-IN')})
+          {activeTier ? activeTier.percent + "% " + t('active_discount', lang) : t('no_discount', lang)} (₹{totalAmount.toLocaleString('en-IN')})
         </span>
       </div>
       <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300 shadow-inner">
@@ -72,37 +125,37 @@ export function ContactFABs({ view }) {
   );
 }
 
-export function BottomNav({ view, setView, totalItems, customerMode }) {
+export function BottomNav({ view, setView, totalItems, customerMode, lang = 'en' }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around items-center pt-2 pb-3 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
       <button onClick={() => setView('catalog')} className={`flex flex-col items-center flex-1 ${view==='catalog'?'text-blue-900':'text-gray-400'}`}>
         <span className="text-xl mb-0.5">🏠</span>
-        <span className="text-[10px] font-black">Home</span>
+        <span className="text-[10px] font-black">{t('nav_home', lang)}</span>
       </button>
 
       <button onClick={() => setView('offers')} className={`flex flex-col items-center flex-1 ${view==='offers'?'text-blue-900':'text-gray-400'}`}>
         <span className="text-xl mb-0.5">🎁</span>
-        <span className="text-[10px] font-black">Offers</span>
+        <span className="text-[10px] font-black">{t('nav_offers', lang)}</span>
       </button>
 
       {!customerMode && (
         <button onClick={() => setView('orders')} className={`flex flex-col items-center flex-1 ${view==='orders'?'text-blue-900':'text-gray-400'}`}>
           <span className="text-xl mb-0.5">📦</span>
-          <span className="text-[10px] font-black">Orders</span>
+          <span className="text-[10px] font-black">{t('nav_orders', lang)}</span>
         </button>
       )}
 
       {!customerMode && (
         <button onClick={() => setView('ledger')} className={`flex flex-col items-center flex-1 ${view==='ledger'?'text-blue-900':'text-gray-400'}`}>
           <span className="text-xl mb-0.5">📖</span>
-          <span className="text-[10px] font-black">Ledger</span>
+          <span className="text-[10px] font-black">{t('nav_ledger', lang)}</span>
         </button>
       )}
 
       {!customerMode && (
         <button onClick={() => setView('replacements')} className={`flex flex-col items-center flex-1 ${view==='replacements'?'text-blue-900':'text-gray-400'}`}>
           <span className="text-xl mb-0.5">🎫</span>
-          <span className="text-[10px] font-black">Help Ticket</span>
+          <span className="text-[10px] font-black">{t('nav_help', lang)}</span>
         </button>
       )}
 
@@ -113,13 +166,13 @@ export function BottomNav({ view, setView, totalItems, customerMode }) {
             {totalItems}
           </span>
         )}
-        <span className="text-[10px] font-black">Cart</span>
+        <span className="text-[10px] font-black">{t('nav_cart', lang)}</span>
       </button>
     </div>
   );
 }
 
-export function ScannerModal({ onScan, onClose }) {
+export function ScannerModal({ onScan, onClose, lang = 'en' }) {
   useEffect(() => {
     let html5QrCode;
     try {
@@ -156,13 +209,19 @@ export function ScannerModal({ onScan, onClose }) {
   return (
     <div className="fixed inset-0 bg-black z-[100] flex flex-col animate-fade-in">
       <div className="p-4 flex justify-between items-center text-white bg-gray-900">
-        <span className="font-black uppercase text-sm">Scan Product Barcode</span>
+        <span className="font-black uppercase text-sm">
+          {lang === 'mr' ? 'उत्पादनाचा बारकोड स्कॅन करा' : lang === 'hi' ? 'सामान का बारकोड स्कैन करें' : 'Scan Product Barcode'}
+        </span>
         <button onClick={onClose} className="font-black text-xl text-gray-300">✕</button>
       </div>
       <div className="flex-1 flex flex-col justify-center items-center p-4">
         <div id="reader" className="w-full max-w-sm rounded-xl overflow-hidden shadow-2xl bg-black border-2 border-dashed border-gray-600"></div>
         <p className="text-white text-center mt-6 text-xs font-bold bg-gray-800 p-4 rounded-xl border border-gray-700 w-full max-w-sm leading-relaxed">
-          Box pe jaha colour likha hota hai thik wahi pe jo barcode hai wo scan karo.
+          {lang === 'mr' 
+            ? 'बॉक्सवर जेथे रंग लिहिला आहे तेथील बारकोड स्कॅन करा.' 
+            : lang === 'hi' 
+            ? 'बॉक्स पर जहां रंग लिखा होता है ठीक वही का बारकोड स्कैन करें।' 
+            : 'Box pe jaha colour likha hota hai thik wahi pe jo barcode hai wo scan karo.'}
         </p>
       </div>
     </div>
