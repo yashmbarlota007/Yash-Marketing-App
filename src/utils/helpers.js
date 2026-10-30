@@ -157,6 +157,46 @@ export function calculateSchemeProgress(cartItems, scheme) {
   };
 }
 
+// 🎁 SMART SCHEME MATCHER (Finds matching active schemes for a product or variant)
+export function getProductSchemes(product, schemes) {
+  if (!product || !schemes || !Array.isArray(schemes) || schemes.length === 0) return [];
+  const name = String(getProp(product, "ProductName") || "").toLowerCase().trim();
+  const brand = String(getProp(product, "Brand") || "").toLowerCase().trim();
+  const type = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase().trim();
+  
+  const allNames = [name];
+  if (product.variants && Array.isArray(product.variants)) {
+    product.variants.forEach(v => {
+      const vName = String(getProp(v, "ProductName") || "").toLowerCase().trim();
+      if (vName && !allNames.includes(vName)) allNames.push(vName);
+    });
+  }
+
+  return schemes.filter(scheme => {
+    const targetStr = String(scheme.target || "").toLowerCase().trim();
+    if (!targetStr) return false;
+
+    const isCombo = String(scheme.type || "").toUpperCase().includes("COMBO") ||
+                    String(scheme.message || "").toUpperCase().includes("COMBO") ||
+                    String(scheme.target || "").toUpperCase().includes("COMBO") ||
+                    String(scheme.reward || "").toUpperCase().includes("COMBO");
+
+    const targets = targetStr.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+
+    if (isCombo) {
+      let broadTargets = targets.map(t => t.split(" ").slice(0, 2).join(" ").trim());
+      return broadTargets.some(t => t && (allNames.some(n => n.includes(t)) || brand.includes(t)));
+    }
+
+    return targets.some(t => {
+      if (!t) return false;
+      if (brand === t || (t.length >= 3 && (brand.includes(t) || t.includes(brand)))) return true;
+      if (type === t || (t.length >= 3 && (type.includes(t) || t.includes(type)))) return true;
+      return allNames.some(n => n.includes(t) || t.includes(n));
+    });
+  });
+}
+
 /**
  * High-Fidelity Client-side Image Compression
  * Maintains razor-sharp text, invoice details and barcodes
@@ -255,4 +295,3 @@ export function compressImageFile(file, options = {}) {
     reader.readAsDataURL(file);
   });
 }
-
