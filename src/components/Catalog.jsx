@@ -8,7 +8,8 @@ import {
   calculateSchemeProgress,
   getProductSchemes
 } from '../utils/helpers';
-import { ProgressBar } from './SharedUI';
+import { ProgressBar, LanguageBar } from './SharedUI';
+import { t } from '../utils/translations';
 
 export function Catalog(props) {
   // ==========================================
@@ -21,6 +22,8 @@ export function Catalog(props) {
   var setProducts = props.setProducts;
   var globalProps = props.globalProps;
   var passedSchemes = props.schemes || [];
+  var lang = props.lang || 'en';
+  var setLang = props.setLang;
   
   const [loading, setLoading] = useState(products.length === 0);
   const [schemes, setSchemes] = useState(passedSchemes);
@@ -239,7 +242,7 @@ export function Catalog(props) {
     return (
       <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
         <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
-        <p className="font-bold">Syncing Inventory...</p>
+        <p className="font-bold">{t('syncing_inventory', lang)}</p>
       </div>
     );
   }
@@ -454,10 +457,10 @@ export function Catalog(props) {
     
     mainContent = (
       <div className="p-4 pb-[140px]">
-        <h2 className="font-black text-gray-800 text-xl mb-4">Select Category</h2>
+        <h2 className="font-black text-gray-800 text-xl mb-4">{t('select_category', lang)}</h2>
         {types.length === 0 && !loading && (
           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
-            Categories found empty.
+            {t('no_categories', lang)}
           </div>
         )}
         <div className="grid grid-cols-2 gap-4">
@@ -548,7 +551,7 @@ export function Catalog(props) {
             onChange={(e) => setBrandFilter(e.target.value)} 
             className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
           >
-            <option value="">All Brands</option>
+            <option value="">{t('all_brands', lang)}</option>
             {categoryBrands.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
           <select 
@@ -556,8 +559,8 @@ export function Catalog(props) {
             onChange={(e) => setSortFilter(e.target.value)} 
             className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
           >
-            <option value="">Price: High to Low</option>
-            <option value="low">Price: Low to High</option>
+            <option value="">{t('sort_high_low', lang)}</option>
+            <option value="low">{t('sort_low_high', lang)}</option>
           </select>
         </div>
 
@@ -565,7 +568,7 @@ export function Catalog(props) {
           renderProducts(displayProducts)
         ) : (
           <div className="text-center p-8 text-gray-400 font-bold text-sm mt-10">
-            No products found for this filter.
+            {t('no_products_filter', lang)}
           </div>
         )}
       </div>
@@ -577,17 +580,21 @@ export function Catalog(props) {
   // ==========================================
   return (
     <div className="max-w-md mx-auto relative flex flex-col">
+      {/* ðŸŒ Home Page Language Selector Bar */}
+      {setLang && (
+        <LanguageBar currentLang={lang} onSelectLang={setLang} />
+      )}
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
         {cartItems.length > 0 && !globalProps.customerMode && (
           <React.Fragment>
-            <ProgressBar totalAmount={totalAmount} discounts={discounts} />
+            <ProgressBar totalAmount={totalAmount} discounts={discounts} lang={lang} />
             {/* 🟢 THE ENTIRE SCHEMES TRACKER GRID HAS BEEN REMOVED FROM HERE AS PER YOUR INSTRUCTION */}
           </React.Fragment>
         )}
         <div className="p-3 bg-white flex items-center border-b">
           <input 
             type="text" 
-            placeholder="Search products, brands..." 
+            placeholder={t('search_placeholder', lang)} 
             value={searchQuery} 
             onChange={handleSearchChange} 
             className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border focus:border-blue-300 transition-colors" 
@@ -616,6 +623,7 @@ export function Catalog(props) {
           activeVariants={activeVariants} 
           setActiveVariants={setActiveVariants} 
           schemes={schemes}
+          lang={lang}
         />
       )}
     </div>
@@ -635,6 +643,7 @@ export function ProductDetailModal(props) {
   var activeVariants = props.activeVariants;
   var setActiveVariants = props.setActiveVariants;
   var schemes = props.schemes || [];
+  var lang = props.lang || 'en';
   
   var activeItemCode = activeVariants[String(getProp(product, "ItemCode") || "")] || 
     (product.variants && product.variants[0] ? String(getProp(product.variants[0], "ItemCode") || "") : String(getProp(product, "ItemCode") || ""));
@@ -794,7 +803,7 @@ export function ProductDetailModal(props) {
             {product.isGrouped && (
               <div className="mt-4">
                 <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">
-                  Select Variant Size
+                  {t('select_variant', lang)}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.map((v, vIdx) => {
@@ -820,7 +829,7 @@ export function ProductDetailModal(props) {
             {!globalProps.customerMode ? (
               <div className="mt-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">
-                  Dealer Price ({activeVariant.capacity})
+                  {t('dealer_price', lang)} ({activeVariant.capacity})
                 </div>
                 <div className="flex items-baseline gap-2.5 mt-1">
                   <span className={`text-3xl font-black ${isOutOfStock ? 'text-gray-400 line-through' : 'text-blue-950'}`}>
@@ -845,7 +854,7 @@ export function ProductDetailModal(props) {
             ) : (
               <div className="mt-4 bg-green-50 p-4 rounded-2xl border border-green-100">
                 <div className="text-xs text-green-800 font-black uppercase tracking-wider">
-                  Offer MRP ({activeVariant.capacity})
+                  {t('offer_mrp', lang)} ({activeVariant.capacity})
                 </div>
                 <div className="text-3xl font-black text-green-950 mt-1">
                   ₹{mrpVal || 'Contact store'}
@@ -862,10 +871,10 @@ export function ProductDetailModal(props) {
                 <div className="mt-4 bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-600 text-white px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm border border-amber-300">
-                      <span>ðŸŽ</span> ACTIVE SCHEME & OFFER
+                      <span>ðŸŽ</span> {t('active_scheme_offer', lang)}
                     </span>
                     <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md">
-                      {itemSchemes.length} Offer{itemSchemes.length > 1 ? 's' : ''} Available
+                      {itemSchemes.length > 1 ? t('schemes_available_plural', lang, { count: itemSchemes.length }) : t('schemes_available', lang, { count: itemSchemes.length })}
                     </span>
                   </div>
 
@@ -933,11 +942,11 @@ export function ProductDetailModal(props) {
 
             <div className="mt-6">
               <h3 className="font-extrabold text-sm text-gray-900 mb-3 tracking-wide uppercase">
-                Product Key Highlights
+                {t('key_highlights', lang)}
               </h3>
               {featuresList.length === 0 ? (
                 <p className="text-xs text-gray-500 font-bold italic leading-relaxed">
-                  High-performance authentic build quality with official brand warranty check. Contact us for direct bulk details.
+                  {t('default_highlights', lang)}
                 </p>
               ) : (
                 <ul className="space-y-2.5">
@@ -1053,4 +1062,6 @@ export function ProductDetailModal(props) {
     </div>
   );
 }
+
+
 
