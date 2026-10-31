@@ -9,7 +9,7 @@ import {
   getProductSchemes
 } from '../utils/helpers';
 import { ProgressBar, LanguageBar } from './SharedUI';
-import { t } from '../utils/translations';
+import { t, translateOfferText, translateReward, translateCategory } from '../utils/translations';
 
 export function Catalog(props) {
   // ==========================================
@@ -533,7 +533,7 @@ export function Catalog(props) {
           >
             ← Categories
           </button>
-          <span className="font-black text-gray-800">{selectedType}</span>
+          <span className="font-black text-gray-800">{translateCategory(selectedType, lang)}</span>
           <button 
             onClick={() => {
               let shareText = `🔥 *Yash Marketing - ${selectedType} Catalog* 🔥\n\n`;
@@ -892,7 +892,7 @@ export function ProductDetailModal(props) {
                     return (
                       <div key={sIdx} className="bg-white p-3.5 rounded-xl border border-amber-200 mt-2.5 shadow-sm">
                         <div className="text-xs font-black text-gray-900 leading-snug">
-                          {sch.message}
+                          {translateOfferText(sch.message, lang)}
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-bold">
@@ -931,14 +931,34 @@ export function ProductDetailModal(props) {
                           <div className="text-[10px] font-extrabold mt-2 text-center leading-tight">
                             {progress.isUnlocked ? (
                               <span className="text-green-700 bg-green-50 px-2 py-1 rounded block border border-green-200">
-                                ✅ {t('offer_congrats', lang, { reward: sch.reward })}
+                                ✅ {t('offer_congrats', lang, { reward: translateReward(sch.reward, lang) })}
                               </span>
                             ) : (
                               <span className="text-amber-950 bg-amber-100/70 px-2 py-1 rounded block border border-amber-200">
-                                ⚡ {t('add_more_for_offer_msg', lang, { count: remainingNeeded, reward: sch.reward })}
+                                ⚡ {t('add_more_for_offer_msg', lang, { count: remainingNeeded, reward: translateReward(sch.reward, lang) })}
                               </span>
                             )}
                           </div>
+                        </div>
+
+                        {/* 🟢 DIRECT QUICK-ACTION BUTTONS INSIDE SCHEME CARD */}
+                        <div className="mt-3 flex items-center gap-2 pt-2 border-t border-amber-200">
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }}
+                            className="flex-1 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-[11px] font-black py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1 transition-all"
+                          >
+                            <span>🛒</span> {t('quick_add_1', lang)} {currentQty > 0 ? `(${currentQty})` : ''}
+                          </button>
+                          {remainingNeeded > 0 && (
+                            <button 
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, remainingNeeded); }}
+                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 active:scale-95 text-white text-[11px] font-black py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1 transition-all"
+                            >
+                              <span>⚡</span> +{remainingNeeded} {t('to_unlock', lang)}
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1006,7 +1026,7 @@ export function ProductDetailModal(props) {
                     onClick={() => updateQty(activeVariant, 1)} 
                     className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95"
                   >
-                    {showOnOrder ? t('add_to_order_next_day', lang) : t('add_to_order', lang)}
+                    {showOnOrder ? t('add_to_order_next_day', lang) : t('add_to_cart', lang)}
                   </button>
                 )}
               </div>
