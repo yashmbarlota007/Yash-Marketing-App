@@ -1,44 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { API_URL, LOGO_URL, cacheBypass, getNum, getProp } from './utils/helpers';
-import { LANGUAGES, t } from './utils/translations';
+import React, { useState, useEffect, useRef } from 'react';
+import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError } from './utils/helpers';
+import { LANGUAGES, t, translateReward } from './utils/translations';
 import { Catalog } from './components/Catalog';
 import { Cart } from './components/Cart';
 import OffersView from './components/Offers';
 import { LedgerView, OrdersHistoryView } from './components/Ledger';
 import ReplacementsView from './components/Replacements';
 import { BottomNav, ContactFABs, LanguageBar } from './components/SharedUI';
+
+// 🛡️ ISOLATED COMPONENT ERROR BOUNDARY WITH REAL-TIME DEBUG DRAWER
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, showDetails: false };
   }
+
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
+
   componentDidCatch(error, errorInfo) {
-    console.error("ErrorBoundary caught error:", error, errorInfo);
+    const compName = this.props.componentName || "AppShell";
+    console.error(`🚨 ErrorBoundary caught in <${compName}>:`, error, errorInfo);
+    if (typeof logAppError === 'function') {
+      logAppError(error, compName + (errorInfo && errorInfo.componentStack ? "\nComponentStack: " + errorInfo.componentStack : ''));
+    }
   }
+
   render() {
     if (this.state.hasError) {
       const lang = this.props.lang || 'en';
+      const compName = this.props.componentName || "Section";
       return (
-        <div className="p-6 bg-white rounded-3xl m-4 border-2 border-red-200 text-center shadow-xl font-sans">
-          <span className="text-4xl">⚠️</span>
-          <h2 className="text-base font-black text-gray-900 mt-2">
-            {t('something_went_wrong', lang)}
-          </h2>
-          <p className="text-xs text-gray-500 mt-1 mb-4 leading-relaxed">
-            {t('technical_issue_desc', lang)}
+        <div className="p-5 m-3 bg-red-50/95 border-2 border-red-300 rounded-3xl text-center shadow-lg font-sans">
+          <span className="text-3xl">⚠️</span>
+          <h3 className="text-sm font-black text-red-950 mt-1">
+            {lang === 'mr' ? `${compName} विभागात तांत्रिक त्रुटी आली` : lang === 'hi' ? `${compName} विभाग में तकनीकी समस्या आई` : `Error in ${compName}`}
+          </h3>
+          <p className="text-[11px] font-semibold text-red-700 mt-1 mb-3">
+            {lang === 'mr' ? 'बाकी ॲप सुरळीत चालू आहे. कृपया पुन्हा प्रयत्न करा किंवा कॅटलॉगवर जा.' : lang === 'hi' ? 'बाकी ऐप सामान्य रूप से कार्य कर रहा है। कृपया पुनः प्रयास करें या कैटलॉग पर जाएं।' : 'Rest of the app is working normally. Please retry or return to the catalog.'}
           </p>
-          <button
-            onClick={() => {
-              this.setState({ hasError: false });
-              if (this.props.onReset) this.props.onReset();
-            }}
-            className="bg-blue-900 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md active:scale-95"
-          >
-            {t('reload_app', lang)}
-          </button>
+          <div className="flex gap-2 justify-center mb-2">
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                if (this.props.onReset) this.props.onReset();
+              }}
+              className="bg-blue-900 text-white font-black text-xs px-4 py-2 rounded-xl shadow-md active:scale-95"
+            >
+              🔄 {lang === 'mr' ? 'पुन्हा प्रयत्न करा / कॅटलॉग' : lang === 'hi' ? 'पुनः प्रयास करें / कैटलॉग' : 'Retry / Go to Catalog'}
+            </button>
+            <button
+              onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
+              className="bg-white text-gray-700 border border-gray-300 font-bold text-[10px] px-3 py-2 rounded-xl shadow-xs active:scale-95"
+            >
+              🛠️ {this.state.showDetails ? 'Hide Details' : 'View Error Log'}
+            </button>
+          </div>
+          {this.state.showDetails && (
+            <div className="mt-3 p-3 bg-gray-900 text-red-300 text-[9px] font-mono rounded-xl text-left overflow-x-auto select-all max-h-48 border border-red-800">
+              <div className="font-bold text-white mb-1">Component: {compName}</div>
+              <div className="font-bold text-yellow-300 mb-1">Message: {this.state.error?.message}</div>
+              <pre className="whitespace-pre-wrap text-[8px] leading-tight">{this.state.error?.stack}</pre>
+            </div>
+          )}
         </div>
       );
     }
@@ -188,6 +213,45 @@ export default function App() {
       setView(newView);
     }
   };
+
+  // 🛡️ GLOBAL AUTOMATED ERROR TELEMETRY
+  useEffect(() => {
+    const handleGlobalError = (event) => {
+      logAppError(event.error || event.message, 'window.onerror');
+    };
+    const handleRejection = (event) => {
+      logAppError(event.reason, 'window.onunhandledrejection');
+    };
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, []);
+
+  // 🎉 AUTOMATIC OFFER UNLOCK CELEBRATION DETECTOR
+  const previousUnlockedCountRef = useRef(0);
+  const [celebrationReward, setCelebrationReward] = useState(null);
+
+  useEffect(() => {
+    if (!schemes || schemes.length === 0 || cartItems.length === 0) return;
+
+    const unlocked = schemes.filter(s => {
+      const prog = calculateSchemeProgress(cartItems, s);
+      return prog && prog.isUnlocked;
+    });
+
+    if (unlocked.length > previousUnlockedCountRef.current && previousUnlockedCountRef.current > 0) {
+      const newlyUnlocked = unlocked[unlocked.length - 1];
+      const rewardText = newlyUnlocked?.reward || "Special Promotion";
+      setCelebrationReward(rewardText);
+      triggerCelebration(rewardText);
+      setTimeout(() => setCelebrationReward(null), 4000);
+    }
+    previousUnlockedCountRef.current = unlocked.length;
+  }, [cart, schemes]);
+
 
   useEffect(() => {
     try {
@@ -412,10 +476,9 @@ export default function App() {
   })();
 
   return (
-    <ErrorBoundary lang={lang} onReset={() => handleSetView("catalog")}>
-      <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
-        {/* 🌐 PROMINENT TOP LANGUAGE BAR (VISIBLE ACROSS ALL SCREENS) */}
-        <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
+    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
+      {/* 🌐 PROMINENT TOP LANGUAGE BAR (ONLY 1 SINGLE CLEAN BAR ON SCREEN) */}
+      <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
 
       {/* Sticky Main Header */}
       <div className="bg-blue-900 text-white p-3.5 sticky top-0 z-40 flex justify-between items-center shadow-md">
@@ -428,17 +491,6 @@ export default function App() {
         </div>
         
         <div className="flex gap-1.5 items-center">
-          {/* Language Switcher Pill */}
-          <select 
-            value={lang} 
-            onChange={(e) => handleSetLang(e.target.value)} 
-            className="bg-blue-950/80 text-white text-[10px] font-black px-2 py-2 rounded-lg border border-blue-600 outline-none cursor-pointer shadow-sm hover:bg-blue-950 transition-colors"
-          >
-            <option value="en">🇬🇧 EN</option>
-            <option value="hi">🇮🇳 हिंदी</option>
-            <option value="mr">🚩 मराठी</option>
-          </select>
-
           <button onClick={() => {
             const m = !customerMode;
             setCustomerMode(m);
@@ -454,21 +506,51 @@ export default function App() {
         </div>
       </div>
 
-      <ErrorBoundary lang={lang} onReset={() => handleSetView("catalog")}>
+      {/* 🛡️ ISOLATED VIEW ROUTING: IF ONE SECTION FAILS, THE REST OF THE APP STAYS 100% OPERATIONAL */}
+      <div className="relative">
         {view === "catalog" ? (
-          <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} />
+          <ErrorBoundary componentName="Catalog" lang={lang} onReset={() => handleSetView("catalog")}>
+            <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} />
+          </ErrorBoundary>
         ) : view === "cart" ? (
-          <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} lang={lang} />
+          <ErrorBoundary componentName="Cart" lang={lang} onReset={() => handleSetView("catalog")}>
+            <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} lang={lang} />
+          </ErrorBoundary>
         ) : view === "offers" ? (
-          <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} lang={lang} />
+          <ErrorBoundary componentName="Offers" lang={lang} onReset={() => handleSetView("catalog")}>
+            <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} lang={lang} />
+          </ErrorBoundary>
         ) : view === "ledger" ? (
-          <LedgerView user={user} callAPI={callAPI} lang={lang} />
+          <ErrorBoundary componentName="Ledger" lang={lang} onReset={() => handleSetView("catalog")}>
+            <LedgerView user={user} callAPI={callAPI} lang={lang} />
+          </ErrorBoundary>
         ) : view === "replacements" ? (
-          <ReplacementsView user={user} callAPI={callAPI} globalProps={globalProps} products={products} lang={lang} />
+          <ErrorBoundary componentName="Replacements" lang={lang} onReset={() => handleSetView("catalog")}>
+            <ReplacementsView user={user} callAPI={callAPI} globalProps={globalProps} products={products} lang={lang} />
+          </ErrorBoundary>
         ) : (
-          <OrdersHistoryView user={user} callAPI={callAPI} lang={lang} />
+          <ErrorBoundary componentName="OrdersHistory" lang={lang} onReset={() => handleSetView("catalog")}>
+            <OrdersHistoryView user={user} callAPI={callAPI} lang={lang} />
+          </ErrorBoundary>
         )}
-      </ErrorBoundary>
+      </div>
+
+      {/* 🎉 OFFER UNLOCKED CELEBRATION TOAST */}
+      {celebrationReward && (
+        <div className="fixed top-20 left-4 right-4 max-w-sm mx-auto z-50 animate-bounce">
+          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white p-3.5 rounded-2xl shadow-2xl border-2 border-yellow-300 flex items-center gap-3">
+            <span className="text-3xl">🎉</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-black uppercase tracking-wider text-yellow-200">
+                {lang === 'mr' ? 'अभिनंदन! ऑफर अनलॉक झाली!' : lang === 'hi' ? 'बधाई हो! ऑफर अनलॉक हुई!' : 'OFFER UNLOCKED!'}
+              </div>
+              <div className="text-xs font-black truncate text-white">
+                🎁 {translateReward(celebrationReward, lang)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ContactFABs view={view} />
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} lang={lang} />
@@ -495,7 +577,6 @@ export default function App() {
           </div>
         </div>
       )}
-      </div>
-    </ErrorBoundary>
+          </div>
   );
 }
