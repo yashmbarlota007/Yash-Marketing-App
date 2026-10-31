@@ -374,6 +374,9 @@ export default function App() {
 
   return (
     <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
+      {/* 🌐 PROMINENT TOP LANGUAGE BAR (VISIBLE ACROSS ALL SCREENS) */}
+      <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
+
       {/* Sticky Main Header */}
       <div className="bg-blue-900 text-white p-3.5 sticky top-0 z-40 flex justify-between items-center shadow-md">
         <div>
