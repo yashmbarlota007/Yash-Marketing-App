@@ -2,33 +2,39 @@ import React, { useEffect } from 'react';
 import { getNum, OFFICE_NUMBER } from '../utils/helpers';
 import { LANGUAGES, t } from '../utils/translations';
 
-export function LanguageBar({ currentLang, onSelectLang }) {
+export function LanguageBar({ currentLang = 'en', onSelectLang }) {
   return (
-    <div className="bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 p-2.5 px-3 flex items-center justify-between text-white shadow-md border-b border-blue-800">
-      <div className="flex items-center gap-1.5 text-xs font-black tracking-wide">
-        <span className="text-base animate-pulse">🌐</span>
-        <span className="uppercase text-[10px] text-blue-200">
-          {t('select_language', currentLang)}:
-        </span>
-      </div>
-      <div className="flex items-center gap-1 bg-black/30 p-1 rounded-xl border border-blue-700/60 shadow-inner">
-        {LANGUAGES.map((l) => {
-          const isActive = currentLang === l.code;
-          return (
-            <button
-              key={l.code}
-              onClick={() => onSelectLang(l.code)}
-              className={`flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-lg transition-all active:scale-95 ${
-                isActive
-                  ? 'bg-white text-blue-950 shadow-md font-extrabold ring-1 ring-blue-300'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <span>{l.flag}</span>
-              <span>{l.native}</span>
-            </button>
-          );
-        })}
+    <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 p-2.5 px-3 text-white shadow-md border-b-2 border-amber-400">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-lg animate-pulse">🌐</span>
+          <div className="truncate">
+            <span className="text-[11px] font-black text-amber-300 block truncate">
+              {t('change_language_instruction', currentLang)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 bg-black/40 p-1 rounded-xl border border-white/20 shadow-inner">
+          {LANGUAGES.map((l) => {
+            const isActive = currentLang === l.code;
+            return (
+              <button
+                key={l.code}
+                onClick={() => onSelectLang(l.code)}
+                className={`flex items-center gap-1 text-[11px] font-black py-1.5 px-2.5 rounded-lg transition-all duration-150 active:scale-95 ${
+                  isActive
+                    ? 'bg-amber-400 text-gray-950 font-black shadow-md ring-1 ring-white scale-105'
+                    : 'text-white hover:bg-white/10 hover:text-amber-200'
+                }`}
+              >
+                <span>{l.flag}</span>
+                <span>{l.native}</span>
+                {isActive && <span className="text-[9px]">✓</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
