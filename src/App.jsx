@@ -158,8 +158,15 @@ function LoginScreen(props) {
   );
 }
 
-export default function App() {
-  const [user, setUser] = useState(null);
+function MainApp() {
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem("yashDealerSession");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [view, setView] = useState("catalog");
   const [products, setProducts] = useState([]);
   const [schemes, setSchemes] = useState([]);
@@ -187,6 +194,8 @@ export default function App() {
       return {};
     }
   });
+
+  // cartItems, totalItems, and totalAmount are initialized safely above early returns
 
   const [loading, setLoading] = useState(false);
   const [customerMode, setCustomerMode] = useState(false);
@@ -235,7 +244,7 @@ export default function App() {
   const [celebrationReward, setCelebrationReward] = useState(null);
 
   useEffect(() => {
-    if (!schemes || schemes.length === 0 || cartItems.length === 0) return;
+    if (!user || !schemes || schemes.length === 0 || !cartItems || cartItems.length === 0) return;
 
     const unlocked = schemes.filter(s => {
       const prog = calculateSchemeProgress(cartItems, s);
@@ -409,14 +418,19 @@ export default function App() {
   };
 
   if (!user) {
-    return <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} lang={lang} setLang={handleSetLang} />;
+    return (
+      <ErrorBoundary componentName="LoginScreen" lang={lang}>
+        <LoginScreen onLogin={(data) => { setUser(data); }} callAPI={callAPI} loading={loading} setLoading={setLoading} lang={lang} setLang={handleSetLang} />
+      </ErrorBoundary>
+    );
   }
 
   if (!isNotificationGranted) {
     const isDenied = window.Notification && Notification.permission === "denied";
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
+      <ErrorBoundary componentName="NotificationPermission" lang={lang}>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6 text-center select-none font-sans">
         <div className="bg-white text-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-red-600 animate-slide-up">
           <span className="text-5xl animate-bounce inline-block">🔔</span>
           <h2 className="text-xl font-black text-gray-900 mt-4 uppercase tracking-tight">Permission Required!</h2>
@@ -453,6 +467,7 @@ export default function App() {
           </div>
         </div>
       </div>
+      </ErrorBoundary>
     );
   }
 
@@ -578,5 +593,14 @@ export default function App() {
         </div>
       )}
           </div>
+  );
+}
+
+
+export default function App() {
+  return (
+    <ErrorBoundary componentName="RootAppShell">
+      <MainApp />
+    </ErrorBoundary>
   );
 }
