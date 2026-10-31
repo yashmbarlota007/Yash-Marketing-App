@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { t, translateOfferText, translateReward } from '../utils/translations';
 import { API_URL, getNum, getProp, getSmartImage, groupProductsByVariant, calculateSchemeProgress } from '../utils/helpers';
 
 export default function OffersView(props) {
@@ -9,6 +10,7 @@ export default function OffersView(props) {
   var cart = props.cart;
   var setCart = props.setCart;
   var setView = props.setView;
+  var lang = props.lang || 'en';
 
   const [schemes, setSchemes] = useState([]);
   const [discounts, setDiscounts] = useState([]);
@@ -178,10 +180,10 @@ export default function OffersView(props) {
                     {isCombo ? 'COMBO SCHEME' : sch.type + ' Scheme'}
                   </span>
                   <h4 className="font-black text-gray-800 text-[10px] leading-snug line-clamp-3">
-                    {sch.message}
+                    {translateOfferText(sch.message, lang)}
                   </h4>
                   <p className="text-[9px] text-red-600 font-black mt-1 uppercase line-clamp-2">
-                    🎁 {sch.reward}
+                    🎁 {translateReward(sch.reward, lang)}
                   </p>
                 </div>
                 <div className="mt-2">
