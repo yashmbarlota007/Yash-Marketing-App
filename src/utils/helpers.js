@@ -160,10 +160,12 @@ export function calculateSchemeProgress(cartItems, scheme) {
 // 🎁 SMART SCHEME MATCHER (Finds matching active schemes for a product or variant)
 export function getProductSchemes(product, schemes) {
   if (!product || !schemes || !Array.isArray(schemes) || schemes.length === 0) return [];
+  
   const name = String(getProp(product, "ProductName") || "").toLowerCase().trim();
   const brand = String(getProp(product, "Brand") || "").toLowerCase().trim();
   const type = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase().trim();
-  
+  const category = String(getProp(product, "Category") || "").toLowerCase().trim();
+
   const allNames = [name];
   if (product.variants && Array.isArray(product.variants)) {
     product.variants.forEach(v => {
@@ -172,37 +174,60 @@ export function getProductSchemes(product, schemes) {
     });
   }
 
+  const cleanWords = (str) => {
+    return String(str || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 1 && !['the', 'and', 'for', 'with', 'pcs', 'buy', 'get', 'free'].includes(w));
+  };
+
   return schemes.filter(scheme => {
     const targetStr = String(scheme.target || "").toLowerCase().trim();
     if (!targetStr) return false;
 
-    const isCombo = String(scheme.type || "").toUpperCase().includes("COMBO") ||
-                    String(scheme.message || "").toUpperCase().includes("COMBO") ||
-                    String(scheme.target || "").toUpperCase().includes("COMBO") ||
-                    String(scheme.reward || "").toUpperCase().includes("COMBO");
-
     const targets = targetStr.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
 
-    if (isCombo) {
-      let broadTargets = targets.map(t => t.split(" ").slice(0, 2).join(" ").trim());
-      return broadTargets.some(t => t && (allNames.some(n => n.includes(t)) || brand.includes(t)));
-    }
+    return targets.some(target => {
+      // 1. Exact Brand Scheme check (e.g. target is "Hikvision")
+      if (target === brand) {
+        const msg = String(scheme.message || "").toLowerCase();
+        // If message specifies a sub-category like "mmc & pd"
+        if (msg.includes("mmc & pd") || msg.includes("mmc") || msg.includes("memory card")) {
+          return type.includes("mmc") || type.includes("pd") || category.includes("mmc") || category.includes("memory card");
+        }
+        return true;
+      }
 
-    return targets.some(t => {
-      if (!t) return false;
-      if (brand === t || (t.length >= 3 && (brand.includes(t) || t.includes(brand)))) return true;
-      if (type === t || (t.length >= 3 && (type.includes(t) || t.includes(type)))) return true;
-      return allNames.some(n => n.includes(t) || t.includes(n));
+      // 2. Specific product match
+      return allNames.some(pName => {
+        if (pName === target) return true;
+        if (pName.includes(target) || target.includes(pName)) return true;
+
+        // Extract meaningful key words (exclude brand name)
+        const targetWords = cleanWords(target).filter(w => w !== brand);
+        const nameWords = cleanWords(pName).filter(w => w !== brand);
+
+        if (targetWords.length === 0) return false;
+
+        const matchedWords = targetWords.filter(tw => nameWords.includes(tw));
+        const matchRatio = matchedWords.length / targetWords.length;
+
+        if (matchRatio >= 0.7) return true;
+
+        const modelCodes = targetWords.filter(w => /\d/.test(w) || w.length >= 4);
+        if (modelCodes.length > 0 && modelCodes.every(mc => nameWords.includes(mc))) {
+          return true;
+        }
+
+        return false;
+      });
     });
   });
 }
 
 /**
- * High-Fidelity Client-side Image Compression
- * Maintains razor-sharp text, invoice details and barcodes
- * while reducing typical 5-15MB camera files to ~300-600KB for instant upload
- */
-export function compressImageFile(file, options = {}) {
+ * export function compressImageFile(file, options = {}) {
   const maxWidth = options.maxWidth || 1920;
   const maxHeight = options.maxHeight || 1920;
   const quality = options.quality !== undefined ? options.quality : 0.85;
