@@ -10,18 +10,18 @@ import {
   PHONEPE_QR_URL, 
   OFFICE_NUMBER 
 } from '../utils/helpers';
-import { t, translateOfferText, translateReward } from '../utils/translations';
+import { t, translateOfferText, translateReward, translateProductName } from '../utils/translations';
 
 export function Cart(props) {
   // ==========================================
   // 1. PROPS & STATE INITIALIZATION
   // ==========================================
-  var user = props.user;
-  var cart = props.cart;
+  var user = props.user || {};
+  var cart = props.cart || {};
   var setCart = props.setCart;
   var setView = props.setView;
   var callAPI = props.callAPI;
-  var globalProps = props.globalProps;
+  var globalProps = props.globalProps || {};
   var lang = props.lang || 'en';
   
   const [loading, setLoading] = useState(false);
@@ -81,16 +81,18 @@ export function Cart(props) {
   // ==========================================
   // 3. CART CALCULATIONS & SCHEME SPLITTING
   // ==========================================
-  const cartItems = Object.values(cart);
+  const cartItems = cart && typeof cart === 'object' && !Array.isArray(cart) ? Object.values(cart) : [];
 
   const isComboScheme = (s) => {
-    return String(s.type).toUpperCase().includes('COMBO') || 
-           String(s.message).toUpperCase().includes('COMBO') || 
-           String(s.target).toUpperCase().includes('COMBO') ||
-           String(s.reward).toUpperCase().includes('COMBO');
+    if (!s) return false;
+    return String(s.type || '').toUpperCase().includes('COMBO') || 
+           String(s.message || '').toUpperCase().includes('COMBO') || 
+           String(s.target || '').toUpperCase().includes('COMBO') ||
+           String(s.reward || '').toUpperCase().includes('COMBO');
   };
 
-  const nonComboSchemes = schemes.filter((s) => !isComboScheme(s));
+  const safeSchemes = Array.isArray(schemes) ? schemes : [];
+  const nonComboSchemes = safeSchemes.filter((s) => !isComboScheme(s));
   
   const lockedSchemes = nonComboSchemes.filter((s) => {
     const progress = calculateSchemeProgress(cartItems, s);
@@ -100,6 +102,11 @@ export function Cart(props) {
   const unlockedSchemes = nonComboSchemes.filter((s) => {
     const progress = calculateSchemeProgress(cartItems, s);
     return progress.isUnlocked;
+  });
+
+  const activeLockedSchemes = lockedSchemes.filter((s) => {
+    const progress = calculateSchemeProgress(cartItems, s);
+    return progress.current > 0;
   });
 
   let comboDiscountAmount = 0;
@@ -152,7 +159,8 @@ export function Cart(props) {
   const totalComboValue = combosApplied * singleComboEffectivePrice;
   const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
 
-  var sortedDiscountsDesc = [...discounts].map((d) => {
+  const safeDiscounts = Array.isArray(discounts) ? discounts : [];
+  var sortedDiscountsDesc = [...safeDiscounts].map((d) => {
     return { minAmount: getNum(d.minAmount), percent: getNum(d.percent) };
   })
   .filter((d) => !isNaN(d.minAmount) && !isNaN(d.percent))
@@ -310,29 +318,33 @@ export function Cart(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[180px] font-sans relative">
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {lockedSchemes.map((scheme, idx) => {
-          const progress = calculateSchemeProgress(cartItems, scheme);
-          return (
-            <div key={`locked-${idx}`} className="p-3 rounded-2xl border-2 bg-amber-50 border-amber-300 flex flex-col justify-between">
-              <h4 className="font-black text-[10px] uppercase text-amber-900 leading-snug">
-                {translateOfferText(scheme.message, lang)}
-              </h4>
-              <div className="mt-2">
-                <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
-                  <div 
-                    className="bg-amber-500 h-full transition-all duration-500" 
-                    style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
-                  ></div>
+      {activeLockedSchemes.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {activeLockedSchemes.map((scheme, idx) => {
+            const progress = calculateSchemeProgress(cartItems, scheme);
+            const pct = progress.required > 0 ? Math.min((progress.current / progress.required) * 100, 100) : 0;
+            const remaining = Math.max(0, progress.required - progress.current);
+            return (
+              <div key={`locked-${idx}`} className="p-3 rounded-2xl border-2 bg-amber-50 border-amber-300 flex flex-col justify-between shadow-sm">
+                <h4 className="font-black text-[10px] uppercase text-amber-900 leading-snug">
+                  {translateOfferText(scheme.message, lang)}
+                </h4>
+                <div className="mt-2">
+                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
+                    <div 
+                      className="bg-amber-500 h-full transition-all duration-500" 
+                      style={{ width: `${pct}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-[9px] font-bold mt-1 text-gray-600 leading-snug">
+                    {progress.current} / {progress.required} added. Add {remaining} more to unlock!
+                  </p>
                 </div>
-                <p className="text-[9px] font-bold mt-1 text-gray-600 leading-snug">
-                  {progress.current} / {progress.required} added. Add {progress.required - progress.current} more to unlock!
-                </p>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-6">
         {cartItems.length === 0 ? (
@@ -373,7 +385,7 @@ export function Cart(props) {
                       </div>
                     )}
                     <h4 className="text-xs font-black leading-tight line-clamp-2 h-8 text-gray-800 w-full px-1">
-                      {itemName}
+                      {translateProductName(itemName, lang)}
                     </h4>
                     <div className="font-black text-blue-900 text-sm mt-1 mb-2">
                       ₹{(dealerPrice * currentQty).toLocaleString('en-IN')}
@@ -415,7 +427,7 @@ export function Cart(props) {
                                 ) : (
                                   <div className="w-full py-1.5 px-2 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg text-[8px] font-bold flex flex-col items-center justify-center gap-1 shadow-xs">
                                     <div className="flex items-center justify-between w-full text-[8px]">
-                                      <span>âš¡ {t('need_more_for_reward', lang, { count: remainingNeeded, reward: sch.reward })}</span>
+                                      <span>⚡ {t('need_more_for_reward', lang, { count: remainingNeeded, reward: translateReward(sch.reward, lang) })}</span>
                                     </div>
                                     <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
                                       <div 
@@ -436,7 +448,8 @@ export function Cart(props) {
               })}
 
               {unlockedSchemes.map((sch, idx) => {
-                const match = sch.reward.match(/^(\d+)/);
+                const rewardStr = String((sch && sch.reward) || "");
+                const match = rewardStr.match(/^(\d+)/);
                 const freeQty = match ? parseInt(match[1]) : 1;
                 const cost = freeQty * 1; 
 
@@ -449,7 +462,7 @@ export function Cart(props) {
                       🎁
                     </div>
                     <h4 className="text-[10px] font-black text-green-900 leading-tight line-clamp-2 h-8 w-full">
-                      {sch.reward}
+                      {translateReward(rewardStr, lang)}
                     </h4>
                     <div className="font-black text-green-700 text-sm mt-auto pt-2">
                       ₹{cost}
@@ -626,11 +639,11 @@ export function Cart(props) {
           </div>
           
           <div className="mt-4 mb-8">
-            <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 Add Order Remarks (Optional)</h3>
+            <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 {t('order_remarks', lang)}</h3>
             <textarea
               value={orderRemarks}
               onChange={(e) => setOrderRemarks(e.target.value)}
-              placeholder="Koi specific instruction ya request hai toh yahan likhein..."
+              placeholder={t('order_remarks_placeholder', lang)}
               className="w-full bg-white p-4 rounded-2xl border-2 border-gray-200 focus:border-blue-600 outline-none font-bold text-xs text-gray-700 shadow-sm transition-all"
               rows="2"
             ></textarea>
@@ -638,13 +651,13 @@ export function Cart(props) {
           
           <div className="fixed bottom-[55px] left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4 rounded-t-3xl shadow-[0_-10px_25px_rgba(0,0,0,0.1)] z-40">
             <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-gray-400 uppercase">
-              <span>Subtotal</span>
+              <span>{t('subtotal', lang)}</span>
               <span className="line-through font-mono">
                 ₹{baseTotalAmount.toLocaleString('en-IN')}
               </span>
             </div>
             <div className="flex justify-between items-center mb-3">
-              <span className="font-black text-gray-800 text-lg">Final Amount</span>
+              <span className="font-black text-gray-800 text-lg">{t('final_amount', lang)}</span>
               <span className="text-blue-900 text-2xl font-black">
                 ₹{finalAmount.toLocaleString('en-IN')}
               </span>
@@ -657,7 +670,7 @@ export function Cart(props) {
               {loading ? (
                 <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
               ) : (
-                "{t('confirm_order', lang)}"
+                {t('confirm_order', lang)}
               )}
             </button>
           </div>
