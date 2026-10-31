@@ -670,7 +670,7 @@ export function Cart(props) {
               {loading ? (
                 <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
               ) : (
-                {t('confirm_order', lang)}
+                t('confirm_order', lang)
               )}
             </button>
           </div>
