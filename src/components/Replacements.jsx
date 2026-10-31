@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL, getProp, compressImageFile } from '../utils/helpers';
 import { ScannerModal } from './SharedUI';
+import { t } from '../utils/translations';
 
 export default function ReplacementsView(props) {
   var user = props.user;
   var callAPI = props.callAPI;
   var products = props.products || [];
+  var lang = props.lang || 'en';
 
   const [activeTab, setActiveTab] = useState("new");
   const [ticketCategory, setTicketCategory] = useState("replacement");
@@ -18,6 +20,8 @@ export default function ReplacementsView(props) {
   const [productSearch, setProductSearch] = useState("");
   const [productName, setProductName] = useState(""); 
   const [defectType, setDefectType] = useState("");
+  const [qty, setQty] = useState(1);
+  const [itemsList, setItemsList] = useState([]);
   
   // Help Ticket general states
   const [refNumber, setRefNumber] = useState("");
@@ -69,6 +73,30 @@ export default function ReplacementsView(props) {
     }
   };
 
+  const handleAddItemToList = () => {
+    if (!brand) return alert(lang === 'mr' ? "कृपया ब्रँड निवडा" : lang === 'hi' ? "कृपया ब्रांड चुनें" : "Please select a Brand.");
+    if (!productName) return alert(lang === 'mr' ? "कृपया उत्पादन निवडा" : lang === 'hi' ? "कृपया सामान चुनें" : "Please select a Product.");
+    if (!defectType) return alert(lang === 'mr' ? "कृपया समस्येचा प्रकार निवडा" : lang === 'hi' ? "कृपया समस्या का प्रकार चुनें" : "Please select Defect Type.");
+    
+    const newItem = {
+      id: Date.now(),
+      brand: brand,
+      productName: productName,
+      defectType: defectType,
+      qty: Math.max(1, parseInt(qty) || 1)
+    };
+
+    setItemsList(prev => [...prev, newItem]);
+    setProductSearch("");
+    setProductName("");
+    setDefectType("");
+    setQty(1);
+  };
+
+  const handleRemoveItemFromList = (id) => {
+    setItemsList(prev => prev.filter(item => item.id !== id));
+  };
+
   const handleMediaUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -97,18 +125,33 @@ export default function ReplacementsView(props) {
     };
 
     if (ticketCategory === "replacement") {
-      if (!brand || !productName || !defectType) {
-        return alert("Please select Brand, Product Name, and Defect Type.");
+      let finalItems = [...itemsList];
+      // If user selected an item above without clicking "+ Add Item to Ticket", include it
+      if (brand && productName && defectType) {
+        finalItems.push({
+          id: Date.now(),
+          brand: brand,
+          productName: productName,
+          defectType: defectType,
+          qty: Math.max(1, parseInt(qty) || 1)
+        });
+      }
+
+      if (finalItems.length === 0) {
+        return alert(lang === 'mr' ? "कृपया तिकीट मध्ये किमान १ आयटम जोडा." : lang === 'hi' ? "कृपया टिकट में कम से कम १ सामान जोड़ें।" : "Please add at least 1 item to the replacement ticket.");
       }
       if (!remarks.trim()) {
-        return alert("Please explain the problem in Remarks.");
+        return alert(lang === 'mr' ? "कृपया समस्येचा तपशील टीप (Remarks) मध्ये लिहा." : lang === 'hi' ? "कृपया समस्या का विवरण टिप्पणी (Remarks) में लिखें।" : "Please explain the problem in Remarks.");
       }
       if (!mediaData) {
-        return alert("Please upload 1 clear photo of the product/box.");
+        return alert(lang === 'mr' ? "कृपया उत्पादनाचा स्पष्ट फोटो अपलोड करा." : lang === 'hi' ? "कृपया सामान की साफ़ फ़ोटो अपलोड करें।" : "Please upload 1 clear photo of the product/box.");
       }
-      payload.brand = brand;
-      payload.productName = productName;
-      payload.defectType = defectType;
+
+      const totalUnits = finalItems.reduce((acc, it) => acc + it.qty, 0);
+      payload.brand = [...new Set(finalItems.map(it => it.brand))].join(', ');
+      payload.productName = finalItems.map((it, idx) => `${idx + 1}. ${it.productName} (x${it.qty}) - [${it.defectType}]`).join(' | ');
+      payload.defectType = finalItems.length > 1 ? `Multi-Item (${finalItems.length} items, total ${totalUnits} units)` : finalItems[0].defectType;
+      payload.items = finalItems;
     } else {
       if (!helpSubIssue) {
         return alert("Please select an Issue Type.");
@@ -134,7 +177,7 @@ export default function ReplacementsView(props) {
         setRefNumber("");
         setHelpSubIssue("");
         setRemarks(""); 
-        setMediaData(null); 
+        setMediaData(null); setItemsList([]); setQty(1); 
         setActiveTab("track");
       } else {
         alert("❌ Ticket was not saved. " + (res && res.message ? res.message : "Please try again."));
@@ -176,19 +219,19 @@ export default function ReplacementsView(props) {
           onClick={() => setActiveTab("new")} 
           className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'new' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}
         >
-          ➕ Raise Help Ticket
+          {t('tab_new_ticket', lang)}
         </button>
         <button 
           onClick={() => setActiveTab("track")} 
           className={`flex-1 py-2 text-xs font-black rounded-lg transition-colors ${activeTab === 'track' ? 'bg-blue-900 text-white' : 'text-gray-500'}`}
         >
-          📜 Track Tickets
+          {t('tab_track_ticket', lang)}
         </button>
       </div>
 
       {activeTab === "new" ? (
         <div className="bg-white rounded-2xl shadow-sm border p-5 animate-fade-in">
-          <h2 className="font-black text-gray-800 text-lg mb-1">🎫 Help & Support Ticket</h2>
+          <h2 className="font-black text-gray-800 text-lg mb-1">{t('help_title', lang)}</h2>
           <p className="text-xs text-gray-400 mb-4 font-bold">Select the issue category below to proceed.</p>
           
           {/* CATEGORY SELECTOR PILLS */}
@@ -296,6 +339,81 @@ export default function ReplacementsView(props) {
                     <option value="Other">Other Technical Fault</option>
                   </select>
                 </div>
+
+                {/* 🟢 MULTI-ITEM QUANTITY & ADD TO TICKET BUTTON */}
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] font-black uppercase text-gray-500">{t('quantity', lang)}:</label>
+                    <div className="flex items-center bg-gray-100 rounded-xl border border-gray-200 p-0.5">
+                      <button 
+                        type="button" 
+                        onClick={() => setQty(Math.max(1, qty - 1))}
+                        className="w-8 h-8 bg-white text-gray-800 font-black rounded-lg shadow-sm flex items-center justify-center active:scale-95"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center font-black text-sm text-gray-900">{qty}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => setQty(qty + 1)}
+                        className="w-8 h-8 bg-blue-900 text-white font-black rounded-lg shadow-sm flex items-center justify-center active:scale-95"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <button 
+                    type="button"
+                    onClick={handleAddItemToList}
+                    className="bg-blue-900 hover:bg-blue-950 active:scale-95 text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all"
+                  >
+                    <span>➕</span> {t('add_item_to_ticket', lang)}
+                  </button>
+                </div>
+
+                {/* 🟢 MULTI-ITEM LIST CARDS */}
+                {itemsList.length > 0 && (
+                  <div className="mt-3 bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-3 shadow-sm">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-black text-amber-950 flex items-center gap-1">
+                        <span>📦</span> {t('items_in_ticket', lang, { count: itemsList.length })}
+                      </div>
+                      <span className="text-[10px] font-black bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md">
+                        {itemsList.reduce((acc, it) => acc + it.qty, 0)} {lang === 'mr' ? 'एकूण नग' : lang === 'hi' ? 'कुल पीस' : 'Total Units'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {itemsList.map((it, idx) => (
+                        <div key={it.id} className="bg-white p-2.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="bg-blue-100 text-blue-900 text-[9px] font-black px-1.5 py-0.5 rounded">#{idx + 1}</span>
+                              <span className="text-xs font-black text-gray-900 truncate block">{it.productName}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-600 font-bold mt-0.5 flex flex-wrap gap-2">
+                              <span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{it.brand}</span>
+                              <span className="text-blue-900 font-black">Qty: {it.qty}</span>
+                              <span className="text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 font-bold">{it.defectType}</span>
+                            </div>
+                          </div>
+                          <button 
+                            type="button"
+                            onClick={() => handleRemoveItemFromList(it.id)}
+                            className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-2 rounded-lg font-bold text-xs shrink-0 active:scale-95 transition-colors"
+                            title="Remove item"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-amber-800 font-bold mt-2 text-center">
+                      {lang === 'mr' ? '💡 आपण वरून अजून आयटम जोडू शकता. सर्व एकाच तिकिटात सबमिट होतील.' : lang === 'hi' ? '💡 आप ऊपर से और सामान जोड़ सकते हैं। सभी एक ही टिकट में दर्ज होंगे।' : '💡 You can add more items above. All will be submitted together in this ticket.'}
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
