@@ -7,6 +7,44 @@ import OffersView from './components/Offers';
 import { LedgerView, OrdersHistoryView } from './components/Ledger';
 import ReplacementsView from './components/Replacements';
 import { BottomNav, ContactFABs } from './components/SharedUI';
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      const lang = this.props.lang || 'en';
+      return (
+        <div className="p-6 bg-white rounded-3xl m-4 border-2 border-red-200 text-center shadow-xl font-sans">
+          <span className="text-4xl">⚠️</span>
+          <h2 className="text-base font-black text-gray-900 mt-2">
+            {t('something_went_wrong', lang)}
+          </h2>
+          <p className="text-xs text-gray-500 mt-1 mb-4 leading-relaxed">
+            {t('technical_issue_desc', lang)}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false });
+              if (this.props.onReset) this.props.onReset();
+            }}
+            className="bg-blue-900 text-white font-black text-xs px-6 py-2.5 rounded-xl shadow-md active:scale-95"
+          >
+            {t('reload_app', lang)}
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function LoginScreen(props) {
   var onLogin = props.onLogin;
