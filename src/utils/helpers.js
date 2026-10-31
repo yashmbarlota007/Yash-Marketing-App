@@ -319,3 +319,91 @@ export function compressImageFile(file, options = {}) {
     reader.readAsDataURL(file);
   });
 }
+
+// 🎉 SMART OFFER UNLOCK CELEBRATION ANIMATION (Confetti + Haptic Vibration)
+export function triggerCelebration(rewardTitle = "") {
+  try {
+    if (typeof window !== 'undefined' && window.confetti) {
+      // Primary center burst
+      window.confetti({
+        particleCount: 90,
+        spread: 75,
+        origin: { y: 0.6 }
+      });
+      // Side bursts with 180ms delay
+      setTimeout(() => {
+        if (window.confetti) {
+          window.confetti({
+            particleCount: 55,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0, y: 0.7 }
+          });
+          window.confetti({
+            particleCount: 55,
+            angle: 120,
+            spread: 60,
+            origin: { x: 1, y: 0.7 }
+          });
+        }
+      }, 180);
+    }
+    // Haptic vibration feedback for mobile devices
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
+  } catch (e) {
+    console.warn("Celebration trigger error:", e);
+  }
+}
+
+// 🛡️ CENTRAL AUTOMATED ERROR TELEMETRY & CRASH LOGGING
+export function logAppError(error, context = "App") {
+  try {
+    const errorObj = {
+      message: error?.message || String(error),
+      stack: error?.stack || "",
+      context: context,
+      time: new Date().toISOString(),
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : ''
+    };
+
+    console.error(`🚨 [YASH-APP-TELEMETRY][${context}]:`, errorObj);
+
+    // Save to localStorage (keep last 20 errors for instant retrieval)
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem("yashAppErrorLogs") || "[]");
+        stored.unshift(errorObj);
+        localStorage.setItem("yashAppErrorLogs", JSON.stringify(stored.slice(0, 20)));
+      } catch (e) {}
+    }
+
+    // Send silently to Google Apps Script backend
+    if (typeof fetch !== 'undefined') {
+      fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: "logSpy",
+          note: `ERROR in ${context}: ${errorObj.message}`,
+          payload: errorObj
+        })
+      }).catch(() => {});
+    }
+  } catch (loggingErr) {
+    console.warn("Telemetry reporting error:", loggingErr);
+  }
+}
+
+// Expose global inspector in browser console: window.__YASH_ERROR_LOGS__()
+if (typeof window !== 'undefined') {
+  window.__YASH_ERROR_LOGS__ = () => {
+    try {
+      return JSON.parse(localStorage.getItem("yashAppErrorLogs") || "[]");
+    } catch (e) {
+      return [];
+    }
+  };
+}
