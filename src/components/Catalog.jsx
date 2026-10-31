@@ -9,7 +9,7 @@ import {
   getProductSchemes
 } from '../utils/helpers';
 import { ProgressBar, LanguageBar } from './SharedUI';
-import { t, translateOfferText, translateReward, translateCategory } from '../utils/translations';
+import { t, translateOfferText, translateReward, translateCategory, translateProductName } from '../utils/translations';
 
 export function Catalog(props) {
   // ==========================================
@@ -331,7 +331,7 @@ export function Catalog(props) {
                   </div>
                 )}
                 <h3 className={`font-bold text-xs leading-snug line-clamp-2 h-8 ${isOutOfStock ? 'text-gray-400' : ''}`}>
-                  {name}
+                  {translateProductName(name, lang)}
                 </h3>
               </div>
               
@@ -801,10 +801,10 @@ export function ProductDetailModal(props) {
               {activeBrand}
             </span>
             <h2 className="text-lg font-black text-gray-900 mt-2 leading-tight">
-              {activeName}
+              {translateProductName(activeName, lang)}
             </h2>
             <p className="text-xs text-gray-400 font-bold mt-1 uppercase">
-              Category: {activeType}
+              Category: {translateCategory(activeType, lang)}
             </p>
 
             {product.isGrouped && (
