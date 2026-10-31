@@ -588,10 +588,6 @@ export function Catalog(props) {
   // ==========================================
   return (
     <div className="max-w-md mx-auto relative flex flex-col">
-      {/* ðŸŒ Home Page Language Selector Bar */}
-      {setLang && (
-        <LanguageBar currentLang={lang} onSelectLang={setLang} />
-      )}
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
         {cartItems.length > 0 && !globalProps.customerMode && (
           <React.Fragment>
