@@ -2,83 +2,139 @@ function getDealerOrders(phone) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Orders");
-    if (!sheet) return { success: true, data: [] };
     
-    var data = sheet.getDataRange().getValues();
-    var list = [];
+    // Support fallback to Main Yash Marketing Catalogue Backend Sheet if local sheet has no orders
+    var mainBackendSpreadsheetId = "1nFxdcul3UiAgOoEaF2y-ejqSaMhFwDDGTnbp8BMvmvI";
+    var sheetsToSearch = [];
+    if (sheet) sheetsToSearch.push(sheet);
+    try {
+      if (!sheet || ss.getId() !== mainBackendSpreadsheetId) {
+        var mainBackendSs = SpreadsheetApp.openById(mainBackendSpreadsheetId);
+        var mainOrdersSheet = mainBackendSs ? mainBackendSs.getSheetByName("Orders") : null;
+        if (mainOrdersSheet) sheetsToSearch.push(mainOrdersSheet);
+      }
+    } catch(e) {}
+
+    if (sheetsToSearch.length === 0) return { success: true, data: [] };
+
     var targetPhone = phone ? phone.toString().replace(/\D/g, '').slice(-10) : "";
     if (targetPhone === "") return { success: false, message: "Invalid phone check." };
 
-    // STRICTLY MAPPED AS PER YOUR LATEST REQUIREMENT
-    var targetColumns = [
-      { index: 12, label: "Stock Photo", type: "image" },    // Column M
-      { index: 13, label: "Invoice Photo", type: "image" },  // Column N
-      { index: 14, label: "Box Photo", type: "image" },      // Column O
-      { index: 17, label: "POD", type: "image" },            // Column R
-      { index: 18, label: "Call Recording", type: "audio" }  // Column S
-    ];
+    var list = [];
+    var seenOrderIds = {};
 
-    for (var i = data.length - 1; i >= 1; i--) {
-      var rowPhoneRaw = data[i][3]; // Column D
-      if (rowPhoneRaw) {
+    for (var s = 0; s < sheetsToSearch.length; s++) {
+      var curSheet = sheetsToSearch[s];
+      var data = curSheet.getDataRange().getValues();
+      if (!data || data.length <= 1) continue;
+
+      // Dynamically locate column indices from headers (Row 1)
+      var headers = data[0];
+      var phoneCol = 3;
+      var dateCol = 0;
+      var orderIdCol = 1;
+      var shopCol = 2;
+      var itemsCol = 4;
+      var amountCol = 5;
+      var paymentCol = 6;
+      var statusCol = 7;
+      var stockPhotoCol = -1;
+      var invoicePhotoCol = -1;
+      var boxPhotoCol = -1;
+      var podCol = -1;
+      var callRecordingCol = -1;
+      var ratingCol = -1;
+      var screenshotCol = -1;
+
+      for (var h = 0; h < headers.length; h++) {
+        var headerStr = String(headers[h] || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (headerStr.indexOf("phone") !== -1 || headerStr.indexOf("mobile") !== -1 || headerStr.indexOf("contact") !== -1) phoneCol = h;
+        else if (headerStr === "orderid" || headerStr === "orderno" || headerStr === "ordernumber") orderIdCol = h;
+        else if (headerStr.indexOf("shop") !== -1 || headerStr.indexOf("dealer") !== -1) shopCol = h;
+        else if (headerStr.indexOf("status") !== -1) statusCol = h;
+        else if (headerStr.indexOf("item") !== -1 || headerStr.indexOf("product") !== -1) itemsCol = h;
+        else if (headerStr.indexOf("amount") !== -1 || headerStr.indexOf("total") !== -1) amountCol = h;
+        else if (headerStr.indexOf("payment") !== -1 || headerStr.indexOf("mode") !== -1) paymentCol = h;
+        else if (headerStr.indexOf("stockphoto") !== -1 || (headerStr.indexOf("stock") !== -1 && headerStr.indexOf("photo") !== -1)) stockPhotoCol = h;
+        else if (headerStr.indexOf("invoicephoto") !== -1 || headerStr.indexOf("billphoto") !== -1 || (headerStr.indexOf("invoice") !== -1 && headerStr.indexOf("photo") !== -1)) invoicePhotoCol = h;
+        else if (headerStr.indexOf("boxphoto") !== -1 || (headerStr.indexOf("box") !== -1 && headerStr.indexOf("photo") !== -1)) boxPhotoCol = h;
+        else if (headerStr === "pod" || headerStr.indexOf("deliveryproof") !== -1 || headerStr.indexOf("dispatchproof") !== -1) podCol = h;
+        else if (headerStr.indexOf("call") !== -1 || headerStr.indexOf("recording") !== -1) callRecordingCol = h;
+        else if (headerStr.indexOf("rating") !== -1) ratingCol = h;
+        else if (headerStr.indexOf("screenshot") !== -1 || headerStr.indexOf("slip") !== -1) screenshotCol = h;
+      }
+
+      // Fallbacks to known standard positions if header matching didn't find specific media cols
+      if (stockPhotoCol === -1) stockPhotoCol = headers.length > 12 ? 12 : 10;
+      if (invoicePhotoCol === -1) invoicePhotoCol = headers.length > 13 ? 13 : 11;
+      if (boxPhotoCol === -1) boxPhotoCol = headers.length > 14 ? 14 : 12;
+      if (podCol === -1) podCol = headers.length > 17 ? 17 : 14;
+      if (callRecordingCol === -1) callRecordingCol = headers.length > 18 ? 18 : 9;
+      if (ratingCol === -1) ratingCol = headers.length > 19 ? 19 : 16;
+      if (screenshotCol === -1) screenshotCol = headers.length > 17 ? 17 : -1;
+
+      for (var i = data.length - 1; i >= 1; i--) {
+        var row = data[i];
+        var rowPhoneRaw = row[phoneCol];
+        if (!rowPhoneRaw) continue;
+
         var cleanRowPhone = rowPhoneRaw.toString().replace(/\D/g, '').slice(-10);
         if (cleanRowPhone === targetPhone) {
-          var dateVal = data[i][0]; // Column A
+          var orderId = row[orderIdCol] ? row[orderIdCol].toString() : "N/A";
+          if (seenOrderIds[orderId]) continue; // Avoid duplicates across sheets
+          seenOrderIds[orderId] = true;
+
+          var dateVal = row[dateCol];
           var dateStr = "";
           if (dateVal instanceof Date) {
             dateStr = Utilities.formatDate(dateVal, Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm");
           } else {
-            dateStr = dateVal.toString();
+            dateStr = dateVal ? dateVal.toString() : "";
           }
+
+          var stockPhotoUrl = (stockPhotoCol >= 0 && row[stockPhotoCol]) ? row[stockPhotoCol].toString().trim() : "";
+          var invoicePhotoUrl = (invoicePhotoCol >= 0 && row[invoicePhotoCol]) ? row[invoicePhotoCol].toString().trim() : "";
+          var boxPhotoUrl = (boxPhotoCol >= 0 && row[boxPhotoCol]) ? row[boxPhotoCol].toString().trim() : "";
+          var podUrl = (podCol >= 0 && row[podCol]) ? row[podCol].toString().trim() : "";
+          var callRecordingUrl = (callRecordingCol >= 0 && row[callRecordingCol]) ? row[callRecordingCol].toString().trim() : "";
+          var ratingVal = (ratingCol >= 0 && row[ratingCol]) ? row[ratingCol].toString().trim() : "";
+          var screenshotUrl = (screenshotCol >= 0 && row[screenshotCol]) ? row[screenshotCol].toString().trim() : "";
 
           var attachments = [];
-          for (var c = 0; c < targetColumns.length; c++) {
-            var colConfig = targetColumns[c];
-            if (data[i][colConfig.index]) {
-              var cellVal = data[i][colConfig.index].toString().trim();
-              if (cellVal !== "") {
-                attachments.push({ label: colConfig.label, type: colConfig.type, url: cellVal });
-              }
-            }
-          }
-
-          // Fetching exact variables
-          var stockPhotoUrl = data[i][12] ? data[i][12].toString().trim() : ""; // Column M
-          var invoicePhotoUrl = data[i][13] ? data[i][13].toString().trim() : ""; // Column N
-          var boxPhotoUrl = data[i][14] ? data[i][14].toString().trim() : ""; // Column O
-          var deliveryDetailsText = data[i][15] ? data[i][15].toString().trim() : ""; // Column P
-          var podUrl = data[i][17] ? data[i][17].toString().trim() : ""; // Column R
-          var callRecordingUrl = data[i][18] ? data[i][18].toString().trim() : ""; // Column S
-          var orderRatingText = data[i][19] ? data[i][19].toString().trim() : ""; // Column T
+          if (stockPhotoUrl) attachments.push({ label: "Stock Photo", type: "image", url: stockPhotoUrl });
+          if (invoicePhotoUrl) attachments.push({ label: "Invoice Photo", type: "image", url: invoicePhotoUrl });
+          if (boxPhotoUrl) attachments.push({ label: "Box Photo", type: "image", url: boxPhotoUrl });
+          if (podUrl) attachments.push({ label: "Delivery Proof", type: "image", url: podUrl });
+          if (callRecordingUrl) attachments.push({ label: "Call Recording", type: "audio", url: callRecordingUrl });
+          if (screenshotUrl) attachments.push({ label: "Payment Slip", type: "image", url: screenshotUrl });
+          if (ratingVal) attachments.push({ label: "Order Rating", type: "rating", url: ratingVal });
 
           list.push({
             date: dateStr,
-            orderId: data[i][1] ? data[i][1].toString() : "N/A", 
-            shopName: data[i][2] ? data[i][2].toString() : "N/A", 
-            items: data[i][4] ? data[i][4].toString() : "N/A", 
-            finalAmount: data[i][5] ? data[i][5].toString() : "0", 
-            paymentMode: data[i][6] ? data[i][6].toString() : "N/A", 
-            status: data[i][8] ? data[i][8].toString() : "Pending", // Column I
-            
+            orderId: orderId,
+            shopName: row[shopCol] ? row[shopCol].toString() : "N/A",
+            items: row[itemsCol] ? row[itemsCol].toString() : "N/A",
+            finalAmount: row[amountCol] ? row[amountCol].toString() : "0",
+            paymentMode: row[paymentCol] ? row[paymentCol].toString() : "N/A",
+            status: row[statusCol] ? row[statusCol].toString() : "Pending",
             StockPhoto: stockPhotoUrl,
             InvoicePhoto: invoicePhotoUrl,
             BoxPhoto: boxPhotoUrl,
-            DeliveryDetails: deliveryDetailsText,
             POD: podUrl,
             CallRecording: callRecordingUrl,
-            OrderRating: orderRatingText,
+            PaymentScreenshot: screenshotUrl,
+            OrderRating: ratingVal,
             attachments: attachments
           });
         }
       }
     }
+
     return { success: true, data: list };
   } catch(e) {
     return { success: false, message: e.toString() };
   }
 }
-
-// DO NOT FORGET TO KEEP YOUR EXISTING saveOrder AND sendLast4OrdersToTelegram FUNCTIONS BELOW THIS
 
 function saveOrder(order) {
   if (!order) {
