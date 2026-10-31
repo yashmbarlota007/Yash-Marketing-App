@@ -281,26 +281,33 @@ export function Catalog(props) {
           const isAlwaysLiveBrand = brandStr.includes("HIKVISION") || brandStr.includes("VELOCITY");
           const showOnOrder = isAlwaysLiveBrand && stockVal <= 0;
           const isOutOfStock = stockVal <= 0 && !isAlwaysLiveBrand;
+          const itemSchemes = getProductSchemes(activeVariant || p, schemes);
+          const hasOffer = itemSchemes && itemSchemes.length > 0;
 
           return (
             <div 
               key={`${activeItemCode}-${idx}`} 
               className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden"
             >
+              {hasOffer && (
+                <span className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 flex items-center gap-0.5 border border-amber-300">
+                  <span>🎁</span> {t('offer_badge', lang)}
+                </span>
+              )}
               {isNewItem && (
                 <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
                   ✨ NEW
                 </span>
               )}
               {showOnOrder && !isNewItem && (
-                <span className="absolute top-2 left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400">
+                <span className={`absolute ${hasOffer ? 'top-7' : 'top-2'} left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400`}>
                   ⏳ ON ORDER
                 </span>
               )}
               {isOutOfStock && (
                 <div className="absolute inset-0 bg-white bg-opacity-60 z-10 flex items-center justify-center backdrop-blur-[1px]">
                   <span className="bg-red-600 text-white text-[9px] font-black px-3 py-1.5 rounded uppercase shadow-lg transform -rotate-12 border border-red-800">
-                    Out of Stock
+                    {t('out_of_stock', lang)}
                   </span>
                 </div>
               )}
@@ -396,7 +403,7 @@ export function Catalog(props) {
                           onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, 1); }} 
                           className="w-full bg-gray-950 text-white text-[11px] font-bold py-3 rounded-xl shadow-sm"
                         >
-                          {showOnOrder ? "+ ADD (Next Day)" : "+ ADD"}
+                          {showOnOrder ? t('add_next_day_btn', lang) : t('add_btn', lang)}
                         </button>
                       )
                     )}
@@ -862,16 +869,16 @@ export function ProductDetailModal(props) {
               </div>
             )}
 
-            {/* ðŸŽ DETAILED ACTIVE SCHEME & OFFER BOX */}
+            {/* 🎁 DETAILED ACTIVE SCHEME & OFFER BOX */}
             {(() => {
-              const itemSchemes = getProductSchemes(product, schemes);
+              const itemSchemes = getProductSchemes(activeVariant || product, schemes);
               if (!itemSchemes || itemSchemes.length === 0) return null;
 
               return (
                 <div className="mt-4 bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-black bg-gradient-to-r from-amber-500 to-orange-600 text-white px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm border border-amber-300">
-                      <span>ðŸŽ</span> {t('active_scheme_offer', lang)}
+                      <span>🎁</span> {t('active_scheme_offer', lang)}
                     </span>
                     <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md">
                       {itemSchemes.length > 1 ? t('schemes_available_plural', lang, { count: itemSchemes.length }) : t('schemes_available', lang, { count: itemSchemes.length })}
@@ -890,10 +897,10 @@ export function ProductDetailModal(props) {
                         
                         <div className="flex flex-wrap gap-2 mt-2 text-[10px] font-bold">
                           <span className="bg-blue-50 text-blue-900 px-2 py-0.5 rounded-md border border-blue-100 flex items-center gap-1">
-                            <span>ðŸŽ</span> <span>Reward: <b className="font-black">{sch.reward}</b></span>
+                            <span>🎁</span> <span>{t('reward', lang)}: <b className="font-black">{sch.reward}</b></span>
                           </span>
-                          <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md border border-gray-200">
-                            ðŸ“¦ Min Target: <b>{sch.minQty} units</b>
+                          <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md border border-gray-200 flex items-center gap-1">
+                            <span>📦</span> <b>{t('min_target', lang, { count: sch.minQty })}</b>
                           </span>
                         </div>
 
@@ -901,22 +908,22 @@ export function ProductDetailModal(props) {
                         <div className="mt-3 bg-amber-50/90 p-3 rounded-xl border border-amber-200">
                           <div className="flex justify-between items-center text-[10px] mb-1.5 font-bold">
                             <span className="text-gray-700">
-                              Cart me added: <b className="text-blue-900 text-xs font-black">{progress.current}</b> / {progress.required}
+                              {t('cart_added', lang, { count: progress.current, required: progress.required })}
                             </span>
                             {progress.isUnlocked ? (
                               <span className="font-black text-green-700 bg-green-100 px-2 py-0.5 rounded-md border border-green-300 uppercase tracking-wide">
-                                ðŸŽ‰ OFFER UNLOCKED!
+                                🎉 {t('offer_unlocked', lang)}
                               </span>
                             ) : (
                               <span className="font-black text-amber-900 bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 uppercase tracking-wide">
-                                Add {remainingNeeded} more
+                                {t('add_more_for_offer', lang, { count: remainingNeeded })}
                               </span>
                             )}
                           </div>
 
                           <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
                             <div 
-                              className={h-full transition-all duration-500 } 
+                              className={progress.isUnlocked ? "h-full transition-all duration-500 bg-green-500" : "h-full transition-all duration-500 bg-gradient-to-r from-amber-500 to-orange-500"} 
                               style={{ width: Math.min((progress.current / progress.required) * 100, 100) + '%' }}
                             ></div>
                           </div>
@@ -924,11 +931,11 @@ export function ProductDetailModal(props) {
                           <div className="text-[10px] font-extrabold mt-2 text-center leading-tight">
                             {progress.isUnlocked ? (
                               <span className="text-green-700 bg-green-50 px-2 py-1 rounded block border border-green-200">
-                                âœ… Badhaai ho! Aapko is order ke saath <b>{sch.reward}</b> milega!
+                                ✅ {t('offer_congrats', lang, { reward: sch.reward })}
                               </span>
                             ) : (
                               <span className="text-amber-950 bg-amber-100/70 px-2 py-1 rounded block border border-amber-200">
-                                âš¡ Bas <b>{remainingNeeded} units aur add karein</b> aur paayein: <b>{sch.reward}</b>!
+                                ⚡ {t('add_more_for_offer_msg', lang, { count: remainingNeeded, reward: sch.reward })}
                               </span>
                             )}
                           </div>
@@ -967,7 +974,7 @@ export function ProductDetailModal(props) {
             <React.Fragment>
               <div>
                 <div className="text-[9px] uppercase font-black text-gray-400">
-                  Total Selection ({activeVariant.capacity})
+                  {t('total_selection', lang)} ({activeVariant.capacity})
                 </div>
                 <div className="font-black text-lg text-gray-900 leading-none mt-0.5">
                   ₹{(dealerVal * (currentQty || 1)).toLocaleString('en-IN')}
@@ -976,7 +983,7 @@ export function ProductDetailModal(props) {
               <div className="w-1/2">
                 {isOutOfStock ? (
                   <button disabled className="w-full bg-gray-200 text-gray-500 text-xs font-black py-4 rounded-xl cursor-not-allowed">
-                    OUT OF STOCK
+                    {t('out_of_stock', lang)}
                   </button>
                 ) : currentQty > 0 ? (
                   <div className="flex justify-between items-center bg-blue-50 rounded-xl p-1 border border-blue-100">
@@ -999,7 +1006,7 @@ export function ProductDetailModal(props) {
                     onClick={() => updateQty(activeVariant, 1)} 
                     className="w-full bg-blue-900 text-white text-xs font-black py-4 rounded-xl shadow-lg active:scale-95"
                   >
-                    {showOnOrder ? "Add To Order (Next Day)" : "Add To Order"}
+                    {showOnOrder ? t('add_to_order_next_day', lang) : t('add_to_order', lang)}
                   </button>
                 )}
               </div>
@@ -1017,7 +1024,7 @@ export function ProductDetailModal(props) {
               }} 
               className="w-full bg-green-600 hover:bg-green-700 text-white text-sm font-black py-4 rounded-xl shadow-lg flex items-center justify-center gap-1.5 active:scale-95"
             >
-              📲 SHARE PHOTO WITH DEALER
+              {'📲 ' + t('share_with_dealer', lang)}
             </button>
           )}
         </div>
