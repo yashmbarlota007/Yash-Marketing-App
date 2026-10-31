@@ -6,9 +6,10 @@ import {
   getSmartImage, 
   groupProductsByVariant,
   calculateSchemeProgress,
-  getProductSchemes
+  getProductSchemes,
+  triggerCelebration
 } from '../utils/helpers';
-import { ProgressBar, LanguageBar } from './SharedUI';
+import { ProgressBar } from './SharedUI';
 import { t, translateOfferText, translateReward, translateCategory, translateProductName } from '../utils/translations';
 
 export function Catalog(props) {
@@ -953,7 +954,7 @@ export function ProductDetailModal(props) {
                           {remainingNeeded > 0 && (
                             <button 
                               type="button"
-                              onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, remainingNeeded); }}
+                              onClick={(e) => { e.stopPropagation(); updateQty(activeVariant, remainingNeeded); triggerCelebration(sch.reward); }}
                               className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 active:scale-95 text-white text-[11px] font-black py-2.5 px-3 rounded-xl shadow flex items-center justify-center gap-1 transition-all"
                             >
                               <span>⚡</span> +{remainingNeeded} {t('to_unlock', lang)}
