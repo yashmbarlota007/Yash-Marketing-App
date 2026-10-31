@@ -226,8 +226,7 @@ export function getProductSchemes(product, schemes) {
   });
 }
 
-/**
- * export function compressImageFile(file, options = {}) {
+export function compressImageFile(file, options = {}) {
   const maxWidth = options.maxWidth || 1920;
   const maxHeight = options.maxHeight || 1920;
   const quality = options.quality !== undefined ? options.quality : 0.85;
