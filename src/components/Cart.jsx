@@ -10,7 +10,7 @@ import {
   PHONEPE_QR_URL, 
   OFFICE_NUMBER 
 } from '../utils/helpers';
-import { t } from '../utils/translations';
+import { t, translateOfferText, translateReward } from '../utils/translations';
 
 export function Cart(props) {
   // ==========================================
@@ -22,6 +22,7 @@ export function Cart(props) {
   var setView = props.setView;
   var callAPI = props.callAPI;
   var globalProps = props.globalProps;
+  var lang = props.lang || 'en';
   
   const [loading, setLoading] = useState(false);
   // 🟢 SYNCHRONOUS LOCK FOR DOUBLE CLICKS
@@ -259,7 +260,7 @@ export function Cart(props) {
       const rewardStr = String(sch.reward || "");
       const match = rewardStr.match(/^(\d+)/);
       const freeQty = match ? parseInt(match[1]) : 1;
-      itemsList.push(`🎁 FREE ITEM: ${rewardStr} (Qty: ${freeQty} @ ₹1 each) - Offer: ${sch.message}`);
+      itemsList.push(`🎁 FREE ITEM: ${rewardStr} (Qty: ${freeQty} @ ₹1 each) - Offer: ${translateOfferText(sch.message, lang)}`);
     });
     
     if (combosApplied > 0) {
@@ -315,7 +316,7 @@ export function Cart(props) {
           return (
             <div key={`locked-${idx}`} className="p-3 rounded-2xl border-2 bg-amber-50 border-amber-300 flex flex-col justify-between">
               <h4 className="font-black text-[10px] uppercase text-amber-900 leading-snug">
-                {scheme.message}
+                {translateOfferText(scheme.message, lang)}
               </h4>
               <div className="mt-2">
                 <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden border border-gray-300 shadow-inner">
@@ -337,12 +338,12 @@ export function Cart(props) {
         {cartItems.length === 0 ? (
           <div className="text-center py-12">
             <span className="text-4xl">🛒</span>
-            <p className="font-black text-gray-400 mt-2 text-sm uppercase">Cart Khali Hai</p>
+            <p className="font-black text-gray-400 mt-2 text-sm uppercase">{t('cart_empty', lang)}</p>
             <button 
               onClick={() => setView("catalog")} 
               className="mt-4 bg-blue-900 text-white text-xs font-bold px-6 py-2 rounded-xl shadow-sm"
             >
-              Catalog par jayein
+              {t('go_to_catalog', lang)}
             </button>
           </div>
         ) : (
@@ -409,7 +410,7 @@ export function Cart(props) {
                                 {progress.isUnlocked ? (
                                   <div className="w-full py-1 px-1.5 bg-green-50 border border-green-300 text-green-800 rounded-lg text-[8px] font-black flex items-center justify-center gap-1 shadow-xs">
                                     <span>ðŸŽ‰</span>
-                                    <span className="truncate">{t('offer_unlocked', lang)}: {sch.reward}</span>
+                                    <span className="truncate">{t('offer_unlocked', lang)}: {translateReward(sch.reward, lang)}</span>
                                   </div>
                                 ) : (
                                   <div className="w-full py-1.5 px-2 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg text-[8px] font-bold flex flex-col items-center justify-center gap-1 shadow-xs">
@@ -656,7 +657,7 @@ export function Cart(props) {
               {loading ? (
                 <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
               ) : (
-                "CONFIRM ORDER"
+                "{t('confirm_order', lang)}"
               )}
             </button>
           </div>
