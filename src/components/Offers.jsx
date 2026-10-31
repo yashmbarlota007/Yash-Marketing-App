@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { t, translateOfferText, translateReward } from '../utils/translations';
+import { t, translateOfferText, translateReward, translateProductName } from '../utils/translations';
 import { API_URL, getNum, getProp, getSmartImage, groupProductsByVariant, calculateSchemeProgress } from '../utils/helpers';
 
 export default function OffersView(props) {
@@ -287,7 +287,7 @@ export default function OffersView(props) {
                         ) : (
                           <div className="h-28 bg-gray-50 rounded flex items-center justify-center text-gray-300 text-xs mb-2">No Image</div>
                         )}
-                        <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">{name}</h3>
+                        <h3 className="font-bold text-xs leading-snug line-clamp-2 h-8 text-gray-800">{translateProductName(name, lang)}</h3>
                       </div>
                       
                       {p.isGrouped && (
