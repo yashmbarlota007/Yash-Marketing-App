@@ -1,4 +1,4 @@
-﻿function getWarrantyRules() {
+function getWarrantyRules() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("WarrantyRules");
@@ -22,6 +22,7 @@
   }
 }
 
+
 function raiseReplacement(payload) {
   try {
     var dateFormatted = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "MMyy");
@@ -29,33 +30,69 @@ function raiseReplacement(payload) {
     var category = payload.category || "Replacement";
     var isRep = category.toLowerCase().indexOf("replacement") !== -1;
     var ticketId = (isRep ? "REP-YM-" : "HLP-YM-") + dateFormatted + "-" + randomDigits;
-    var fileUrl = "";
+    var fileUrls = [];
     var audioUrl = "";
-    var mediaBlob = null; 
+    var primaryMediaBlob = null; 
 
-    if (payload.media) {
+    // Handle multiple photos from items
+    var items = payload.items || [];
+    if (Array.isArray(items) && items.length > 0) {
+      for (var itIdx = 0; itIdx < items.length; itIdx++) {
+        var itm = items[itIdx];
+        if (itm.photos && Array.isArray(itm.photos)) {
+          for (var pIdx = 0; pIdx < itm.photos.length; pIdx++) {
+            var ph = itm.photos[pIdx];
+            if (ph && ph.base64) {
+              try {
+                var decoded = Utilities.base64Decode(ph.base64);
+                var b = Utilities.newBlob(decoded, ph.mimeType || "image/jpeg", ph.filename || ("Proof_" + (itIdx+1) + "_" + (pIdx+1) + ".jpg"));
+                if (!primaryMediaBlob) primaryMediaBlob = b;
+                var folderIter = DriveApp.getFoldersByName("ReplacementMedia");
+                var folder = folderIter.hasNext() ? folderIter.next() : DriveApp.createFolder("ReplacementMedia");
+                var file = folder.createFile(b);
+                file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+                fileUrls.push(file.getUrl());
+              } catch(pErr) {}
+            }
+          }
+        }
+      }
+    }
+
+    // Also handle single or general photos
+    if (fileUrls.length === 0 && payload.media && payload.media.base64) {
       try {
-        var decoded = Utilities.base64Decode(payload.media.base64);
-        mediaBlob = Utilities.newBlob(decoded, payload.media.mimeType, payload.media.filename); 
-        var folderIter = DriveApp.getFoldersByName("ReplacementMedia");
-        var folder = folderIter.hasNext() ? folderIter.next() : DriveApp.createFolder("ReplacementMedia");
-        var file = folder.createFile(mediaBlob);
-        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        fileUrl = file.getUrl();
+        var decodedM = Utilities.base64Decode(payload.media.base64);
+        primaryMediaBlob = Utilities.newBlob(decodedM, payload.media.mimeType || "image/jpeg", payload.media.filename || "Proof.jpg"); 
+        var folderIterM = DriveApp.getFoldersByName("ReplacementMedia");
+        var folderM = folderIterM.hasNext() ? folderIterM.next() : DriveApp.createFolder("ReplacementMedia");
+        var fileM = folderM.createFile(primaryMediaBlob);
+        fileM.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        fileUrls.push(fileM.getUrl());
       } catch(e) {}
     }
 
-    if (payload.audio) {
-      try {
-        var decodedAudio = Utilities.base64Decode(payload.audio.base64);
-        var audioBlob = Utilities.newBlob(decodedAudio, payload.audio.mimeType, "VoiceNote_" + ticketId + ".webm");
-        var folderIterA = DriveApp.getFoldersByName("ReplacementMedia");
-        var folderA = folderIterA.hasNext() ? folderIterA.next() : DriveApp.createFolder("ReplacementMedia");
-        var audioFile = folderA.createFile(audioBlob);
-        audioFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        audioUrl = audioFile.getUrl();
-      } catch(e) {}
+    if (payload.photos && Array.isArray(payload.photos)) {
+      for (var gIdx = 0; gIdx < payload.photos.length; gIdx++) {
+        var gPh = payload.photos[gIdx];
+        if (gPh && gPh.base64) {
+          try {
+            var decodedG = Utilities.base64Decode(gPh.base64);
+            var bG = Utilities.newBlob(decodedG, gPh.mimeType || "image/jpeg", gPh.filename || ("General_" + (gIdx+1) + ".jpg"));
+            if (!primaryMediaBlob) primaryMediaBlob = bG;
+            var folderIterG = DriveApp.getFoldersByName("ReplacementMedia");
+            var folderG = folderIterG.hasNext() ? folderIterG.next() : DriveApp.createFolder("ReplacementMedia");
+            var fileG = folderG.createFile(bG);
+            fileG.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+            if (fileUrls.indexOf(fileG.getUrl()) === -1) {
+              fileUrls.push(fileG.getUrl());
+            }
+          } catch(gErr) {}
+        }
+      }
     }
+
+    var combinedFileUrl = fileUrls.join(" | ");
 
     var sheet = SpreadsheetApp.openById("1tRhLgLfVjDRBiVilVCAG4KbiahZMr6LxomVKXrIQMOg").getSheetByName("Sheet1");
     if (!sheet) {
@@ -64,7 +101,8 @@ function raiseReplacement(payload) {
 
     sheet.appendRow([
       ticketId, new Date(), payload.phone, payload.shopName, payload.brand, 
-      payload.productName, 1, payload.defectType, fileUrl, 
+      payload.productName, (items && items.length > 0 ? items.reduce(function(a,b){ return a + (b.qty || 1); }, 0) : 1), 
+      payload.defectType, combinedFileUrl, 
       "Raised", "", "", payload.remarks || "", audioUrl
     ]);
 
@@ -76,11 +114,12 @@ function raiseReplacement(payload) {
               "*Issue:* " + payload.defectType + "\n" +
               "*Remarks:* " + (payload.remarks || "N/A");
 
-    if (fileUrl !== "") msg += "\n🔗 *Drive Backup Link:* [View Link](" + fileUrl + ")";
-    if (audioUrl !== "") msg += "\n🎙️ *Voice Note:* [Listen](" + audioUrl + ")";
+    if (fileUrls.length > 0) {
+      msg += "\n🔗 *Drive Proof Links (" + fileUrls.length + "):*\n" + fileUrls.map(function(u, idx){ return " • [Photo " + (idx+1) + "](" + u + ")"; }).join("\n");
+    }
 
     try {
-      sendReplacementTelegramAlert(msg, mediaBlob);
+      sendReplacementTelegramAlert(msg, primaryMediaBlob);
     } catch (e) {
       Logger.log("Replacement Telegram alert failed for " + ticketId + ": " + e.toString());
     }
