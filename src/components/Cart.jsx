@@ -251,10 +251,10 @@ export function Cart(props) {
     if (submitLock.current === true) return;
 
     if (!paymentMode) {
-      return alert("Please select Payment Mode!");
+      return alert(lang === "mr" ? "कृपया पेमेंट पद्धत निवडा!" : lang === "hi" ? "कृपया भुगतान का तरीका चुनें!" : "Please select Payment Mode!");
     }
     if (paymentMode === 'UPI' && !screenshotData) {
-      return alert("Upload Payment Screenshot first!");
+      return alert(lang === "mr" ? "कृपया प्रथम पेमेंट स्क्रीनशॉट अपलोड करा!" : lang === "hi" ? "कृपया पहले भुगतान का स्क्रीनशॉट अपलोड करें!" : "Upload Payment Screenshot first!");
     }
     
     submitLock.current = true;
@@ -298,7 +298,12 @@ export function Cart(props) {
       submitLock.current = false;
       setLoading(false);
       if (res && res.success) {
-        alert("✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nWe will dispatch it shortly.");
+        const confirmMsg = lang === 'mr'
+          ? "✅ ऑर्डर निश्चित झाली!\n\nप्रिय " + user.shopName + ",\nयश मार्केटिंग निवडल्याबद्दल धन्यवाद.\n\nअंतिम रक्कम: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nआम्ही लवकरच माल पाठवू."
+          : lang === 'hi'
+          ? "✅ ऑर्डर कन्फ़र्म हो गया!\n\nप्रिय " + user.shopName + ",\nयश मार्केटिंग चुनने के लिए धन्यवाद।\n\nअंतिम राशि: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nहम जल्द ही डिस्पैच करेंगे।"
+          : "✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nWe will dispatch it shortly.";
+        alert(confirmMsg);
         globalProps.logSpyData("Order Placed", "Val: ₹" + finalAmount);
         setCart({}); 
         setView("catalog");
@@ -456,7 +461,7 @@ export function Cart(props) {
                 return (
                   <div key={`freebie-${idx}`} className="bg-green-50 rounded-2xl p-3 shadow-sm border border-green-200 flex flex-col items-center text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-green-600 text-white text-[7px] font-black px-2 py-1 rounded-bl-xl uppercase tracking-widest shadow-md z-20">
-                      ₹1 / PC BILLING
+                      {t('one_rupee_pc', lang)}
                     </div>
                     <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-2xl shadow-inner mb-2 border border-green-100">
                       🎁
@@ -476,7 +481,7 @@ export function Cart(props) {
             </div>
 
             <div className="flex justify-between items-center mt-3 pt-3 border-t-2 border-dashed border-gray-200">
-              <span className="font-bold text-gray-500 uppercase text-[10px]">Net Value</span>
+              <span className="font-bold text-gray-500 uppercase text-[10px]">{t("net_value", lang)}</span>
               <span className="font-black text-lg text-gray-900">
                 ₹{baseTotalAmount.toLocaleString('en-IN')}
               </span>
