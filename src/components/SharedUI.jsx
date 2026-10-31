@@ -40,8 +40,9 @@ export function LanguageBar({ currentLang = 'en', onSelectLang }) {
   );
 }
 
-export function ProgressBar({ totalAmount, discounts, lang = 'en' }) {
-  var sortedDiscounts = [...discounts]
+export function ProgressBar({ totalAmount = 0, discounts = [], lang = 'en' }) {
+  const safeDiscounts = Array.isArray(discounts) ? discounts : [];
+  var sortedDiscounts = [...safeDiscounts]
     .map(d => ({ minAmount: getNum(d.minAmount), percent: getNum(d.percent) }))
     .filter(d => !isNaN(d.minAmount) && !isNaN(d.percent))
     .sort((a, b) => a.minAmount - b.minAmount);
