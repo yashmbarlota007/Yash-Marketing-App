@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../utils/helpers';
+import { t } from '../utils/translations';
 
 export function LedgerView(props) {
   var user = props.user;
+  var lang = props.lang || 'en';
   const [ledgerData, setLedgerData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,28 +42,28 @@ export function LedgerView(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans">
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
-        <h2 className="font-black text-gray-800 text-lg mb-1">Account Summary</h2>
-        <p className="text-xs text-gray-400 mb-4 uppercase font-bold">Outstanding Balance</p>
+        <h2 className="font-black text-gray-800 text-lg mb-1">{t('account_summary', lang)}</h2>
+        <p className="text-xs text-gray-400 mb-4 uppercase font-bold">{t('outstanding_bal', lang)}</p>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-red-50 p-3 rounded-xl border border-red-100">
-            <div className="text-[9px] text-red-600 font-bold uppercase">Total Bills</div>
+            <div className="text-[9px] text-red-600 font-bold uppercase">{t('total_bills', lang)}</div>
             <div className="font-black text-red-900 text-sm mt-1">₹{Math.round(totalDebit).toLocaleString('en-IN')}</div>
           </div>
           <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-            <div className="text-[9px] text-green-600 font-bold uppercase">Total Paid</div>
+            <div className="text-[9px] text-green-600 font-bold uppercase">{t('total_paid', lang)}</div>
             <div className="font-black text-green-900 text-sm mt-1">₹{Math.round(totalCredit).toLocaleString('en-IN')}</div>
           </div>
           <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
-            <div className="text-[9px] text-blue-600 font-bold uppercase">Outstanding</div>
+            <div className="text-[9px] text-blue-600 font-bold uppercase">{t('outstanding', lang)}</div>
             <div className="font-black text-blue-900 text-sm mt-1">₹{Math.round(netBalance).toLocaleString('en-IN')}</div>
           </div>
         </div>
       </div>
 
-      <h3 className="font-black text-gray-800 text-md mb-3 px-1">Ledger Entries</h3>
+      <h3 className="font-black text-gray-800 text-md mb-3 px-1">{t('ledger_entries', lang)}</h3>
       <div className="space-y-3 font-mono">
         {ledgerData.length === 0 ? (
-          <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">Koi ledger record nahi mila.</div>
+          <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">{t('no_ledger_record', lang)}</div>
         ) : (
           ledgerData.map((item, index) => {
             const isDebit = item.debit > 0;
@@ -101,7 +103,7 @@ export function LedgerView(props) {
         onClick={() => window.print()} 
         className="w-full bg-blue-900 text-white font-black py-4 rounded-2xl shadow-lg mt-6 flex items-center justify-center gap-1.5 active:scale-95"
       >
-        📥 DOWNLOAD LEDGER PDF
+        📥 {t('download_ledger_pdf', lang)}
       </button>
     </div>
   );
@@ -148,10 +150,10 @@ export function OrdersHistoryView(props) {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans relative">
-      <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">My Past Orders</h2>
+      <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">{t('my_past_orders', lang)}</h2>
       {orders.length === 0 ? (
         <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
-          Koi order record nahi mila.
+          {t('no_orders_record', lang)}
         </div>
       ) : (
         <div className="space-y-4">
@@ -171,7 +173,7 @@ export function OrdersHistoryView(props) {
 
                 {ord.attachments && ord.attachments.length > 0 && (
                   <div className="py-3 border-b border-dashed border-gray-100">
-                    <div className="text-[9px] text-gray-400 font-black uppercase mb-2">Order Documents & Tracking</div>
+                    <div className="text-[9px] text-gray-400 font-black uppercase mb-2">{t('order_docs', lang)}</div>
                     <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
                       {ord.attachments.map((att, i) => {
                         const fileId = getFileId(att.url);
