@@ -162,12 +162,12 @@ export default function OffersView(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[120px] font-sans animate-fade-in relative">
       <div className="mb-4">
-        <h2 className="font-black text-gray-900 text-xl tracking-tight">🎁 Exclusive Deals & Offers</h2>
-        <p className="text-xs text-gray-500 font-bold mt-0.5">Maximize your margins with active wholesale schemes.</p>
+        <h2 className="font-black text-gray-900 text-xl tracking-tight">🎁 {t("exclusive_deals_title", lang)}</h2>
+        <p className="text-xs text-gray-500 font-bold mt-0.5">{t("exclusive_deals_desc", lang)}</p>
       </div>
 
       <div className="mb-6">
-        <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 Active Target Rewards</h3>
+        <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">🎯 {t("active_target_rewards", lang)}</h3>
         <div className="grid grid-cols-2 gap-3">
           {schemes.map((sch, i) => {
             const isCombo = isComboScheme(sch);
@@ -177,7 +177,7 @@ export default function OffersView(props) {
               <div key={i} className={`bg-white p-3 rounded-2xl shadow-sm border flex flex-col justify-between ${progress.isUnlocked ? 'border-green-400 bg-green-50' : 'border-gray-100'}`}>
                 <div>
                   <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider inline-block mb-1 ${isCombo ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-                    {isCombo ? 'COMBO SCHEME' : sch.type + ' Scheme'}
+                    {isCombo ? t("combo_scheme", lang) : (lang === "mr" ? "विशेष योजना" : lang === "hi" ? "विशेष स्कीम" : sch.type + " Scheme")}
                   </span>
                   <h4 className="font-black text-gray-800 text-[10px] leading-snug line-clamp-3">
                     {translateOfferText(sch.message, lang)}
@@ -189,10 +189,10 @@ export default function OffersView(props) {
                 <div className="mt-2">
                   <div className="flex justify-between items-end mb-1">
                     <span className="text-[8px] font-black text-gray-500 uppercase tracking-wide">
-                      {isCombo ? "Package Size" : "Progress"}
+                      {isCombo ? (lang === "mr" ? "पॅकेज" : lang === "hi" ? "पैकेज" : "Package Size") : (lang === "mr" ? "प्रगती" : lang === "hi" ? "प्रगति" : "Progress")}
                     </span>
                     <span className={`text-[9px] font-black ${progress.isUnlocked ? 'text-green-600' : 'text-blue-700'}`}>
-                      {isCombo ? "10 Pairs" : `${progress.current} / ${progress.required}`}
+                      {isCombo ? (lang === "mr" ? "१० जोड्या" : lang === "hi" ? "१० जोड़ी" : "10 Pairs") : `${progress.current} / ${progress.required}`}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2">
@@ -205,7 +205,7 @@ export default function OffersView(props) {
                     onClick={() => handleViewItems(sch)}
                     className={`w-full font-black text-[9px] px-2 py-2 rounded-lg shadow-sm active:scale-95 transition-colors ${progress.isUnlocked ? 'bg-green-600 text-white' : (isCombo ? 'bg-indigo-900 text-white' : 'bg-blue-900 text-white')}`}
                   >
-                    {progress.isUnlocked ? '✅ UNLOCKED' : (isCombo ? '🛒 VIEW COMBO' : '🛒 ADD ITEMS')}
+                    {progress.isUnlocked ? (lang === "mr" ? "✅ अनलॉक झाले" : lang === "hi" ? "✅ अनलॉक हुआ" : "✅ UNLOCKED") : (isCombo ? (lang === "mr" ? "🛒 कॉम्बो पहा" : lang === "hi" ? "🛒 कॉम्बो देखें" : "🛒 VIEW COMBO") : (lang === "mr" ? "🛒 उत्पादने पहा" : lang === "hi" ? "🛒 सामान देखें" : "🛒 ADD ITEMS"))}
                   </button>
                 </div>
               </div>
@@ -215,16 +215,16 @@ export default function OffersView(props) {
       </div>
 
       <div>
-        <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 Volume Discount Slabs</h3>
+        <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 {lang === "mr" ? "मोठ्या खरेदीवर विशेष सूट" : lang === "hi" ? "बड़ी खरीदारी पर विशेष छूट" : "Volume Discount Slabs"}</h3>
         <div className="grid grid-cols-2 gap-3">
           {discounts.map((d, i) => (
             <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-              <div className="text-[9px] text-gray-400 font-black uppercase">Min Order Value</div>
+              <div className="text-[9px] text-gray-400 font-black uppercase">{lang === "mr" ? "किमान ऑर्डर रक्कम" : lang === "hi" ? "न्यूनतम ऑर्डर राशि" : "Min Order Value"}</div>
               <div className="font-black text-blue-950 text-base mt-0.5">
                 ₹{Number(d.minAmount).toLocaleString('en-IN')}
               </div>
               <div className="mt-2 bg-green-50 text-green-700 text-xs font-black py-1 px-2 rounded-lg border border-green-100 inline-block">
-                🎉 {d.percent}% EXTRA OFF
+                🎉 {d.percent}% {lang === "mr" ? "अतिरिक्त सूट" : lang === "hi" ? "अतिरिक्त छूट" : "EXTRA OFF"}
               </div>
             </div>
           ))}
