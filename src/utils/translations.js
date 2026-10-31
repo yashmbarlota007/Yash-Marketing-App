@@ -316,7 +316,10 @@ export const translations = {
     download_ledger_pdf: "📥 खाताबही PDF डाउनलोड करें",
     my_past_orders: "मेरी पिछली ऑर्डर्स",
     no_orders_record: "कोई पिछली ऑर्डर नहीं मिली।",
-    order_docs: "ऑर्डर दस्तावेज़ और ट्रैकिंग"
+    order_docs: "ऑर्डर दस्तावेज़ और ट्रैकिंग",
+    something_went_wrong: "कुछ तकनीकी समस्या आई",
+    technical_issue_desc: "कृपया पुनः प्रयास करें या कैटलॉग पर जाएं।",
+    reload_app: "🔄 पुनः लोड करें / कैटलॉग पर जाएं"
   },
   
   mr: {
@@ -473,7 +476,10 @@ export const translations = {
     download_ledger_pdf: "📥 खातावही PDF डाउनलोड करा",
     my_past_orders: "माझ्या मागील ऑर्डर्स",
     no_orders_record: "कोणतीही मागील ऑर्डर आढळली नाही.",
-    order_docs: "ऑर्डर कागदपत्रे आणि ट्रॅकिंग"
+    order_docs: "ऑर्डर कागदपत्रे आणि ट्रॅकिंग",
+    something_went_wrong: "काहीतरी तांत्रिक त्रुटी आली",
+    technical_issue_desc: "कृपया पुन्हा प्रयत्न करा किंवा कॅटलॉगवर परत जा.",
+    reload_app: "🔄 पुन्हा लोड करा / कॅटलॉगवर जा"
   }
 };
 
@@ -571,4 +577,97 @@ export function translateCategory(cat, lang = 'en') {
 
   if (catMap[c] && catMap[c][lang]) return catMap[c][lang];
   return c;
+}
+
+// Dynamic Product Name Translator
+export function translateProductName(name, lang = 'en') {
+  if (!name || lang === 'en') return name;
+  let text = String(name);
+
+  const replacements = lang === 'mr' ? [
+    [/\bboAt\b/gi, 'बोट'],
+    [/\bVelocity\b/gi, 'व्हेलॉसिटी'],
+    [/\bHikvision\b/gi, 'हिकव्हिजन'],
+    [/\bNeckband\b/gi, 'नेकबँड'],
+    [/\bAirpods\b/gi, 'एअरपॉड्स'],
+    [/\bEarphone(?:s)?\b/gi, 'इयरफोन'],
+    [/\bEarbuds\b/gi, 'इअरबड्स'],
+    [/\bHeadphone(?:s)?\b/gi, 'हेडफोन'],
+    [/\bSmart Watch\b/gi, 'स्मार्ट वॉच'],
+    [/\bWatch\b/gi, 'वॉच'],
+    [/\bCable(?:s)?\b/gi, 'केबल'],
+    [/\bCharger(?:s)?\b/gi, 'चार्जर'],
+    [/\bPower Bank\b/gi, 'पॉवर बँक'],
+    [/\bSpeaker(?:s)?\b/gi, 'स्पीकर'],
+    [/\bMemory Card\b/gi, 'मेमरी कार्ड'],
+    [/\bPen Drive\b/gi, 'पेन ड्राइव्ह'],
+    [/\bHard Disk\b/gi, 'हार्ड डिस्क'],
+    [/\bExternal SSD\b/gi, 'एक्सटर्नल एसएसडी'],
+    [/\bBoss\b/gi, 'बॉस'],
+    [/\bWave\b/gi, 'वेव्ह'],
+    [/\bAstra\b/gi, 'अस्त्रा'],
+    [/\bRockerz\b/gi, 'रॉकर्स'],
+    [/\bSummit\b/gi, 'समिट'],
+    [/\bStrive\b/gi, 'स्ट्राइव्ह'],
+    [/\bBold\b/gi, 'बोल्ड'],
+    [/\bPro\b/gi, 'प्रो'],
+    [/\bNeo\b/gi, 'निओ'],
+    [/\bActive\b/gi, 'ॲक्टिव्ह'],
+    [/\bClassic\b/gi, 'क्लासिक'],
+    [/\bCarbon\b/gi, 'कार्बन'],
+    [/\bBlack\b/gi, 'ब्लॅक'],
+    [/\bWhite\b/gi, 'व्हाईट'],
+    [/\bBlue\b/gi, 'ब्लू'],
+    [/\bRed\b/gi, 'रेड'],
+    [/\bGreen\b/gi, 'ग्रीन'],
+    [/\bGrey|Gray\b/gi, 'ग्रे'],
+    [/\bType C\b/gi, 'टाइप सी'],
+    [/\bMicro USB\b/gi, 'मायक्रो यूएसबी'],
+    [/\bLightning\b/gi, 'लाइटनिंग']
+  ] : [
+    [/\bboAt\b/gi, 'बोट'],
+    [/\bVelocity\b/gi, 'वेलोसिटी'],
+    [/\bHikvision\b/gi, 'हिकविज़न'],
+    [/\bNeckband\b/gi, 'नेकबैंड'],
+    [/\bAirpods\b/gi, 'एयरपॉड्स'],
+    [/\bEarphone(?:s)?\b/gi, 'इयरफ़ोन'],
+    [/\bEarbuds\b/gi, 'इयरबड्स'],
+    [/\bHeadphone(?:s)?\b/gi, 'हेडफ़ोन'],
+    [/\bSmart Watch\b/gi, 'स्मार्ट वॉच'],
+    [/\bWatch\b/gi, 'वॉच'],
+    [/\bCable(?:s)?\b/gi, 'केबल'],
+    [/\bCharger(?:s)?\b/gi, 'चार्जर'],
+    [/\bPower Bank\b/gi, 'पावर बैंक'],
+    [/\bSpeaker(?:s)?\b/gi, 'स्पीकर'],
+    [/\bMemory Card\b/gi, 'मेमोरी कार्ड'],
+    [/\bPen Drive\b/gi, 'पेन ड्राइव'],
+    [/\bHard Disk\b/gi, 'हार्ड डिस्क'],
+    [/\bExternal SSD\b/gi, 'एक्सटर्नल एसएसडी'],
+    [/\bBoss\b/gi, 'बॉस'],
+    [/\bWave\b/gi, 'वेव'],
+    [/\bAstra\b/gi, 'एस्ट्रा'],
+    [/\bRockerz\b/gi, 'रॉकर्स'],
+    [/\bSummit\b/gi, 'समिट'],
+    [/\bStrive\b/gi, 'स्ट्राइव'],
+    [/\bBold\b/gi, 'बोल्ड'],
+    [/\bPro\b/gi, 'प्रो'],
+    [/\bNeo\b/gi, 'नियो'],
+    [/\bActive\b/gi, 'एक्टिव'],
+    [/\bClassic\b/gi, 'क्लासिक'],
+    [/\bCarbon\b/gi, 'कार्बन'],
+    [/\bBlack\b/gi, 'ब्लैक'],
+    [/\bWhite\b/gi, 'व्हाइट'],
+    [/\bBlue\b/gi, 'ब्लू'],
+    [/\bRed\b/gi, 'रेड'],
+    [/\bGreen\b/gi, 'ग्रीन'],
+    [/\bGrey|Gray\b/gi, 'ग्रे'],
+    [/\bType C\b/gi, 'टाइप सी'],
+    [/\bMicro USB\b/gi, 'माइक्रो यूएसबी'],
+    [/\bLightning\b/gi, 'लाइटनिंग']
+  ];
+
+  for (const [regex, repl] of replacements) {
+    text = text.replace(regex, repl);
+  }
+  return text;
 }
