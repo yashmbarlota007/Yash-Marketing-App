@@ -118,7 +118,8 @@ export default function App() {
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("yashDealerCart");
-      return savedCart ? JSON.parse(savedCart) : {};
+      const parsed = savedCart ? JSON.parse(savedCart) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (e) {
       return {};
     }
@@ -353,7 +354,7 @@ export default function App() {
     );
   }
 
-  const cartItems = Object.values(cart);
+  const cartItems = cart && typeof cart === 'object' && !Array.isArray(cart) ? Object.values(cart) : [];
   const totalItems = cartItems.reduce((a, b) => a + (getNum(b.qty) || 0), 0);
   
   const totalAmount = cartItems.reduce((a, b) => {
@@ -414,19 +415,21 @@ export default function App() {
         </div>
       </div>
 
-      {view === "catalog" ? (
-        <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} />
-      ) : view === "cart" ? (
-        <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} lang={lang} />
-      ) : view === "offers" ? (
-        <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} lang={lang} />
-      ) : view === "ledger" ? (
-        <LedgerView user={user} callAPI={callAPI} lang={lang} />
-      ) : view === "replacements" ? (
-        <ReplacementsView user={user} callAPI={callAPI} globalProps={globalProps} products={products} lang={lang} />
-      ) : (
-        <OrdersHistoryView user={user} callAPI={callAPI} lang={lang} />
-      )}
+      <ErrorBoundary lang={lang} onReset={() => handleSetView("catalog")}>
+        {view === "catalog" ? (
+          <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} />
+        ) : view === "cart" ? (
+          <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} lang={lang} />
+        ) : view === "offers" ? (
+          <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} lang={lang} />
+        ) : view === "ledger" ? (
+          <LedgerView user={user} callAPI={callAPI} lang={lang} />
+        ) : view === "replacements" ? (
+          <ReplacementsView user={user} callAPI={callAPI} globalProps={globalProps} products={products} lang={lang} />
+        ) : (
+          <OrdersHistoryView user={user} callAPI={callAPI} lang={lang} />
+        )}
+      </ErrorBoundary>
 
       <ContactFABs view={view} />
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} lang={lang} />
