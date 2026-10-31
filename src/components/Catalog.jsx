@@ -290,19 +290,21 @@ export function Catalog(props) {
               key={`${activeItemCode}-${idx}`} 
               className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden"
             >
+              {/* 🎁 VIBRANT EMERALD & GOLD SPECIAL OFFER BADGE */}
               {hasOffer && (
-                <span className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 flex items-center gap-0.5 border border-amber-300">
+                <span className="absolute top-2 left-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white text-[8px] font-black px-2.5 py-0.5 rounded-full shadow-lg uppercase tracking-wider z-20 flex items-center gap-1 border border-yellow-300">
                   <span>🎁</span> {t('offer_badge', lang)}
                 </span>
               )}
               {isNewItem && (
-                <span className="absolute top-2 right-2 bg-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-md uppercase tracking-wider z-10 animate-bounce">
-                  ✨ NEW
+                <span className="absolute top-2 right-2 bg-pink-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10">
+                  ✨ {t('new_badge', lang)}
                 </span>
               )}
+              {/* 📦 DISTINCT CALM NAVY / INDIGO ON ORDER BADGE */}
               {showOnOrder && !isNewItem && (
-                <span className={`absolute ${hasOffer ? 'top-7' : 'top-2'} left-2 bg-orange-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 animate-pulse border border-orange-400`}>
-                  ⏳ ON ORDER
+                <span className={`absolute ${hasOffer ? 'top-8' : 'top-2'} left-2 bg-slate-900 text-indigo-200 text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10 border border-indigo-400 flex items-center gap-1`}>
+                  <span>📦</span> {t('on_order_badge', lang)}
                 </span>
               )}
               {isOutOfStock && (
@@ -532,7 +534,7 @@ export function Catalog(props) {
             onClick={() => { window.history.back(); setBrandFilter(""); setSortFilter(""); }} 
             className="font-bold text-blue-900 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm"
           >
-            ← Categories
+            ← {t('select_category', lang)}
           </button>
           <span className="font-black text-gray-800">{translateCategory(selectedType, lang)}</span>
           <button 
@@ -852,7 +854,7 @@ export function ProductDetailModal(props) {
                 </div>
                 <div className={`text-[10px] font-bold mt-2 flex items-center gap-1 ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
                   <span>{isOutOfStock ? '🚫' : showOnOrder ? '⏳' : '📦'}</span> 
-                  {isOutOfStock ? "ITEM CURRENTLY OUT OF STOCK" : showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${stockVal} units`}
+                  {isOutOfStock ? t('item_out_of_stock', lang) : showOnOrder ? `${t('on_order_badge', lang)} (${t('on_order_badge_desc', lang)})` : t('in_stock_status', lang, { count: stockVal })}
                 </div>
               </div>
             ) : (
@@ -1079,7 +1081,7 @@ export function ProductDetailModal(props) {
             alt="Zoomed Product" 
           />
           <p className="text-gray-400 text-[10px] mt-6 font-bold uppercase tracking-wider text-center bg-gray-900 bg-opacity-40 px-4 py-1.5 rounded-full select-none pointer-events-none">
-            Tap image to Zoom In / Out. Use arrows to change photos.
+            {t('tap_to_zoom', lang)}
           </p>
         </div>
       )}
