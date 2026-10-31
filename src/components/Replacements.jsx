@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL, getProp, compressImageFile } from '../utils/helpers';
 import { ScannerModal } from './SharedUI';
-import { t } from '../utils/translations';
+import { t, translateStatus, translateDefect } from '../utils/translations';
 
 export default function ReplacementsView(props) {
   var user = props.user;
@@ -21,22 +21,32 @@ export default function ReplacementsView(props) {
   const [productName, setProductName] = useState(""); 
   const [defectType, setDefectType] = useState("");
   const [qty, setQty] = useState(1);
+  const [currentItemPhotos, setCurrentItemPhotos] = useState([]);
   const [itemsList, setItemsList] = useState([]);
   
   // Help Ticket general states
   const [refNumber, setRefNumber] = useState("");
   const [helpSubIssue, setHelpSubIssue] = useState("");
+  const [generalPhotos, setGeneralPhotos] = useState([]);
 
   // Common states
   const [remarks, setRemarks] = useState("");
-  const [mediaData, setMediaData] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
 
   const categories = [
-    { id: "replacement", label: "Replacement", icon: "♻️", desc: "Defective or damaged item exchange" },
-    { id: "order_delivery", label: "Order & Delivery", icon: "📦", desc: "Dispatch delay, missing item, package issue" },
-    { id: "billing_payment", label: "Billing & Ledger", icon: "💰", desc: "Payment not reflected, bill query" },
-    { id: "general_support", label: "General Support", icon: "💬", desc: "Account, scheme, or other enquiry" }
+    { id: "replacement", label: t('cat_replacement', lang), icon: "♻️", desc: t('cat_replacement_desc', lang) },
+    { id: "order_delivery", label: t('cat_order_delivery', lang), icon: "📦", desc: t('cat_order_delivery_desc', lang) },
+    { id: "billing_payment", label: t('cat_billing_payment', lang), icon: "💰", desc: t('cat_billing_payment_desc', lang) },
+    { id: "general_support", label: t('cat_general_support', lang), icon: "💬", desc: t('cat_general_support_desc', lang) }
+  ];
+
+  const defectTypes = [
+    { id: "Dead on Arrival (DOA)", label: t('defect_doa', lang) },
+    { id: "Sound / Speaker Issue", label: t('defect_sound', lang) },
+    { id: "Mic / Calling Problem", label: t('defect_mic', lang) },
+    { id: "Charging / Battery Problem", label: t('defect_charging', lang) },
+    { id: "Physical Damage / Broken", label: t('defect_physical', lang) },
+    { id: "Other Technical Fault", label: t('defect_other', lang) }
   ];
 
   const uniqueBrands = [...new Set(products.map(p => String(getProp(p, "Brand") || "").trim()).filter(b => b !== ""))].sort();
@@ -59,7 +69,7 @@ export default function ReplacementsView(props) {
         setLoading(false);
       }).catch(() => setLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   const handleScanSuccess = (decodedText) => {
     setIsScanning(false);
@@ -68,22 +78,29 @@ export default function ReplacementsView(props) {
       String(getProp(p, "ItemCode")).toLowerCase() === decodedText.toLowerCase() || 
       String(getProp(p, "ProductName")).toLowerCase() === decodedText.toLowerCase()
     );
-    if(exactMatch) {
+    if (exactMatch) {
       setProductName(String(getProp(exactMatch, "ProductName")));
     }
   };
 
+  // Compulsory photo check when adding an item to the replacement ticket
   const handleAddItemToList = () => {
     if (!brand) return alert(lang === 'mr' ? "कृपया ब्रँड निवडा" : lang === 'hi' ? "कृपया ब्रांड चुनें" : "Please select a Brand.");
     if (!productName) return alert(lang === 'mr' ? "कृपया उत्पादन निवडा" : lang === 'hi' ? "कृपया सामान चुनें" : "Please select a Product.");
     if (!defectType) return alert(lang === 'mr' ? "कृपया समस्येचा प्रकार निवडा" : lang === 'hi' ? "कृपया समस्या का प्रकार चुनें" : "Please select Defect Type.");
     
+    // MANDATORY PHOTO VALIDATION
+    if (!currentItemPhotos || currentItemPhotos.length === 0) {
+      return alert(t('photo_compulsory_alert', lang));
+    }
+
     const newItem = {
       id: Date.now(),
       brand: brand,
       productName: productName,
       defectType: defectType,
-      qty: Math.max(1, parseInt(qty) || 1)
+      qty: Math.max(1, parseInt(qty) || 1),
+      photos: [...currentItemPhotos]
     };
 
     setItemsList(prev => [...prev, newItem]);
@@ -91,22 +108,52 @@ export default function ReplacementsView(props) {
     setProductName("");
     setDefectType("");
     setQty(1);
+    setCurrentItemPhotos([]);
   };
 
   const handleRemoveItemFromList = (id) => {
     setItemsList(prev => prev.filter(item => item.id !== id));
   };
 
-  const handleMediaUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      return alert("Please upload a valid photo.");
-    }
+  // Multiple photos upload for current item
+  const handleItemPhotoUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     try {
       setFormLoading(true);
-      const compressed = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
-      setMediaData(compressed);
+      const compressedList = [];
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          const comp = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
+          compressedList.push(comp);
+        }
+      }
+      if (compressedList.length > 0) {
+        setCurrentItemPhotos(prev => [...prev, ...compressedList]);
+      }
+    } catch (err) {
+      alert("Photo processing failed: " + (err.message || "Please try again."));
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Multiple photos upload for general support tickets
+  const handleGeneralPhotoUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      setFormLoading(true);
+      const compressedList = [];
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          const comp = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85 });
+          compressedList.push(comp);
+        }
+      }
+      if (compressedList.length > 0) {
+        setGeneralPhotos(prev => [...prev, ...compressedList]);
+      }
     } catch (err) {
       alert("Photo processing failed: " + (err.message || "Please try again."));
     } finally {
@@ -120,56 +167,69 @@ export default function ReplacementsView(props) {
       phone: user.phone,
       shopName: user.shopName,
       category: categories.find(c => c.id === ticketCategory)?.label || "Help Ticket",
-      remarks: remarks,
-      media: mediaData
+      remarks: remarks
     };
 
     if (ticketCategory === "replacement") {
       let finalItems = [...itemsList];
-      // If user selected an item above without clicking "+ Add Item to Ticket", include it
+      
+      // If user filled in the inputs above without pressing '+ Add Item', validate and add
       if (brand && productName && defectType) {
+        if (!currentItemPhotos || currentItemPhotos.length === 0) {
+          return alert(t('photo_compulsory_alert', lang));
+        }
         finalItems.push({
           id: Date.now(),
           brand: brand,
           productName: productName,
           defectType: defectType,
-          qty: Math.max(1, parseInt(qty) || 1)
+          qty: Math.max(1, parseInt(qty) || 1),
+          photos: [...currentItemPhotos]
         });
       }
 
       if (finalItems.length === 0) {
-        return alert(lang === 'mr' ? "कृपया तिकीट मध्ये किमान १ आयटम जोडा." : lang === 'hi' ? "कृपया टिकट में कम से कम १ सामान जोड़ें।" : "Please add at least 1 item to the replacement ticket.");
+        return alert(lang === 'mr' ? "कृपया तिकीट मध्ये किमान १ उत्पादन जोडा." : lang === 'hi' ? "कृपया टिकट में कम से कम १ सामान जोड़ें।" : "Please add at least 1 item to the replacement ticket.");
       }
+
+      // Ensure every item has at least one photo
+      const missingPhotos = finalItems.some(it => !it.photos || it.photos.length === 0);
+      if (missingPhotos) {
+        return alert(t('photo_compulsory_alert', lang));
+      }
+
       if (!remarks.trim()) {
         return alert(lang === 'mr' ? "कृपया समस्येचा तपशील टीप (Remarks) मध्ये लिहा." : lang === 'hi' ? "कृपया समस्या का विवरण टिप्पणी (Remarks) में लिखें।" : "Please explain the problem in Remarks.");
-      }
-      if (!mediaData) {
-        return alert(lang === 'mr' ? "कृपया उत्पादनाचा स्पष्ट फोटो अपलोड करा." : lang === 'hi' ? "कृपया सामान की साफ़ फ़ोटो अपलोड करें।" : "Please upload 1 clear photo of the product/box.");
       }
 
       const totalUnits = finalItems.reduce((acc, it) => acc + it.qty, 0);
       payload.brand = [...new Set(finalItems.map(it => it.brand))].join(', ');
-      payload.productName = finalItems.map((it, idx) => `${idx + 1}. ${it.productName} (x${it.qty}) - [${it.defectType}]`).join(' | ');
+      payload.productName = finalItems.map((it, idx) => `${idx + 1}. ${it.productName} (x${it.qty}) - [${it.defectType}] (${it.photos ? it.photos.length : 0} photos)`).join(' | ');
       payload.defectType = finalItems.length > 1 ? `Multi-Item (${finalItems.length} items, total ${totalUnits} units)` : finalItems[0].defectType;
       payload.items = finalItems;
+      payload.media = finalItems[0]?.photos[0] || null; // for legacy backend compatibility
     } else {
       if (!helpSubIssue) {
-        return alert("Please select an Issue Type.");
+        return alert(lang === 'mr' ? "कृपया समस्येचा प्रकार निवडा." : lang === 'hi' ? "कृपया समस्या का प्रकार चुनें।" : "Please select an Issue Type.");
       }
       if (!remarks.trim()) {
-        return alert("Please provide details in Remarks.");
+        return alert(lang === 'mr' ? "कृपया समस्येचा तपशील लिहा." : lang === 'hi' ? "कृपया समस्या का विवरण लिखें।" : "Please provide details in Remarks.");
       }
       const catLabel = categories.find(c => c.id === ticketCategory)?.label || "Help Ticket";
       payload.brand = catLabel;
       payload.productName = (refNumber.trim() ? `[Ref: ${refNumber.trim()}] ` : "") + helpSubIssue;
       payload.defectType = helpSubIssue;
+      payload.media = generalPhotos[0] || null;
+      payload.photos = generalPhotos;
     }
     
     setFormLoading(true);
-    callAPI(payload).then(res => {
+    const apiCaller = typeof callAPI === 'function' ? callAPI : (p) => fetch(API_URL, { method: 'POST', body: JSON.stringify(p), headers: { 'Content-Type': 'text/plain;charset=utf-8' } }).then(r => r.json());
+
+    apiCaller(payload).then(res => {
       setFormLoading(false);
       if (res && res.success) {
-        alert("✅ Help Ticket Submitted Successfully!");
+        alert(lang === 'mr' ? "✅ मदत तिकीट यशस्वीरित्या नोंदवले गेले!" : lang === 'hi' ? "✅ सहायता टिकट सफलतापूर्वक दर्ज किया गया!" : "✅ Help Ticket Submitted Successfully!");
         setBrand(""); 
         setProductSearch(""); 
         setProductName(""); 
@@ -177,34 +237,37 @@ export default function ReplacementsView(props) {
         setRefNumber("");
         setHelpSubIssue("");
         setRemarks(""); 
-        setMediaData(null); setItemsList([]); setQty(1); 
+        setCurrentItemPhotos([]);
+        setGeneralPhotos([]);
+        setItemsList([]); 
+        setQty(1); 
         setActiveTab("track");
       } else {
-        alert("❌ Ticket was not saved. " + (res && res.message ? res.message : "Please try again."));
+        alert(lang === 'mr' ? "❌ तिकीट सेव्ह झाले नाही. कृपया पुन्हा प्रयत्न करा." : lang === 'hi' ? "❌ टिकट सहेजा नहीं जा सका। कृपया पुनः प्रयास करें।" : "❌ Ticket was not saved. " + (res && res.message ? res.message : "Please try again."));
       }
     }).catch(error => {
       setFormLoading(false);
-      alert("❌ Ticket could not be submitted. " + (error.message || "Please try again."));
+      alert("Network Error: " + error.message);
     });
   };
 
   const getStatusColor = (status) => {
     const s = String(status).toLowerCase();
-    if (s.includes("raised") || s.includes("pending")) return "bg-blue-500";
-    if (s.includes("scheduled") || s.includes("pickup")) return "bg-indigo-500";
-    if (s.includes("inwarded")) return "bg-yellow-500";
-    if (s.includes("brand") || s.includes("testing")) return "bg-orange-500";
-    if (s.includes("resolved") || s.includes("approved") || s.includes("credit") || s.includes("dispatched")) return "bg-green-500";
+    if (s.includes("raised") || s.includes("pending")) return "bg-amber-500";
+    if (s.includes("scheduled") || s.includes("pickup") || s.includes("in review")) return "bg-blue-600";
+    if (s.includes("inwarded") || s.includes("processing")) return "bg-purple-600";
+    if (s.includes("brand") || s.includes("testing") || s.includes("actioned")) return "bg-indigo-600";
+    if (s.includes("resolved") || s.includes("approved") || s.includes("credit") || s.includes("dispatched")) return "bg-green-600";
     if (s.includes("rejected")) return "bg-red-600";
-    return "bg-gray-400";
+    return "bg-gray-500";
   };
 
   const getProgressPercent = (status) => {
     const s = String(status).toLowerCase();
     if (s.includes("raised") || s.includes("pending")) return 20;
-    if (s.includes("scheduled") || s.includes("pickup")) return 40;
-    if (s.includes("inwarded")) return 60;
-    if (s.includes("brand") || s.includes("testing")) return 80;
+    if (s.includes("scheduled") || s.includes("pickup") || s.includes("in review")) return 40;
+    if (s.includes("inwarded") || s.includes("processing")) return 60;
+    if (s.includes("brand") || s.includes("actioned")) return 80;
     if (s.includes("resolved") || s.includes("approved") || s.includes("dispatched") || s.includes("credit") || s.includes("rejected")) return 100;
     return 20;
   };
@@ -232,11 +295,11 @@ export default function ReplacementsView(props) {
       {activeTab === "new" ? (
         <div className="bg-white rounded-2xl shadow-sm border p-5 animate-fade-in">
           <h2 className="font-black text-gray-800 text-lg mb-1">{t('help_title', lang)}</h2>
-          <p className="text-xs text-gray-400 mb-4 font-bold">Select the issue category below to proceed.</p>
+          <p className="text-xs text-gray-400 mb-4 font-bold">{t('help_subtitle', lang)}</p>
           
           {/* CATEGORY SELECTOR PILLS */}
           <div className="mb-5">
-            <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block">1. Select Ticket Category</label>
+            <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block">{t('select_ticket_type', lang)}</label>
             <div className="grid grid-cols-2 gap-2">
               {categories.map((c) => {
                 const isSelected = ticketCategory === c.id;
@@ -267,280 +330,327 @@ export default function ReplacementsView(props) {
           </div>
 
           <div className="space-y-4">
-            {/* SUB-SECTION 1: REPLACEMENT (PART OF HELP TICKET) */}
-            {ticketCategory === "replacement" && (
-              <>
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-2">
-                  <div className="text-xs font-black text-blue-900 flex items-center gap-1">
-                    <span>♻️</span> Product Replacement Policy
-                  </div>
-                  <p className="text-[10px] text-blue-700 font-bold mt-1">
-                    Select brand & model. Original box with barcode photo is mandatory.
-                  </p>
+            {ticketCategory === "replacement" ? (
+              <div className="bg-blue-50/40 p-4 rounded-2xl border border-blue-100">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-base">📦</span>
+                  <h3 className="text-xs font-black text-blue-950 uppercase tracking-wide">
+                    {t('multi_item_heading', lang)}
+                  </h3>
                 </div>
+                <p className="text-[10px] text-blue-800 font-semibold mb-3">
+                  {t('multi_item_subheading', lang)}
+                </p>
 
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Select Brand</label>
+                {/* 1. SELECT BRAND */}
+                <div className="mb-3">
+                  <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                    {t('select_brand', lang)} *
+                  </label>
                   <select 
                     value={brand} 
-                    onChange={(e) => { setBrand(e.target.value); setProductSearch(""); setProductName(""); }} 
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+                    onChange={(e) => {
+                      setBrand(e.target.value);
+                      setProductSearch("");
+                      setProductName("");
+                    }} 
+                    className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none"
                   >
-                    <option value="">-- Choose Brand --</option>
-                    {uniqueBrands.map(b => <option key={b} value={b}>{b}</option>)}
+                    <option value="">-- {t('select_brand', lang)} --</option>
+                    {uniqueBrands.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
                   </select>
                 </div>
 
+                {/* 2. SELECT PRODUCT */}
                 {brand && (
-                  <div className="animate-fade-in">
-                    <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Select Product</label>
+                  <div className="mb-3">
+                    <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                      {t('select_product', lang)} *
+                    </label>
                     <div className="flex gap-2 mb-2">
                       <input 
                         type="text" 
-                        placeholder="Search or scan box..." 
+                        placeholder={t('search_product_barcode', lang)}
                         value={productSearch} 
                         onChange={(e) => setProductSearch(e.target.value)} 
-                        className="flex-1 bg-gray-50 p-3 rounded-xl border outline-none font-bold text-xs text-gray-800 focus:border-blue-500" 
+                        className="flex-1 bg-white p-2.5 rounded-xl text-xs font-bold border border-gray-200 outline-none" 
                       />
                       <button 
+                        type="button" 
                         onClick={() => setIsScanning(true)} 
-                        className="bg-blue-900 text-white px-4 rounded-xl font-black text-sm active:scale-95 shadow-sm"
+                        className="bg-blue-900 text-white font-black text-xs px-3 rounded-xl shadow flex items-center gap-1 active:scale-95"
                       >
-                        📷 SCAN
+                        📷 Scan
                       </button>
                     </div>
+
                     <select 
                       value={productName} 
                       onChange={(e) => setProductName(e.target.value)} 
-                      className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+                      className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none"
                     >
-                      <option value="">-- Select from list --</option>
-                      {filteredProducts.map((p, i) => {
-                        const name = String(getProp(p, "ProductName") || "Unknown Item");
-                        return <option key={`${name}-${i}`} value={name}>{name}</option>;
+                      <option value="">-- {t('select_product', lang)} --</option>
+                      {filteredProducts.map((p, idx) => {
+                        const name = String(getProp(p, "ProductName"));
+                        return <option key={idx} value={name}>{name}</option>;
                       })}
                     </select>
                   </div>
                 )}
 
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Defect / Damage Type</label>
-                  <select 
-                    value={defectType} 
-                    onChange={(e) => setDefectType(e.target.value)} 
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
-                  >
-                    <option value="">-- Choose Defect Type --</option>
-                    <option value="Dead on Arrival (DOA)">Dead on Arrival (DOA)</option>
-                    <option value="Battery Drain / Charging Issue">Battery Drain / Charging Issue</option>
-                    <option value="Connectivity / Bluetooth Issue">Connectivity / Bluetooth Issue</option>
-                    <option value="Audio / Sound Issue">Audio / Sound Issue</option>
-                    <option value="Physical Damage (Transit)">Physical Damage (Transit)</option>
-                    <option value="Other">Other Technical Fault</option>
-                  </select>
-                </div>
-
-                {/* 🟢 MULTI-ITEM QUANTITY & ADD TO TICKET BUTTON */}
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-black uppercase text-gray-500">{t('quantity', lang)}:</label>
-                    <div className="flex items-center bg-gray-100 rounded-xl border border-gray-200 p-0.5">
-                      <button 
-                        type="button" 
-                        onClick={() => setQty(Math.max(1, qty - 1))}
-                        className="w-8 h-8 bg-white text-gray-800 font-black rounded-lg shadow-sm flex items-center justify-center active:scale-95"
+                {/* 3. DEFECT TYPE & QUANTITY */}
+                {productName && (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                        {t('defect_type', lang)} *
+                      </label>
+                      <select 
+                        value={defectType} 
+                        onChange={(e) => setDefectType(e.target.value)} 
+                        className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none"
                       >
-                        -
-                      </button>
-                      <span className="w-8 text-center font-black text-sm text-gray-900">{qty}</span>
-                      <button 
-                        type="button" 
-                        onClick={() => setQty(qty + 1)}
-                        className="w-8 h-8 bg-blue-900 text-white font-black rounded-lg shadow-sm flex items-center justify-center active:scale-95"
-                      >
-                        +
-                      </button>
+                        <option value="">-- {t('select_defect', lang)} --</option>
+                        {defectTypes.map((d, i) => (
+                          <option key={i} value={d.id}>{d.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                        {t('quantity', lang)} *
+                      </label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        value={qty} 
+                        onChange={(e) => setQty(e.target.value)} 
+                        className="w-full bg-white p-3 rounded-xl text-xs font-black text-center border border-gray-200 outline-none" 
+                      />
                     </div>
                   </div>
+                )}
 
+                {/* 📸 4. COMPULSORY MULTIPLE PHOTOS UPLOADER FOR CURRENT ITEM */}
+                {productName && (
+                  <div className="mb-4 bg-white p-3.5 rounded-2xl border-2 border-dashed border-blue-300">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="text-[10px] font-black text-blue-950 flex items-center gap-1">
+                        <span>📸</span> {t('multi_photo_instruction', lang)}
+                      </label>
+                      {currentItemPhotos.length > 0 && (
+                        <span className="text-[9px] bg-green-600 text-white font-black px-2 py-0.5 rounded-full">
+                          {t('photos_count', lang, { count: currentItemPhotos.length })}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {currentItemPhotos.map((photo, pIdx) => (
+                        <div key={pIdx} className="relative w-16 h-16 rounded-xl border-2 border-blue-400 overflow-hidden shadow-sm group">
+                          <img src={`data:${photo.mimeType};base64,${photo.base64}`} alt="Proof" className="w-full h-full object-cover" />
+                          <button 
+                            type="button" 
+                            onClick={() => setCurrentItemPhotos(prev => prev.filter((_, idx) => idx !== pIdx))}
+                            className="absolute top-0 right-0 bg-red-600 text-white text-[10px] font-black w-5 h-5 rounded-bl-lg flex items-center justify-center shadow"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+
+                      <label className="w-16 h-16 border-2 border-dashed border-blue-400 bg-blue-50 hover:bg-blue-100 rounded-xl flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all text-center">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          multiple 
+                          onChange={handleItemPhotoUpload} 
+                          className="hidden" 
+                        />
+                        <span className="text-xl">➕</span>
+                        <span className="text-[7px] font-black text-blue-900 leading-none mt-0.5">
+                          {currentItemPhotos.length === 0 ? "ADD PHOTO*" : "MORE"}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* ADD ITEM BUTTON */}
+                {productName && (
                   <button 
-                    type="button"
-                    onClick={handleAddItemToList}
-                    className="bg-blue-900 hover:bg-blue-950 active:scale-95 text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-md flex items-center gap-1.5 transition-all"
+                    type="button" 
+                    onClick={handleAddItemToList} 
+                    className="w-full bg-gradient-to-r from-blue-900 to-indigo-900 text-white font-black text-xs py-3 rounded-xl shadow-md active:scale-95 flex items-center justify-center gap-1 mb-3"
                   >
                     <span>➕</span> {t('add_item_to_ticket', lang)}
                   </button>
-                </div>
+                )}
 
-                {/* 🟢 MULTI-ITEM LIST CARDS */}
+                {/* LIST OF ADDED ITEMS WITH PHOTO THUMBNAILS */}
                 {itemsList.length > 0 && (
-                  <div className="mt-3 bg-amber-50/80 border-2 border-amber-300 rounded-2xl p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-xs font-black text-amber-950 flex items-center gap-1">
-                        <span>📦</span> {t('items_in_ticket', lang, { count: itemsList.length })}
-                      </div>
-                      <span className="text-[10px] font-black bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md">
-                        {itemsList.reduce((acc, it) => acc + it.qty, 0)} {lang === 'mr' ? 'एकूण नग' : lang === 'hi' ? 'कुल पीस' : 'Total Units'}
+                  <div className="mt-4 pt-3 border-t border-blue-200">
+                    <div className="text-[10px] font-black text-blue-950 uppercase tracking-wide mb-2 flex justify-between items-center">
+                      <span>{t('items_in_ticket', lang, { count: itemsList.length })}</span>
+                      <span className="text-[9px] bg-blue-900 text-white px-2 py-0.5 rounded-full font-bold">
+                        {t('total_qty', lang)}: {itemsList.reduce((acc, it) => acc + it.qty, 0)}
                       </span>
                     </div>
 
                     <div className="space-y-2">
-                      {itemsList.map((it, idx) => (
-                        <div key={it.id} className="bg-white p-2.5 rounded-xl border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="bg-blue-100 text-blue-900 text-[9px] font-black px-1.5 py-0.5 rounded">#{idx + 1}</span>
-                              <span className="text-xs font-black text-gray-900 truncate block">{it.productName}</span>
+                      {itemsList.map((item) => (
+                        <div key={item.id} className="bg-white p-3 rounded-xl border border-blue-200 shadow-xs flex flex-col gap-2">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 pr-2">
+                              <span className="text-[9px] bg-blue-100 text-blue-900 font-black px-1.5 py-0.5 rounded mr-1">
+                                {item.brand}
+                              </span>
+                              <span className="text-xs font-black text-gray-800">
+                                {item.productName}
+                              </span>
+                              <div className="text-[10px] text-gray-500 font-bold mt-1">
+                                {t('defect_type', lang)}: <span className="text-red-700 font-black">{translateDefect(item.defectType, lang)}</span> • {t('quantity', lang)}: <span className="font-black text-blue-900">{item.qty}</span>
+                              </div>
                             </div>
-                            <div className="text-[10px] text-gray-600 font-bold mt-0.5 flex flex-wrap gap-2">
-                              <span className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{it.brand}</span>
-                              <span className="text-blue-900 font-black">Qty: {it.qty}</span>
-                              <span className="text-red-700 bg-red-50 px-1.5 py-0.5 rounded border border-red-100 font-bold">{it.defectType}</span>
-                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveItemFromList(item.id)} 
+                              className="text-red-600 font-black text-xs px-2 py-1 bg-red-50 hover:bg-red-100 rounded-lg active:scale-95"
+                            >
+                              ✕ {t('remove_item', lang)}
+                            </button>
                           </div>
-                          <button 
-                            type="button"
-                            onClick={() => handleRemoveItemFromList(it.id)}
-                            className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-2 rounded-lg font-bold text-xs shrink-0 active:scale-95 transition-colors"
-                            title="Remove item"
-                          >
-                            🗑️
-                          </button>
+
+                          {/* Thumbnails of attached photos for this item */}
+                          {item.photos && item.photos.length > 0 && (
+                            <div className="flex gap-1.5 items-center pt-1 border-t border-gray-100 overflow-x-auto">
+                              <span className="text-[8px] font-black text-gray-400 uppercase">
+                                📸 {item.photos.length} {t('photos_count', lang, { count: item.photos.length })}:
+                              </span>
+                              {item.photos.map((ph, phIdx) => (
+                                <img 
+                                  key={phIdx} 
+                                  src={`data:${ph.mimeType};base64,${ph.base64}`} 
+                                  alt="Attached proof" 
+                                  className="w-8 h-8 rounded-md object-cover border border-gray-200 shadow-2xs" 
+                                />
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
-                    <p className="text-[10px] text-amber-800 font-bold mt-2 text-center">
-                      {lang === 'mr' ? '💡 आपण वरून अजून आयटम जोडू शकता. सर्व एकाच तिकिटात सबमिट होतील.' : lang === 'hi' ? '💡 आप ऊपर से और सामान जोड़ सकते हैं। सभी एक ही टिकट में दर्ज होंगे।' : '💡 You can add more items above. All will be submitted together in this ticket.'}
-                    </p>
                   </div>
                 )}
-              </>
-            )}
-
-            {/* SUB-SECTION 2: ORDER & DELIVERY ISSUE */}
-            {ticketCategory === "order_delivery" && (
-              <>
+              </div>
+            ) : (
+              /* GENERAL SUPPORT TICKET INPUTS */
+              <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Order Issue Type</label>
-                  <select
-                    value={helpSubIssue}
-                    onChange={(e) => setHelpSubIssue(e.target.value)}
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+                  <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                    {t('general_issue_type', lang)} *
+                  </label>
+                  <select 
+                    value={helpSubIssue} 
+                    onChange={(e) => setHelpSubIssue(e.target.value)} 
+                    className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none"
                   >
-                    <option value="">-- Select Order Issue --</option>
-                    <option value="Delayed Dispatch">Dispatch Delayed</option>
-                    <option value="Missing Item in Parcel">Missing Item in Delivered Box</option>
-                    <option value="Wrong Item Received">Wrong Product / Model Received</option>
-                    <option value="Damaged Outer Carton">Carton Damaged by Transport</option>
-                    <option value="Transport Docket Tracking Query">Transport / Tracking Query</option>
-                    <option value="Other Order Issue">Other Order Issue</option>
+                    <option value="">-- {t('select_defect', lang)} --</option>
+                    {ticketCategory === "order_delivery" && (
+                      <React.Fragment>
+                        <option value="Dispatch Delayed">Dispatch Delayed</option>
+                        <option value="Missing Item in Parcel">Missing Item in Parcel</option>
+                        <option value="Tracking Number Not Working">Tracking Number Not Working</option>
+                        <option value="Wrong Item Delivered">Wrong Item Delivered</option>
+                      </React.Fragment>
+                    )}
+                    {ticketCategory === "billing_payment" && (
+                      <React.Fragment>
+                        <option value="Payment Not Reflected in Ledger">Payment Not Reflected in Ledger</option>
+                        <option value="Invoice Copy Required">Invoice Copy Required</option>
+                        <option value="Bill Amount Mismatch">Bill Amount Mismatch</option>
+                        <option value="Special Discount Query">Special Discount Query</option>
+                      </React.Fragment>
+                    )}
+                    {ticketCategory === "general_support" && (
+                      <React.Fragment>
+                        <option value="App or Account Access Issue">App or Account Access Issue</option>
+                        <option value="Scheme or Offer Inquiry">Scheme or Offer Inquiry</option>
+                        <option value="New Product Availability Request">New Product Availability Request</option>
+                        <option value="Other Query">Other Query</option>
+                      </React.Fragment>
+                    )}
                   </select>
                 </div>
+
                 <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Order ID (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. ORD-1024"
-                    value={refNumber}
-                    onChange={(e) => setRefNumber(e.target.value)}
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
+                  <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                    {t('ref_number', lang)}
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder={t('ref_placeholder', lang)}
+                    value={refNumber} 
+                    onChange={(e) => setRefNumber(e.target.value)} 
+                    className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none" 
                   />
                 </div>
-              </>
-            )}
 
-            {/* SUB-SECTION 3: BILLING & LEDGER QUERY */}
-            {ticketCategory === "billing_payment" && (
-              <>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Billing Issue Type</label>
-                  <select
-                    value={helpSubIssue}
-                    onChange={(e) => setHelpSubIssue(e.target.value)}
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
-                  >
-                    <option value="">-- Select Billing Query --</option>
-                    <option value="Payment Not Updated in Ledger">Payment Transfer Not Reflected</option>
-                    <option value="Invoice Copy Request">Need GST Invoice Copy</option>
-                    <option value="Credit Note / Scheme Difference">Scheme / Credit Note Difference</option>
-                    <option value="Ledger Balance Mismatch">Ledger Balance Dispute</option>
-                    <option value="Other Billing Query">Other Payment / Ledger Query</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Transaction / Invoice / UTR No. (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. UTR / Inv # 5401"
-                    value={refNumber}
-                    onChange={(e) => setRefNumber(e.target.value)}
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* SUB-SECTION 4: GENERAL SUPPORT */}
-            {ticketCategory === "general_support" && (
-              <>
-                <div>
-                  <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">Subject / Query Type</label>
-                  <select
-                    value={helpSubIssue}
-                    onChange={(e) => setHelpSubIssue(e.target.value)}
-                    className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
-                  >
-                    <option value="">-- Select Query --</option>
-                    <option value="Scheme & Discount Clarification">Scheme & Discount Information</option>
-                    <option value="New Brand / Product Availability">New Product Inquiry</option>
-                    <option value="Dealer Account Information Update">Update Contact / Address</option>
-                    <option value="General Support">Other Assistance</option>
-                  </select>
-                </div>
-              </>
-            )}
-
-            {/* COMMON: REMARKS */}
-            <div>
-              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">
-                Problem Description & Remarks <span className="text-red-500">*</span>
-              </label>
-              <textarea 
-                value={remarks} 
-                onChange={(e) => setRemarks(e.target.value)} 
-                rows="3" 
-                placeholder="Please describe your issue or requirement in detail..." 
-                className="w-full bg-gray-50 p-3 rounded-xl border outline-none font-bold text-sm text-gray-800 focus:border-blue-500"
-              ></textarea>
-            </div>
-
-            {/* COMMON: PHOTO UPLOAD */}
-            <div>
-              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">
-                {ticketCategory === "replacement" ? "Photo Proof (Box/Serial No) *" : "Screenshot / Photo Attachment (Optional)"}
-              </label>
-              <div className="w-full bg-blue-50 border-2 border-dashed border-blue-200 p-4 rounded-xl text-center relative">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleMediaUpload} 
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                />
-                <div className="text-blue-900 font-black text-sm">
-                  {mediaData ? "✅ Photo Ready" : "📸 Tap to Upload Photo / Screenshot"}
+                {/* Multiple photos upload for general support */}
+                <div className="bg-white p-3.5 rounded-2xl border-2 border-dashed border-gray-300">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[10px] font-black text-gray-700">
+                      📸 {t('upload_photo', lang)} ({t('photos_count', lang, { count: generalPhotos.length })})
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {generalPhotos.map((photo, pIdx) => (
+                      <div key={pIdx} className="relative w-14 h-14 rounded-xl border border-gray-300 overflow-hidden shadow-sm">
+                        <img src={`data:${photo.mimeType};base64,${photo.base64}`} alt="Proof" className="w-full h-full object-cover" />
+                        <button 
+                          type="button" 
+                          onClick={() => setGeneralPhotos(prev => prev.filter((_, idx) => idx !== pIdx))}
+                          className="absolute top-0 right-0 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-bl flex items-center justify-center shadow"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <label className="w-14 h-14 border border-dashed border-gray-400 bg-gray-50 hover:bg-gray-100 rounded-xl flex flex-col items-center justify-center cursor-pointer active:scale-95 transition-all text-center">
+                      <input type="file" accept="image/*" multiple onChange={handleGeneralPhotoUpload} className="hidden" />
+                      <span className="text-lg">➕</span>
+                      <span className="text-[7px] font-black text-gray-700">ADD</span>
+                    </label>
+                  </div>
                 </div>
               </div>
+            )}
+
+            {/* REMARKS */}
+            <div>
+              <label className="text-[10px] font-black uppercase text-gray-500 mb-1 block">
+                {t('ticket_remarks', lang)} *
+              </label>
+              <textarea 
+                rows="3" 
+                placeholder={t('ticket_remarks_placeholder', lang)}
+                value={remarks} 
+                onChange={(e) => setRemarks(e.target.value)} 
+                className="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none focus:border-blue-700"
+              />
             </div>
 
             {/* SUBMIT BUTTON */}
             <button 
               onClick={handleSubmit} 
               disabled={formLoading} 
-              className="w-full bg-blue-900 text-white font-black text-lg py-4 rounded-xl shadow-lg mt-2 active:scale-95 flex flex-col justify-center items-center"
+              className="w-full bg-blue-900 text-white font-black text-base py-4 rounded-xl shadow-lg mt-2 active:scale-95 flex justify-center items-center"
             >
               {formLoading ? (
                 <div className="border-4 border-white border-t-transparent w-6 h-6 rounded-full spinner"></div>
-              ) : "SUBMIT TICKET"}
+              ) : t('submit_ticket', lang)}
             </button>
           </div>
         </div>
@@ -553,7 +663,7 @@ export default function ReplacementsView(props) {
             </div>
           ) : tickets.length === 0 ? (
             <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
-              No Support Tickets Found.
+              {t('no_tickets_found', lang)}
             </div>
           ) : (
             tickets.map((ticket, idx) => (
@@ -564,7 +674,7 @@ export default function ReplacementsView(props) {
                     <div className="font-black text-blue-900 text-xs mt-1">{ticket.ticketId}</div>
                   </div>
                   <span className={`text-[9px] font-black px-2.5 py-1 rounded-md text-white uppercase tracking-wider ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
+                    {translateStatus(ticket.status, lang) || ticket.status}
                   </span>
                 </div>
                 
@@ -575,7 +685,7 @@ export default function ReplacementsView(props) {
                   <h3 className="font-bold text-sm text-gray-800 leading-snug">{ticket.productName}</h3>
                   {ticket.defectType && (
                     <p className="text-[11px] text-gray-600 font-bold mt-1">
-                      <span className="text-gray-400">Issue:</span> {ticket.defectType}
+                      <span className="text-gray-400">{t('defect_type', lang)}:</span> {translateDefect(ticket.defectType, lang)}
                     </p>
                   )}
                   {ticket.remarks && (
@@ -587,11 +697,11 @@ export default function ReplacementsView(props) {
 
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-4">
                   <div className="flex justify-between text-[7px] font-black text-gray-400 uppercase tracking-wider mb-2 text-center">
-                    <span className="w-1/5">Raised</span>
-                    <span className="w-1/5">In Review</span>
-                    <span className="w-1/5">Processing</span>
+                    <span className="w-1/5">{t('ticket_status_raised', lang)}</span>
+                    <span className="w-1/5">{t('ticket_status_in_progress', lang)}</span>
+                    <span className="w-1/5">{t('ticket_status_approved', lang)}</span>
                     <span className="w-1/5">Actioned</span>
-                    <span className="w-1/5">Resolved</span>
+                    <span className="w-1/5">{t('ticket_status_resolved', lang)}</span>
                   </div>
                   <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
                     <div 
@@ -600,7 +710,7 @@ export default function ReplacementsView(props) {
                     ></div>
                   </div>
                   <div className="text-[10px] text-gray-500 font-bold mt-3 text-center">
-                    Status: <span className="text-gray-800 font-black">{ticket.status}</span>
+                    Status: <span className="text-gray-800 font-black">{translateStatus(ticket.status, lang) || ticket.status}</span>
                   </div>
                 </div>
 
