@@ -6,7 +6,7 @@ import { Cart } from './components/Cart';
 import OffersView from './components/Offers';
 import { LedgerView, OrdersHistoryView } from './components/Ledger';
 import ReplacementsView from './components/Replacements';
-import { BottomNav, ContactFABs } from './components/SharedUI';
+import { BottomNav, ContactFABs, LanguageBar } from './components/SharedUI';
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -412,9 +412,10 @@ export default function App() {
   })();
 
   return (
-    <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
-      {/* 🌐 PROMINENT TOP LANGUAGE BAR (VISIBLE ACROSS ALL SCREENS) */}
-      <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
+    <ErrorBoundary lang={lang} onReset={() => handleSetView("catalog")}>
+      <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
+        {/* 🌐 PROMINENT TOP LANGUAGE BAR (VISIBLE ACROSS ALL SCREENS) */}
+        <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
 
       {/* Sticky Main Header */}
       <div className="bg-blue-900 text-white p-3.5 sticky top-0 z-40 flex justify-between items-center shadow-md">
@@ -494,6 +495,7 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
