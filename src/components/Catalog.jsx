@@ -10,7 +10,7 @@ import {
   triggerCelebration
 } from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
-import { t, translateOfferText, translateReward, translateCategory, translateProductName } from '../utils/translations';
+import { t, translateOfferText, translateReward, translateCategory, translateProductName, translateBrand } from '../utils/translations';
 
 export function Catalog(props) {
   // ==========================================
@@ -494,7 +494,7 @@ export function Catalog(props) {
                   <div className="text-3xl mb-3">📦</div>
                 )}
                 <h3 className="font-extrabold text-sm text-center truncate w-full text-gray-800 flex items-center justify-center gap-1.5">
-                  {type} 
+                  {translateCategory(type, lang)} 
                   <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-blue-100">
                     {categoryCount}
                   </span>
@@ -562,7 +562,7 @@ export function Catalog(props) {
             className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
           >
             <option value="">{t('all_brands', lang)}</option>
-            {categoryBrands.map((b) => <option key={b} value={b}>{b}</option>)}
+            {categoryBrands.map((b) => <option key={b} value={b}>{translateBrand(b, lang) || b}</option>)}
           </select>
           <select 
             value={sortFilter} 
@@ -803,7 +803,7 @@ export function ProductDetailModal(props) {
               {translateProductName(activeName, lang)}
             </h2>
             <p className="text-xs text-gray-400 font-bold mt-1 uppercase">
-              Category: {translateCategory(activeType, lang)}
+              {lang === "mr" ? "वर्ग / कॅटेगरी:" : lang === "hi" ? "श्रेणी / कैटेगरी:" : "Category:"} {translateCategory(activeType, lang)}
             </p>
 
             {product.isGrouped && (
