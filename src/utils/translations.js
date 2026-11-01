@@ -166,6 +166,8 @@ export const translations = {
     ticket_status_approved: "Approved",
     ticket_status_rejected: "Rejected",
     ticket_status_resolved: "Resolved",
+    ticket_status_actioned: "Actioned",
+    ticket_status_label: "Status",
     ticket_id: "Ticket ID",
     ticket_date: "Date",
     
@@ -384,6 +386,8 @@ export const translations = {
     ticket_status_approved: "स्वीकृत",
     ticket_status_rejected: "अस्वीकृत",
     ticket_status_resolved: "सुलझाया गया",
+    ticket_status_actioned: "कार्यवाही हुई",
+    ticket_status_label: "स्थिति",
     ticket_id: "टिकट आईडी",
     ticket_date: "तारीख",
     
@@ -602,6 +606,8 @@ export const translations = {
     ticket_status_approved: "मंजूर",
     ticket_status_rejected: "नाकारले",
     ticket_status_resolved: "निकाली काढले",
+    ticket_status_actioned: "कार्यवाही झाली",
+    ticket_status_label: "स्थिती",
     ticket_id: "तिकीट क्रमांक",
     ticket_date: "दिनांक",
     
@@ -730,29 +736,158 @@ export function translateCategory(cat, lang = 'en') {
   if (!cat || lang === 'en') return cat;
   const c = String(cat).trim();
   const catMap = {
-    'Boat Airpods': { mr: 'बोट एअरपॉड्स', hi: 'बोट एयरपॉड्स' },
-    'Boat Neckband': { mr: 'बोट नेकबँड', hi: 'बोट नेकबैंड' },
-    'Boat Smart Watch': { mr: 'बोट स्मार्ट वॉच', hi: 'बोट स्मार्ट वॉच' },
-    'Boat Cables': { mr: 'बोट केबल्स', hi: 'बोट केबल्स' },
-    'Boat Charger': { mr: 'बोट चार्जर', hi: 'बोट चार्जर' },
-    'Boat Power Bank': { mr: 'बोट पॉवर बँक', hi: 'बोट पावर बैंक' },
-    'Boat Earphone': { mr: 'बोट इयरफोन', hi: 'बोट इयरफ़ोन' },
-    'Boat Speaker': { mr: 'बोट स्पीकर्स', hi: 'बोट स्पीकर्स' },
+    // Individual Categories
+    'Accessories': { mr: 'अॅक्सेसरीज', hi: 'एक्सेसरीज' },
+    'Accessaries': { mr: 'अॅक्सेसरीज', hi: 'एक्सेसरीज' },
+    'Airpods': { mr: 'एअरपॉड्स', hi: 'एयरपॉड्स' },
+    'Airpodes': { mr: 'एअरपॉड्स', hi: 'एयरपॉड्स' },
+    'Airdopes': { mr: 'एअरड्रॉप्स', hi: 'एयरड्रॉप्स' },
+    'Airdropes': { mr: 'एअरड्रॉप्स', hi: 'एयरड्रॉप्स' },
+    'Earbuds': { mr: 'इअरबड्स', hi: 'इयरबड्स' },
+    'Cable': { mr: 'केबल्स', hi: 'केबल्स' },
+    'Cables': { mr: 'केबल्स', hi: 'केबल्स' },
+    'Data Cable': { mr: 'डेटा केबल', hi: 'डेटा केबल' },
+    'Car Accessories': { mr: 'कार अॅक्सेसरीज', hi: 'कार एक्सेसरीज' },
+    'Car Charger': { mr: 'कार चार्जर', hi: 'कार चार्जर' },
+    'BOAT CAR CHARGER': { mr: 'बोट कार चार्जर', hi: 'बोट कार चार्जर' },
+    'Car Stand': { mr: 'कार स्टँड', hi: 'कार स्टैंड' },
+    'Charger': { mr: 'चार्जर', hi: 'चार्जर' },
+    'Chargers': { mr: 'चार्जर', hi: 'चार्जर' },
+    'EMI LOCKER': { mr: 'ईएमआय लॉकर', hi: 'ईएमआई लॉकर' },
+    'EMI Locker': { mr: 'ईएमआय लॉकर', hi: 'ईएमआई लॉकर' },
+    'Keylock Software': { mr: 'कीलॉक सॉफ्टवेअर', hi: 'कीलॉक सॉफ्टवेयर' },
+    'Headphone': { mr: 'हेडफोन', hi: 'हेडफ़ोन' },
+    'Headphones': { mr: 'हेडफोन्स', hi: 'हेडफ़ोन' },
+    'HEADPHONES': { mr: 'हेडफोन्स', hi: 'हेडफ़ोन' },
+    'Home Theater': { mr: 'होम थिएटर', hi: 'होम थिएटर' },
+    'Home Theatre': { mr: 'होम थिएटर', hi: 'होम थिएटर' },
+    'Keyboard': { mr: 'कीबोर्ड', hi: 'कीबोर्ड' },
+    'Mouse': { mr: 'माऊस', hi: 'माउस' },
+    'Mouse Pad': { mr: 'माऊस पॅड', hi: 'माउस पैड' },
+    'Neckband': { mr: 'नेकबँड', hi: 'नेकबैंड' },
+    'NECKBAND': { mr: 'नेकबँड', hi: 'नेकबैंड' },
+    'Pendrive': { mr: 'पेनड्राइव्ह', hi: 'पेनड्राइव' },
+    'Pandrive': { mr: 'पेनड्राइव्ह', hi: 'पेनड्राइव' },
+    'Power Bank': { mr: 'पॉवर बँक', hi: 'पावर बैंक' },
+    'Powerbank': { mr: 'पॉवर बँक', hi: 'पावर बैंक' },
+    'Power Plate': { mr: 'पॉवर प्लेट', hi: 'पावर प्लेट' },
+    'Projector': { mr: 'प्रोजेक्टर', hi: 'प्रोजेक्टर' },
+    'Smart Watch': { mr: 'स्मार्ट वॉच', hi: 'स्मार्ट वॉच' },
+    'Smart Watches': { mr: 'स्मार्ट वॉचेस', hi: 'स्मार्ट वॉचेस' },
+    'Watch': { mr: 'वॉच', hi: 'वॉच' },
+    'Speaker': { mr: 'स्पीकर', hi: 'स्पीकर' },
+    'Speakers': { mr: 'स्पीकर्स', hi: 'स्पीकर्स' },
+    'Usb Hub': { mr: 'यूएसबी हब', hi: 'यूएसबी हब' },
+    'Gift Box': { mr: 'गिफ्ट बॉक्स', hi: 'गिफ्ट बॉक्स' },
+    'Gift': { mr: 'गिफ्ट', hi: 'गिफ्ट' },
+    'HV Gift': { mr: 'हिकव्हिजन गिफ्ट', hi: 'हिकविज़न गिफ्ट' },
     'HV EXTERNAL SSD': { mr: 'हिकव्हिजन एक्सटर्नल एसएसडी', hi: 'हिकविज़न एक्सटर्नल एसएसडी' },
     'HV MEMORY CARD': { mr: 'हिकव्हिजन मेमरी कार्ड', hi: 'हिकविज़न मेमोरी कार्ड' },
-    'Velocity Neckband': { mr: 'व्हेलॉसिटी नेकबँड', hi: 'वेलोसिटी नेकबैंड' },
-    'Velocity Airpods': { mr: 'व्हेलॉसिटी एअरपॉड्स', hi: 'वेलोसिटी एयरपॉड्स' },
-    'Cables': { mr: 'केबल्स', hi: 'केबल्स' },
-    'Chargers': { mr: 'चार्जर', hi: 'चार्जर' },
-    'Smart Watches': { mr: 'स्मार्ट वॉचेस', hi: 'स्मार्ट वॉचेस' },
+    'HV PENDRIVE': { mr: 'हिकव्हिजन पेनड्राइव्ह', hi: 'हिकविज़न पेनड्राइव' },
+    'Sandisk Pendrive': { mr: 'सॅनडिस्क पेनड्राइव्ह', hi: 'सैंडिस्क पेनड्राइव' },
+    'Sandisk Pandrive': { mr: 'सॅनडिस्क पेनड्राइव्ह', hi: 'सैंडिस्क पेनड्राइव' },
+    'Earphone': { mr: 'इयरफोन', hi: 'इयरफ़ोन' },
     'Earphones': { mr: 'इयरफोन्स', hi: 'इयरफ़ोन' },
-    'Speakers': { mr: 'स्पीकर्स', hi: 'स्पीकर्स' },
-    'Power Banks': { mr: 'पॉवर बँक्स', hi: 'पावर बैंक्स' },
-    'Memory Cards': { mr: 'मेमरी कार्ड्स', hi: 'मेमोरी कार्ड्स' },
+    'External SSD': { mr: 'एक्सटर्नल एसएसडी', hi: 'एक्सटर्नल एसएसडी' },
+    'Memory Card': { mr: 'मेमरी कार्ड', hi: 'मेमोरी कार्ड' },
     'SSD': { mr: 'एसएसडी', hi: 'एसएसडी' },
-    'All': { mr: 'सर्व', hi: 'सभी' }
+    'All': { mr: 'सर्व', hi: 'सभी' },
+
+    // Compound Categories (Brand + Type)
+    'Boat Airpods': { mr: 'बोट एअरपॉड्स', hi: 'बोट एयरपॉड्स' },
+    'Boat Earphone': { mr: 'बोट इयरफोन', hi: 'बोट इयरफ़ोन' },
+    'Boat Home Theater': { mr: 'बोट होम थिएटर', hi: 'बोट होम थिएटर' },
+    'Boat Neckband': { mr: 'बोट नेकबँड', hi: 'बोट नेकबैंड' },
+    'Boat Power Bank': { mr: 'बोट पॉवर बँक', hi: 'बोट पावर बैंक' },
+    'Boat Headphone': { mr: 'बोट हेडफोन', hi: 'बोट हेडफ़ोन' },
+    'Boat Watch': { mr: 'बोट वॉच', hi: 'बोट वॉच' },
+    'Boat Cable': { mr: 'बोट केबल', hi: 'बोट केबल' },
+    'Boat Cables': { mr: 'बोट केबल्स', hi: 'बोट केबल्स' },
+    'Boat Speakers': { mr: 'बोट स्पीकर्स', hi: 'बोट स्पीकर्स' },
+    'Boat Speaker': { mr: 'बोट स्पीकर्स', hi: 'बोट स्पीकर्स' },
+    'Boat Charger': { mr: 'बोट चार्जर', hi: 'बोट चार्जर' },
+    'Boat Smart Watch': { mr: 'बोट स्मार्ट वॉच', hi: 'बोट स्मार्ट वॉच' },
+    'JBL Airpods': { mr: 'जेबीएल एअरपॉड्स', hi: 'जेबीएल एयरपॉड्स' },
+    'JBL HEADPHONES': { mr: 'जेबीएल हेडफोन्स', hi: 'जेबीएल हेडफ़ोन' },
+    'JBL Home Theatre': { mr: 'जेबीएल होम थिएटर', hi: 'जेबीएल होम थिएटर' },
+    'JBL Speaker': { mr: 'जेबीएल स्पीकर', hi: 'जेबीएल स्पीकर' },
+    'JBL Speakers': { mr: 'जेबीएल स्पीकर्स', hi: 'जेबीएल स्पीकर्स' },
+    'Portronics Car Accessories': { mr: 'पोर्ट्रॉनिक्स कार अॅक्सेसरीज', hi: 'पोर्ट्रॉनिक्स कार एक्सेसरीज' },
+    'Portronic Charger': { mr: 'पोर्ट्रॉनिक्स चार्जर', hi: 'पोर्ट्रॉनिक्स चार्जर' },
+    'Portronics Charger': { mr: 'पोर्ट्रॉनिक्स चार्जर', hi: 'पोर्ट्रॉनिक्स चार्जर' },
+    'Portronics Headphone': { mr: 'पोर्ट्रॉनिक्स हेडफोन', hi: 'पोर्ट्रॉनिक्स हेडफ़ोन' },
+    'Portronic Keyboard': { mr: 'पोर्ट्रॉनिक्स कीबोर्ड', hi: 'पोर्ट्रॉनिक्स कीबोर्ड' },
+    'Portronic Mouse': { mr: 'पोर्ट्रॉनिक्स माऊस', hi: 'पोर्ट्रॉनिक्स माउस' },
+    'Portronic Neckband': { mr: 'पोर्ट्रॉनिक्स नेकबँड', hi: 'पोर्ट्रॉनिक्स नेकबैंड' },
+    'Portronic Power Bank': { mr: 'पोर्ट्रॉनिक्स पॉवर बँक', hi: 'पोर्ट्रॉनिक्स पावर बैंक' },
+    'Portronics Power Bank': { mr: 'पोर्ट्रॉनिक्स पॉवर बँक', hi: 'पोर्ट्रॉनिक्स पावर बैंक' },
+    'Portronic Power Plate': { mr: 'पोर्ट्रॉनिक्स पॉवर प्लेट', hi: 'पोर्ट्रॉनिक्स पावर प्लेट' },
+    'Portronic Smart Watch': { mr: 'पोर्ट्रॉनिक्स स्मार्ट वॉच', hi: 'पोर्ट्रॉनिक्स स्मार्ट वॉच' },
+    'Portronic Speaker': { mr: 'पोर्ट्रॉनिक्स स्पीकर', hi: 'पोर्ट्रॉनिक्स स्पीकर' },
+    'Portronics Accessories': { mr: 'पोर्ट्रॉनिक्स अॅक्सेसरीज', hi: 'पोर्ट्रॉनिक्स एक्सेसरीज' },
+    'Portronics Airpods': { mr: 'पोर्ट्रॉनिक्स एअरपॉड्स', hi: 'पोर्ट्रॉनिक्स एयरपॉड्स' },
+    'Portronics Cable': { mr: 'पोर्ट्रॉनिक्स केबल', hi: 'पोर्ट्रॉनिक्स केबल' },
+    'Portronics Car Charger': { mr: 'पोर्ट्रॉनिक्स कार चार्जर', hi: 'पोर्ट्रॉनिक्स कार चार्जर' },
+    'Portronics Car Stand': { mr: 'पोर्ट्रॉनिक्स कार स्टँड', hi: 'पोर्ट्रॉनिक्स कार स्टैंड' },
+    'Portronics Earphone': { mr: 'पोर्ट्रॉनिक्स इयरफोन', hi: 'पोर्ट्रॉनिक्स इयरफ़ोन' },
+    'Portronics Home Theatre': { mr: 'पोर्ट्रॉनिक्स होम थिएटर', hi: 'पोर्ट्रॉनिक्स होम थिएटर' },
+    'Portronics Mouse Pad': { mr: 'पोर्ट्रॉनिक्स माऊस पॅड', hi: 'पोर्ट्रॉनिक्स माउस पैड' },
+    'Portronics Projector': { mr: 'पोर्ट्रॉनिक्स प्रोजेक्टर', hi: 'पोर्ट्रॉनिक्स प्रोजेक्टर' },
+    'Portronics Usb Hub': { mr: 'पोर्ट्रॉनिक्स यूएसबी हब', hi: 'पोर्ट्रॉनिक्स यूएसबी हब' },
+    'Velocity Airpods': { mr: 'व्हेलॉसिटी एअरपॉड्स', hi: 'वेलोसिटी एयरपॉड्स' },
+    'Velocity Cable': { mr: 'व्हेलॉसिटी केबल', hi: 'वेलोसिटी केबल' },
+    'Velocity Car Charger': { mr: 'व्हेलॉसिटी कार चार्जर', hi: 'वेलोसिटी कार चार्जर' },
+    'Velocity Charger': { mr: 'व्हेलॉसिटी चार्जर', hi: 'वेलोसिटी चार्जर' },
+    'Velocity Earphone': { mr: 'व्हेलॉसिटी इयरफोन', hi: 'वेलोसिटी इयरफ़ोन' },
+    'Velocity Neckband': { mr: 'व्हेलॉसिटी नेकबँड', hi: 'वेलोसिटी नेकबैंड' },
+    'Velocity Powerbank': { mr: 'व्हेलॉसिटी पॉवर बँक', hi: 'वेलोसिटी पावर बैंक' },
+    'Go Boult Neckband': { mr: 'गो बोल्ट नेकबँड', hi: 'गो बोल्ट नेकबैंड' },
+    'Go Boult Airpods': { mr: 'गो बोल्ट एअरपॉड्स', hi: 'गो बोल्ट एयरपॉड्स' },
+    'Go Boult Smart Watch': { mr: 'गो बोल्ट स्मार्ट वॉच', hi: 'गो बोल्ट स्मार्ट वॉच' },
+    'Go Boult Headphones': { mr: 'गो बोल्ट हेडफोन्स', hi: 'गो बोल्ट हेडफ़ोन' },
+    'Go Boult Speaker': { mr: 'गो बोल्ट स्पीकर', hi: 'गो बोल्ट स्पीकर' },
+    'Go Boult Powerbank': { mr: 'गो बोल्ट पॉवर बँक', hi: 'गो बोल्ट पावर बैंक' },
+    'Saregama Home Theatre': { mr: 'सारेगामा होम थिएटर', hi: 'सारेगामा होम थिएटर' }
   };
-  return (catMap[c] && catMap[c][lang]) || c;
+  if (catMap[c] && catMap[c][lang]) {
+    return catMap[c][lang];
+  }
+  // Dynamic fallback: translate through product name engine
+  return translateProductName(c, lang);
+}
+
+export function translateBrand(brand, lang = 'en') {
+  if (!brand || lang === 'en') return brand;
+  const str = String(brand).trim();
+  const brandMap = {
+    'Boat': { mr: 'बोट', hi: 'बोट' },
+    'boAt': { mr: 'बोट', hi: 'बोट' },
+    'BOAT': { mr: 'बोट', hi: 'बोट' },
+    'Portronics': { mr: 'पोर्ट्रॉनिक्स', hi: 'पोर्ट्रॉनिक्स' },
+    'PORTRONICS': { mr: 'पोर्ट्रॉनिक्स', hi: 'पोर्ट्रॉनिक्स' },
+    'Portronic': { mr: 'पोर्ट्रॉनिक्स', hi: 'पोर्ट्रॉनिक्स' },
+    'Velocity': { mr: 'व्हेलॉसिटी', hi: 'वेलोसिटी' },
+    'Go Boult': { mr: 'गो बोल्ट', hi: 'गो बोल्ट' },
+    'GOBOULT': { mr: 'गो बोल्ट', hi: 'गो बोल्ट' },
+    'Goboult': { mr: 'गो बोल्ट', hi: 'गो बोल्ट' },
+    'Boult': { mr: 'बोल्ट', hi: 'बोल्ट' },
+    'JBL': { mr: 'जेबीएल', hi: 'जेबीएल' },
+    'Hikvision': { mr: 'हिकव्हिजन', hi: 'हिकविज़न' },
+    'HV': { mr: 'हिकव्हिजन', hi: 'हिकविज़न' },
+    'Sandisk': { mr: 'सॅनडिस्क', hi: 'सैंडिस्क' },
+    'Saregama': { mr: 'सारेगामा', hi: 'सारेगामा' },
+    'Carvaan': { mr: 'कारवान', hi: 'कारवान' },
+    'Keylock': { mr: 'कीलॉक', hi: 'कीलॉक' },
+    'Gift Box': { mr: 'गिफ्ट बॉक्स', hi: 'गिफ्ट बॉक्स' }
+  };
+  
+  if (str.includes(',')) {
+    return str.split(',').map(b => {
+      const trimmed = b.trim();
+      return (brandMap[trimmed] && brandMap[trimmed][lang]) || trimmed;
+    }).join(', ');
+  }
+  return (brandMap[str] && brandMap[str][lang]) || str;
 }
 
 export function translateStatus(status, lang = 'en') {
@@ -767,6 +902,7 @@ export function translateStatus(status, lang = 'en') {
     'dispatched': { mr: 'पाठवले', hi: 'डिस्पैच' },
     'delivered': { mr: 'पोहोचवले', hi: 'डिलीवर' },
     'approved': { mr: 'मंजूर', hi: 'मंजूर' },
+    'approved - credit note raised': { mr: 'मंजूर - क्रेडिट नोट जारी', hi: 'मंजूर - क्रेडिट नोट जारी' },
     'actioned': { mr: 'कार्यवाही झाली', hi: 'कार्यवाही हुई' },
     'resolved': { mr: 'निकाली काढले', hi: 'सुलझाया गया' },
     'rejected': { mr: 'नाकारले', hi: 'अस्वीकृत' },
@@ -775,9 +911,35 @@ export function translateStatus(status, lang = 'en') {
   return (statusMap[s] && statusMap[s][lang]) || status;
 }
 
+export function translatePaymentMode(mode, lang = 'en') {
+  if (!mode || lang === 'en') return mode;
+  const m = String(mode).toUpperCase().trim();
+  const payMap = {
+    'COD': { mr: 'कॅश ऑन डिलिव्हरी (COD)', hi: 'कैश ऑन डिलीवरी (COD)' },
+    'DAILY': { mr: 'दैनिक (DAILY)', hi: 'दैनिक (DAILY)' },
+    'CREDIT': { mr: 'क्रेडिट (उधारी)', hi: 'क्रेडिट (उधारी)' },
+    'CHEQUE': { mr: 'चेक (CHEQUE)', hi: 'चेक (CHEQUE)' },
+    'ONLINE': { mr: 'ऑनलाइन / UPI', hi: 'ऑनलाइन / UPI' },
+    'UPI': { mr: 'यूपीआय (UPI)', hi: 'यूपीआई (UPI)' }
+  };
+  return (payMap[m] && payMap[m][lang]) || mode;
+}
+
 export function translateDefect(defect, lang = 'en') {
   if (!defect || lang === 'en') return defect;
   const d = String(defect).toLowerCase().trim();
+  if (d.includes('multi-item') || d.includes('multi item')) {
+    const countMatch = d.match(/(d+)s*items?/i);
+    const unitsMatch = d.match(/totals*(d+)s*units?/i);
+    const itemsCount = countMatch ? countMatch[1] : '';
+    const unitsCount = unitsMatch ? unitsMatch[1] : '';
+    if (itemsCount && unitsCount) {
+      return lang === 'mr' 
+        ? `अनेक वस्तू (${itemsCount} प्रकारच्या वस्तू, एकूण ${unitsCount} नग)` 
+        : `एकाधिक सामान (${itemsCount} सामान, कुल ${unitsCount} पीस)`;
+    }
+    return lang === 'mr' ? 'अनेक वस्तू (मल्टी-आयटम)' : 'एकाधिक सामान (मल्टी-आइटम)';
+  }
   if (d.includes('dead') || d.includes('doa') || d.includes('start')) {
     return lang === 'mr' ? 'सुरू होत नाही / डेड (DOA)' : 'शुरू नहीं हो रहा / डेड (DOA)';
   }
@@ -793,79 +955,356 @@ export function translateDefect(defect, lang = 'en') {
   if (d.includes('physic') || d.includes('damage') || d.includes('broken')) {
     return lang === 'mr' ? 'तुटलेले / नुकसान (वाहतुकीत)' : 'टूटा हुआ / डैमेज (ट्रांसपोर्ट में)';
   }
-  return defect;
+  if (d.includes('fault') || d.includes('technical')) {
+    return lang === 'mr' ? 'इतर तांत्रिक बिघाड' : 'अन्य तकनीकी खराबी';
+  }
+  return translateProductName(defect, lang);
+}
+
+// ==========================================
+// COMPREHENSIVE PRODUCT NAME TRANSLATION ENGINE
+// ==========================================
+const PRODUCT_DICT = {
+  // Brands
+  'boat': { mr: 'बोट', hi: 'बोट' },
+  'portronics': { mr: 'पोर्ट्रॉनिक्स', hi: 'पोर्ट्रॉनिक्स' },
+  'portronic': { mr: 'पोर्ट्रॉनिक्स', hi: 'पोर्ट्रॉनिक्स' },
+  'por': { mr: 'पोर्ट्रॉनिक्स', hi: 'पोर्ट्रॉनिक्स' },
+  'velocity': { mr: 'व्हेलॉसिटी', hi: 'वेलोसिटी' },
+  'goboult': { mr: 'गो बोल्ट', hi: 'गो बोल्ट' },
+  'go boult': { mr: 'गो बोल्ट', hi: 'गो बोल्ट' },
+  'boult': { mr: 'बोल्ट', hi: 'बोल्ट' },
+  'jbl': { mr: 'जेबीएल', hi: 'जेबीएल' },
+  'hikvision': { mr: 'हिकव्हिजन', hi: 'हिकविज़न' },
+  'hv': { mr: 'हिकव्हिजन', hi: 'हिकविज़न' },
+  'sandisk': { mr: 'सॅनडिस्क', hi: 'सैंडिस्क' },
+  'saregama': { mr: 'सारेगामा', hi: 'सारेगामा' },
+  'carvaan': { mr: 'कारवान', hi: 'कारवान' },
+  'keylock': { mr: 'कीलॉक', hi: 'कीलॉक' },
+
+  // Categories & Core Terms
+  'airdopes': { mr: 'एअरड्रॉप्स', hi: 'एयरड्रॉप्स' },
+  'airdropes': { mr: 'एअरड्रॉप्स', hi: 'एयरड्रॉप्स' },
+  'airpods': { mr: 'एअरपॉड्स', hi: 'एयरपॉड्स' },
+  'airpodes': { mr: 'एअरपॉड्स', hi: 'एयरपॉड्स' },
+  'earbuds': { mr: 'इअरबड्स', hi: 'इयरबड्स' },
+  'pods': { mr: 'पॉड्स', hi: 'पॉड्स' },
+  'tws': { mr: 'टीडब्ल्यूएस', hi: 'टीडब्ल्यूएस' },
+  'rockerz': { mr: 'रॉकर्स', hi: 'रॉकर्स' },
+  'bassheads': { mr: 'बासहेड्स', hi: 'बासहेड्स' },
+  'aavante': { mr: 'आवांते', hi: 'आवांते' },
+  'bar': { mr: 'बार', hi: 'बार' },
+  'quake': { mr: 'क्वेक', hi: 'क्वेक' },
+  'energyshroom': { mr: 'एनर्जीश्रम', hi: 'एनर्जीश्रम' },
+  'power bank': { mr: 'पॉवर बँक', hi: 'पावर बैंक' },
+  'powerbank': { mr: 'पॉवर बँक', hi: 'पावर बैंक' },
+  'power plate': { mr: 'पॉवर प्लेट', hi: 'पावर प्लेट' },
+  'power': { mr: 'पॉवर', hi: 'पावर' },
+  'bank': { mr: 'बँक', hi: 'बैंक' },
+  'plate': { mr: 'प्लेट', hi: 'प्लेट' },
+  'cable': { mr: 'केबल', hi: 'केबल' },
+  'cables': { mr: 'केबल्स', hi: 'केबल्स' },
+  'charger': { mr: 'चार्जर', hi: 'चार्जर' },
+  'chargers': { mr: 'चार्जर', hi: 'चार्जर' },
+  'car charger': { mr: 'कार चार्जर', hi: 'कार चार्जर' },
+  'car stand': { mr: 'कार स्टँड', hi: 'कार स्टैंड' },
+  'car accessories': { mr: 'कार अॅक्सेसरीज', hi: 'कार एक्सेसरीज' },
+  'car': { mr: 'कार', hi: 'कार' },
+  'accessories': { mr: 'अॅक्सेसरीज', hi: 'एक्सेसरीज' },
+  'accessaries': { mr: 'अॅक्सेसरीज', hi: 'एक्सेसरीज' },
+  'neckband': { mr: 'नेकबँड', hi: 'नेकबैंड' },
+  'smart watch': { mr: 'स्मार्ट वॉच', hi: 'स्मार्ट वॉच' },
+  'smart watches': { mr: 'स्मार्ट वॉचेस', hi: 'स्मार्ट वॉचेस' },
+  'smart': { mr: 'स्मार्ट', hi: 'स्मार्ट' },
+  'watch': { mr: 'वॉच', hi: 'वॉच' },
+  'watches': { mr: 'वॉचेस', hi: 'वॉचेस' },
+  'speaker': { mr: 'स्पीकर', hi: 'स्पीकर' },
+  'speakers': { mr: 'स्पीकर्स', hi: 'स्पीकर्स' },
+  'headphone': { mr: 'हेडफोन', hi: 'हेडफ़ोन' },
+  'headphones': { mr: 'हेडफोन्स', hi: 'हेडफ़ोन' },
+  'earphone': { mr: 'इयरफोन', hi: 'इयरफ़ोन' },
+  'earphones': { mr: 'इयरफोन्स', hi: 'इयरफ़ोन' },
+  'mouse pad': { mr: 'माऊस पॅड', hi: 'माउस पैड' },
+  'mouse': { mr: 'माऊस', hi: 'माउस' },
+  'pad': { mr: 'पॅड', hi: 'पैड' },
+  'keyboard': { mr: 'कीबोर्ड', hi: 'कीबोर्ड' },
+  'projector': { mr: 'प्रोजेक्टर', hi: 'प्रोजेक्टर' },
+  'usb hub': { mr: 'यूएसबी हब', hi: 'यूएसबी हब' },
+  'hub': { mr: 'हब', hi: 'हब' },
+  'memory card': { mr: 'मेमरी कार्ड', hi: 'मेमोरी कार्ड' },
+  'memory': { mr: 'मेमरी', hi: 'मेमोरी' },
+  'card': { mr: 'कार्ड', hi: 'कार्ड' },
+  'pendrive': { mr: 'पेनड्राइव्ह', hi: 'पेनड्राइव' },
+  'pandrive': { mr: 'पेनड्राइव्ह', hi: 'पेनड्राइव' },
+  'external ssd': { mr: 'एक्सटर्नल एसएसडी', hi: 'एक्सटर्नल एसएसडी' },
+  'external': { mr: 'एक्सटर्नल', hi: 'एक्सटर्नल' },
+  'ssd': { mr: 'एसएसडी', hi: 'एसएसडी' },
+  'software': { mr: 'सॉफ्टवेअर', hi: 'सॉफ्टवेयर' },
+  'emi locker': { mr: 'ईएमआय लॉकर', hi: 'ईएमआई लॉकर' },
+  'locker': { mr: 'लॉकर', hi: 'लॉकर' },
+  'emi': { mr: 'ईएमआय', hi: 'ईएमआई' },
+  'home theater': { mr: 'होम थिएटर', hi: 'होम थिएटर' },
+  'home theatre': { mr: 'होम थिएटर', hi: 'होम थिएटर' },
+  'theater': { mr: 'थिएटर', hi: 'थिएटर' },
+  'theatre': { mr: 'थिएटर', hi: 'थिएटर' },
+  'gift box': { mr: 'गिफ्ट बॉक्स', hi: 'गिफ्ट बॉक्स' },
+  'gift': { mr: 'गिफ्ट', hi: 'गिफ्ट' },
+  'box': { mr: 'बॉक्स', hi: 'बॉक्स' },
+
+  // Models & Series
+  'tune': { mr: 'ट्यून', hi: 'ट्यून' },
+  'beam': { mr: 'बीम', hi: 'बीम' },
+  'mustang': { mr: 'मस्टँग', hi: 'मस्टैंग' },
+  'sprint': { mr: 'स्प्रिंट', hi: 'स्प्रिंट' },
+  'turbo': { mr: 'टर्बो', hi: 'टर्बो' },
+  'tenet': { mr: 'टेनेट', hi: 'टेनेट' },
+  'midnight': { mr: 'मिडनाइट', hi: 'मिडनाइट' },
+  'elite': { mr: 'एलिट', hi: 'एलिट' },
+  'anc': { mr: 'एएनसी', hi: 'एएनसी' },
+  'hurricane': { mr: 'हरिकेन', hi: 'हरिकेन' },
+  'clip': { mr: 'क्लिप', hi: 'क्लिप' },
+  'noir': { mr: 'नॉइर', hi: 'नॉइर' },
+  'active': { mr: 'अॅक्टिव्ह', hi: 'एक्टिव' },
+  'ember': { mr: 'एम्बर', hi: 'एम्बर' },
+  'raven': { mr: 'रेव्हन', hi: 'रेवन' },
+  'fcharg': { mr: 'एफचार्ज', hi: 'एफचार्ज' },
+  'superfast': { mr: 'सुपरफास्ट', hi: 'सुपरफास्ट' },
+  'braided': { mr: 'ब्रेडेड', hi: 'ब्रेडेड' },
+  'silver plus': { mr: 'सिल्व्हर प्लस', hi: 'सिल्वर प्लस' },
+  'silver': { mr: 'सिल्व्हर', hi: 'सिल्वर' },
+  'gold': { mr: 'गोल्ड', hi: 'गोल्ड' },
+  'diamond': { mr: 'डायमंड', hi: 'डायमंड' },
+  'plus': { mr: 'प्लस', hi: 'प्लस' },
+  'pro': { mr: 'प्रो', hi: 'प्रो' },
+  'max': { mr: 'मॅक्स', hi: 'मैक्स' },
+  'ultra': { mr: 'अल्ट्रा', hi: 'अल्ट्रा' },
+  'prime': { mr: 'प्राइम', hi: 'प्राइम' },
+  'loop': { mr: 'लूप', hi: 'लूप' },
+  'pearl': { mr: 'पर्ल', hi: 'पर्ल' },
+  'jade': { mr: 'जेड', hi: 'जेड' },
+  'pebble': { mr: 'पेबल', hi: 'पेबल' },
+  'onyx': { mr: 'ऑनिक्स', hi: 'ऑनिक्स' },
+  'bold': { mr: 'बोल्ड', hi: 'बोल्ड' },
+  'trinity': { mr: 'ट्रिनिटी', hi: 'ट्रिनिटी' },
+  'grande': { mr: 'ग्रँडे', hi: 'ग्रैंड' },
+  'summit': { mr: 'समिट', hi: 'समिट' },
+  'lunar': { mr: 'लुनार', hi: 'लुनार' },
+  'orbit': { mr: 'ऑर्बिट', hi: 'ऑर्बिट' },
+  'wave': { mr: 'वेव्ह', hi: 'वेव' },
+  'twins': { mr: 'ट्विन्स', hi: 'ट्विन्स' },
+  'harmonics': { mr: 'हार्मोनिक्स', hi: 'हार्मोनिक्स' },
+  'luxcell': { mr: 'लक्सेल', hi: 'लक्सेल' },
+  'konnect': { mr: 'कनेक्ट', hi: 'कनेक्ट' },
+  'adapto': { mr: 'अडॅप्टो', hi: 'अडैप्टो' },
+  'adaptor': { mr: 'अडॅप्टर', hi: 'अडैप्टर' },
+  'carbon': { mr: 'कार्बन', hi: 'कार्बन' },
+  'immortal': { mr: 'इमॉर्टल', hi: 'इमॉर्टल' },
+  'storm': { mr: 'स्टॉर्म', hi: 'स्टॉर्म' },
+  'strom': { mr: 'स्टॉर्म', hi: 'स्टॉर्म' },
+  'toad': { mr: 'टोड', hi: 'टोड' },
+  'holder': { mr: 'होल्डर', hi: 'होल्डर' },
+  'stand': { mr: 'स्टँड', hi: 'स्टैंड' },
+  'conch': { mr: 'कॉन्च', hi: 'कॉन्च' },
+  'cherry blossom': { mr: 'चेरी ब्लॉसम', hi: 'चेरी ब्लॉसम' },
+  'cherry': { mr: 'चेरी', hi: 'चेरी' },
+  'blossom': { mr: 'ब्लॉसम', hi: 'ब्लॉसम' },
+  'wired': { mr: 'वायर्ड', hi: 'वायर्ड' },
+  'wireless': { mr: 'वायरलेस', hi: 'वायरलेस' },
+  'bluetooth': { mr: 'ब्लूटूथ', hi: 'ब्लूटूथ' },
+  'premium': { mr: 'प्रीमियम', hi: 'प्रीमियम' },
+  'classic': { mr: 'क्लासिक', hi: 'क्लासिक' },
+  'gen 2': { mr: 'जनरेशन २', hi: 'जनरेशन २' },
+  'gen2': { mr: 'जनरेशन २', hi: 'जनरेशन २' },
+  'gen': { mr: 'जनरेशन', hi: 'जनरेशन' },
+  'nirvana': { mr: 'निर्वाणा', hi: 'निर्वाणा' },
+  'vayu': { mr: 'वायू', hi: 'वायु' },
+  'dash': { mr: 'डॅश', hi: 'डैश' },
+  'partypal': { mr: 'पार्टीपॉल', hi: 'पार्टीपॉल' },
+  'stone': { mr: 'स्टोन', hi: 'स्टोन' },
+  'soundbar': { mr: 'साउंडबार', hi: 'साउंडबार' },
+  'dynamite': { mr: 'डायनामाइट', hi: 'डायनामाइट' },
+  'blitz': { mr: 'ब्लिट्झ', hi: 'ब्लिट्झ' },
+  'bounce': { mr: 'बाउन्स', hi: 'बाउन्स' },
+  'beats': { mr: 'बीट्स', hi: 'बीट्स' },
+  'cruiser': { mr: 'क्रूझर', hi: 'क्रूज़र' },
+  'pulse': { mr: 'पल्स', hi: 'पल्स' },
+  'echo': { mr: 'इको', hi: 'इको' },
+  'flex': { mr: 'फ्लेक्स', hi: 'फ्लेक्स' },
+  'speed': { mr: 'स्पीड', hi: 'स्पीड' },
+  'rapid': { mr: 'रॅपिड', hi: 'रैपिड' },
+  'spark': { mr: 'स्पार्क', hi: 'स्पार्क' },
+  'blaze': { mr: 'ब्लेझ', hi: 'ब्लेज़' },
+  'touch': { mr: 'टच', hi: 'टच' },
+  'true': { mr: 'ट्रू', hi: 'ट्रू' },
+  'play': { mr: 'प्ले', hi: 'प्ले' },
+  'sense': { mr: 'सेन्स', hi: 'सेन्स' },
+  'shield': { mr: 'शील्ड', hi: 'शील्ड' },
+  'armor': { mr: 'आर्मर', hi: 'आर्मर' },
+  'focus': { mr: 'फोकस', hi: 'फोकस' },
+  'extreme': { mr: 'एक्सट्रीम', hi: 'एक्सट्रीम' },
+  'pure': { mr: 'प्युअर', hi: 'प्योर' },
+  'bass': { mr: 'बास', hi: 'बास' },
+  'rhythm': { mr: 'रिदम', hi: 'रिदम' },
+  'ranger': { mr: 'रेंजर', hi: 'रेंजर' },
+  'thunder': { mr: 'थंडर', hi: 'थंडर' },
+  'sonic': { mr: 'सॉनिक', hi: 'सॉनिक' },
+  'clarity': { mr: 'क्लॅरिटी', hi: 'क्लैरिटी' },
+  'vibe': { mr: 'व्हाइब', hi: 'वाइब' },
+  'connect': { mr: 'कनेक्ट', hi: 'कनेक्ट' },
+  'switch': { mr: 'स्विच', hi: 'स्विच' },
+  'neo': { mr: 'निओ', hi: 'निओ' },
+  'air': { mr: 'एअर', hi: 'एयर' },
+  'go': { mr: 'गो', hi: 'गो' },
+  'original': { mr: 'ओरिजिनल', hi: 'ओरिजिनल' },
+  'astra': { mr: 'अस्त्रा', hi: 'अस्त्रा' },
+  'strive': { mr: 'स्ट्राइव्ह', hi: 'स्ट्राइव' },
+  'alpha': { mr: 'अल्फा', hi: 'अल्फा' },
+  'omega': { mr: 'ओमेगा', hi: 'ओमेगा' },
+  'delta': { mr: 'डेल्टा', hi: 'डेल्टा' },
+  'titan': { mr: 'टायटन', hi: 'टाइटन' },
+  'edge': { mr: 'एज', hi: 'एज' },
+  'flare': { mr: 'फ्लेअर', hi: 'फ्लेयर' },
+  'blast': { mr: 'ब्लास्ट', hi: 'ब्लास्ट' },
+  'glide': { mr: 'ग्लाइड', hi: 'ग्लाइड' },
+  'shift': { mr: 'शिफ्ट', hi: 'शिफ्ट' },
+  'flow': { mr: 'फ्लो', hi: 'फ्लो' },
+  'breeze': { mr: 'ब्रीझ', hi: 'ब्रीज़' },
+  'zenith': { mr: 'झेनिथ', hi: 'झेनिथ' },
+  'phantom': { mr: 'फँटम', hi: 'फैंटम' },
+
+  // Technical & Connectors
+  'type c to c': { mr: 'टाइप सी ते सी', hi: 'टाइप सी से सी' },
+  'c to c': { mr: 'टाइप सी ते सी', hi: 'टाइप सी से सी' },
+  'type c': { mr: 'टाइप सी', hi: 'टाइप सी' },
+  'micro usb': { mr: 'मायक्रो यूएसबी', hi: 'माइक्रो यूएसबी' },
+  'lightning': { mr: 'लाइटनिंग', hi: 'लाइटनिंग' },
+  'usb': { mr: 'यूएसबी', hi: 'यूएसबी' },
+  'micro': { mr: 'मायक्रो', hi: 'माइक्रो' },
+  'fast charging': { mr: 'फास्ट चार्जिंग', hi: 'फ़ास्ट चार्जिंग' },
+  'fast': { mr: 'फास्ट', hi: 'फ़ास्ट' },
+  'charging': { mr: 'चार्जिंग', hi: 'चार्जिंग' },
+  '4 in 1': { mr: '४ इन १', hi: '४ इन १' },
+  '3 in 1': { mr: '३ इन १', hi: '३ इन १' },
+  '2 in 1': { mr: '२ इन १', hi: '२ इन १' },
+  '120w': { mr: '१२०W', hi: '१२०W' },
+  '65w': { mr: '६५W', hi: '६५W' },
+  '35w': { mr: '३५W', hi: '३५W' },
+  '20w': { mr: '२०W', hi: '२०W' },
+
+  // Colors
+  'black': { mr: 'काळा', hi: 'काला' },
+  'white': { mr: 'पांढरा', hi: 'सफ़ेद' },
+  'blue': { mr: 'निळा', hi: 'नीला' },
+  'red': { mr: 'लाल', hi: 'लाल' },
+  'green': { mr: 'हिरवा', hi: 'हरा' },
+  'grey': { mr: 'राखाडी', hi: 'ग्रे' },
+  'gray': { mr: 'राखाडी', hi: 'ग्रे' },
+  'yellow': { mr: 'पिवळा', hi: 'पीला' },
+  'orange': { mr: 'नारिंगी', hi: 'नारंगी' },
+  'pink': { mr: 'गुलाबी', hi: 'गुलाबी' },
+  'purple': { mr: 'जांभळा', hi: 'बैंगनी' },
+  'ivory': { mr: 'आयव्हरी', hi: 'आइवरी' },
+  'metallic': { mr: 'मेटॅलिक', hi: 'मेटैलिक' },
+
+  // Order history / Ledger / Defect phrases
+  'upi discount': { mr: 'यूपीआय डिस्काउंट', hi: 'यूपीआई डिस्काउंट' },
+  'bulk discount': { mr: 'बल्क डिस्काउंट', hi: 'बल्क डिस्काउंट' },
+  'discount': { mr: 'डिस्काउंट', hi: 'छूट' },
+  'reward': { mr: 'रिवॉर्ड / बक्षीस', hi: 'रिवॉर्ड / इनाम' },
+  'free': { mr: 'मोफत', hi: 'मुफ़्त' },
+  'charging / battery problem': { mr: 'चार्जिंग / बॅटरी समस्या', hi: 'चार्जिंग / बैटरी की समस्या' },
+  'battery problem': { mr: 'बॅटरी समस्या', hi: 'बैटरी की समस्या' },
+  'mic / calling problem': { mr: 'माइक / कॉलिंग समस्या', hi: 'माइक / बात करने में समस्या' },
+  'sound / speaker issue': { mr: 'आवाज / स्पीकर समस्या', hi: 'आवाज़ / स्पीकर की समस्या' },
+  'other technical fault': { mr: 'इतर तांत्रिक बिघाड', hi: 'अन्य तकनीकी खराबी' },
+  'dead on arrival (doa)': { mr: 'सुरू होत नाही / डेड (DOA)', hi: 'शुरू नहीं हो रहा / डेड (DOA)' },
+  'dead on arrival': { mr: 'सुरू होत नाही / डेड (DOA)', hi: 'शुरू नहीं हो रहा / डेड (DOA)' },
+  'multi-item': { mr: 'अनेक वस्तू (मल्टी-आयटम)', hi: 'एकाधिक सामान (मल्टी-आइटम)' },
+  'multi item': { mr: 'अनेक वस्तू (मल्टी-आयटम)', hi: 'एकाधिक सामान (मल्टी-आइटम)' },
+  'photos': { mr: 'फोटो', hi: 'फ़ोटो' },
+  'photo': { mr: 'फोटो', hi: 'फ़ोटो' },
+  'items': { mr: 'वस्तू', hi: 'सामान' },
+  'item': { mr: 'वस्तू', hi: 'सामान' },
+  'units': { mr: 'नग', hi: 'पीस' },
+  'unit': { mr: 'नग', hi: 'पीस' },
+  'pcs': { mr: 'नग', hi: 'पीस' },
+  'pc': { mr: 'नग', hi: 'पीस' },
+  'total': { mr: 'एकूण', hi: 'कुल' },
+  'defect / issue type': { mr: 'तक्रार प्रकार', hi: 'शिकायत प्रकार' },
+  'defect type': { mr: 'तक्रार प्रकार', hi: 'शिकायत प्रकार' }
+};
+
+const SORTED_PRODUCT_KEYS = Object.keys(PRODUCT_DICT).sort((a,b) => b.length - a.length);
+
+function escapeRegex(string) {
+  return string.replace(/[.*+?^$\{}()|[\]\\]/g, '\\$&');
 }
 
 export function translateProductName(name, lang = 'en') {
   if (!name || lang === 'en') return name;
   let text = String(name);
 
-  const replacements = lang === 'mr' ? [
-    [/\bboAt\b/gi, 'बोट'],
-    [/\bVelocity\b/gi, 'व्हेलॉसिटी'],
-    [/\bHikvision\b/gi, 'हिकव्हिजन'],
-    [/\bNeckband\b/gi, 'नेकबँड'],
-    [/\bAirpods\b/gi, 'एअरपॉड्स'],
-    [/\bEarphone(?:s)?\b/gi, 'इयरफोन'],
-    [/\bEarbuds\b/gi, 'इअरबड्स'],
-    [/\bHeadphone(?:s)?\b/gi, 'हेडफोन'],
-    [/\bSmart Watch\b/gi, 'स्मार्ट वॉच'],
-    [/\bWatch\b/gi, 'वॉच'],
-    [/\bCable(?:s)?\b/gi, 'केबल'],
-    [/\bCharger(?:s)?\b/gi, 'चार्जर'],
-    [/\bPower Bank\b/gi, 'पॉवर बँक'],
-    [/\bSpeaker(?:s)?\b/gi, 'स्पीकर'],
-    [/\bMemory Card\b/gi, 'मेमरी कार्ड'],
-    [/\bExternal SSD\b/gi, 'एक्सटर्नल एसएसडी'],
-    [/\bSSD\b/gi, 'एसएसडी'],
-    [/\bFast Charging\b/gi, 'फास्ट चार्जिंग'],
-    [/\bWireless\b/gi, 'वायरलेस'],
-    [/\bBluetooth\b/gi, 'ब्लूटूथ'],
-    [/\bType C\b/gi, 'टाइप सी'],
-    [/\bMicro USB\b/gi, 'मायक्रो यूएसबी'],
-    [/\bBlack\b/gi, 'काळा'],
-    [/\bWhite\b/gi, 'पांढरा'],
-    [/\bBlue\b/gi, 'निळा'],
-    [/\bRed\b/gi, 'लाल'],
-    [/\bGreen\b/gi, 'हिरवा'],
-    [/\bGrey\b/gi, 'राखाडी'],
-    [/\bYellow\b/gi, 'पिवळा'],
-    [/\bOrange\b/gi, 'नारिंगी']
-  ] : [
-    [/\bboAt\b/gi, 'बोट'],
-    [/\bVelocity\b/gi, 'वेलोसिटी'],
-    [/\bHikvision\b/gi, 'हिकविज़न'],
-    [/\bNeckband\b/gi, 'नेकबैंड'],
-    [/\bAirpods\b/gi, 'एयरपॉड्स'],
-    [/\bEarphone(?:s)?\b/gi, 'इयरफ़ोन'],
-    [/\bEarbuds\b/gi, 'इयरबड्स'],
-    [/\bHeadphone(?:s)?\b/gi, 'हेडफ़ोन'],
-    [/\bSmart Watch\b/gi, 'स्मार्ट वॉच'],
-    [/\bWatch\b/gi, 'वॉच'],
-    [/\bCable(?:s)?\b/gi, 'केबल'],
-    [/\bCharger(?:s)?\b/gi, 'चार्जर'],
-    [/\bPower Bank\b/gi, 'पावर बैंक'],
-    [/\bSpeaker(?:s)?\b/gi, 'स्पीकर'],
-    [/\bMemory Card\b/gi, 'मेमोरी कार्ड'],
-    [/\bExternal SSD\b/gi, 'एक्सटर्नल एसएसडी'],
-    [/\bSSD\b/gi, 'एसएसडी'],
-    [/\bFast Charging\b/gi, 'फ़ास्ट चार्जिंग'],
-    [/\bWireless\b/gi, 'वायरलेस'],
-    [/\bBluetooth\b/gi, 'ब्लूटूथ'],
-    [/\bType C\b/gi, 'टाइप सी'],
-    [/\bMicro USB\b/gi, 'माइक्रो यूएसबी'],
-    [/\bBlack\b/gi, 'काला'],
-    [/\bWhite\b/gi, 'सफ़ेद'],
-    [/\bBlue\b/gi, 'नीला'],
-    [/\bRed\b/gi, 'लाल'],
-    [/\bGreen\b/gi, 'हरा'],
-    [/\bGrey\b/gi, 'ग्रे'],
-    [/\bYellow\b/gi, 'पीला'],
-    [/\bOrange\b/gi, 'नारंगी']
-  ];
-
-  replacements.forEach(([pattern, rep]) => {
-    text = text.replace(pattern, rep);
+  // 1. Dictionary-based phrase and token replacement (longest matches first)
+  SORTED_PRODUCT_KEYS.forEach(k => {
+    const val = PRODUCT_DICT[k][lang] || PRODUCT_DICT[k]['mr'];
+    const escaped = escapeRegex(k);
+    const regex = new RegExp('(^|[^a-zA-Z0-9_])' + escaped + '(?=[^a-zA-Z0-9_]|$)', 'gi');
+    text = text.replace(regex, (match, prefix) => prefix + val);
   });
+
+  // 2. Phonetic transliteration fallback for any remaining English Latin words
+  text = text.replace(/\b[a-zA-Z]+\b/g, (word) => {
+    // Keep units or standard acronyms intact if desired, or transliterate
+    const w = word.toLowerCase();
+    if (w === 'x' || w === 'gb' || w === 'mah' || w === 'w') {
+      return word;
+    }
+    // Simple phonetic conversion
+    let res = w;
+    res = res.replace(/sh/g, 'श')
+             .replace(/ch/g, 'च')
+             .replace(/th/g, 'थ')
+             .replace(/ph/g, 'फ')
+             .replace(/kh/g, 'ख')
+             .replace(/gh/g, 'घ')
+             .replace(/bh/g, 'भ')
+             .replace(/dh/g, 'ध')
+             .replace(/jh/g, 'झ')
+             .replace(/ee/g, 'ी')
+             .replace(/oo/g, 'ू')
+             .replace(/ai/g, 'ऐ')
+             .replace(/au/g, 'औ')
+             .replace(/ou/g, 'आउ')
+             .replace(/ea/g, 'ी')
+             .replace(/oa/g, 'ो')
+             .replace(/a/g, 'ा')
+             .replace(/e/g, 'े')
+             .replace(/i/g, 'ि')
+             .replace(/o/g, 'ो')
+             .replace(/u/g, 'ु')
+             .replace(/b/g, 'ब')
+             .replace(/c/g, 'क')
+             .replace(/d/g, 'ड')
+             .replace(/f/g, 'फ')
+             .replace(/g/g, 'ग')
+             .replace(/h/g, 'ह')
+             .replace(/j/g, 'ज')
+             .replace(/k/g, 'क')
+             .replace(/l/g, 'ल')
+             .replace(/m/g, 'म')
+             .replace(/n/g, 'न')
+             .replace(/p/g, 'प')
+             .replace(/q/g, 'क')
+             .replace(/r/g, 'र')
+             .replace(/s/g, 'स')
+             .replace(/t/g, 'ट')
+             .replace(/v/g, 'व्ह')
+             .replace(/w/g, 'व')
+             .replace(/x/g, 'क्स')
+             .replace(/y/g, 'य')
+             .replace(/z/g, 'झ');
+    return res;
+  });
+
   return text;
 }
