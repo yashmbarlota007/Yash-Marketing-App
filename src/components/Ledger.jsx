@@ -30,6 +30,27 @@ export function LedgerView(props) {
     }).catch(() => setLoading(false));
   }, [user]);
 
+  
+  const getOrderStatusStep = (statusStr) => {
+    if (!statusStr) return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
+    const s = String(statusStr).toLowerCase().trim();
+    
+    // Stage 4: Completed / Delivered / Done / Closed (100%)
+    if (s.includes('deliver') || s.includes('complete') || s.includes('done') || s.includes('closed') || s.includes('पोहोचवले') || s.includes('पूर्ण') || s.includes('झाले')) {
+      return { step: 4, percent: 100, color: 'bg-emerald-600', badgeClass: 'bg-green-100 text-green-700 border-green-200' };
+    }
+    // Stage 3: Dispatched / In Transit / Out for Delivery (75%)
+    if (s.includes('dispatch') || s.includes('transit') || s.includes('shipped') || s.includes('out') || s.includes('sent') || s.includes('पाठवले')) {
+      return { step: 3, percent: 75, color: 'bg-blue-600', badgeClass: 'bg-blue-100 text-blue-700 border-blue-200' };
+    }
+    // Stage 2: Packing / Processed / Billed / In Review (50%)
+    if (s.includes('pack') || s.includes('process') || s.includes('bill') || s.includes('review') || s.includes('ready') || s.includes('inward') || s.includes('पॅकिंग')) {
+      return { step: 2, percent: 50, color: 'bg-indigo-600', badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    }
+    // Stage 1: Placed / Pending / Raised (25%)
+    return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
@@ -205,58 +226,54 @@ export function OrdersHistoryView(props) {
 
             return (
               <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
-                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
-                  <div>
-                    <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
-                    <div className="font-black text-blue-900 text-xs mt-0.5">{ord.orderId}</div>
-                  </div>
-                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs ${(ord.status || '').toLowerCase().includes('deliver') ? "bg-green-100 text-green-700 border border-green-200" : (ord.status || '').toLowerCase().includes('dispatch') ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-amber-100 text-amber-800 border border-amber-200"}`}>
-                    {translateStatus(ord.status, lang) || ord.status || "Pending"}
-                  </span>
-                </div>
+                {(() => {
+                  const stepInfo = getOrderStatusStep(ord.status);
+                  return (
+                    <React.Fragment>
+                      <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
+                        <div>
+                          <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
+                          <div className="font-black text-blue-900 text-xs mt-0.5">{ord.orderId}</div>
+                        </div>
+                        <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs border ${stepInfo.badgeClass}`}>
+                          {translateStatus(ord.status, lang) || ord.status || "Pending"}
+                        </span>
+                      </div>
 
-                {/* 🚚 LIVE ORDER STATUS STEPPER & TRACKING */}
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 my-2 shadow-2xs">
-                  <div className="flex justify-between text-[8px] font-black text-gray-500 uppercase tracking-wider mb-1.5 text-center">
-                    <span className="w-1/4 flex flex-col items-center">
-                      <span className="text-[11px]">📝</span>
-                      <span>{lang === 'mr' ? 'नोंदवली' : lang === 'hi' ? 'दर्ज' : 'Placed'}</span>
-                    </span>
-                    <span className="w-1/4 flex flex-col items-center">
-                      <span className="text-[11px]">📦</span>
-                      <span>{lang === 'mr' ? 'पॅकिंग सुरू' : lang === 'hi' ? 'पैकिंग जारी' : 'Packing'}</span>
-                    </span>
-                    <span className="w-1/4 flex flex-col items-center">
-                      <span className="text-[11px]">🚚</span>
-                      <span>{lang === 'mr' ? 'पाठवले' : lang === 'hi' ? 'डिस्पैच' : 'Dispatched'}</span>
-                    </span>
-                    <span className="w-1/4 flex flex-col items-center">
-                      <span className="text-[11px]">✅</span>
-                      <span>{lang === 'mr' ? 'पोहोचवले' : lang === 'hi' ? 'डिलीवर' : 'Delivered'}</span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
-                    <div 
-                      className={`h-full transition-all duration-500 rounded-full ${
-                        (ord.status || '').toLowerCase().includes('deliver') ? 'bg-emerald-600' :
-                        (ord.status || '').toLowerCase().includes('dispatch') ? 'bg-blue-600' :
-                        (ord.status || '').toLowerCase().includes('process') || (ord.status || '').toLowerCase().includes('pack') ? 'bg-indigo-600' :
-                        'bg-amber-500'
-                      }`}
-                      style={{
-                        width: 
-                          (ord.status || '').toLowerCase().includes('deliver') ? '100%' :
-                          (ord.status || '').toLowerCase().includes('dispatch') ? '75%' :
-                          (ord.status || '').toLowerCase().includes('process') || (ord.status || '').toLowerCase().includes('pack') ? '50%' :
-                          '25%'
-                      }}
-                    ></div>
-                  </div>
-                  <div className="text-[10px] text-gray-600 font-bold mt-2 text-center flex items-center justify-center gap-1">
-                    <span className="text-gray-400">{lang === 'mr' ? 'सध्याचे अपडेट:' : lang === 'hi' ? 'वर्तमान अपडेट:' : 'Current Update:'}</span>
-                    <span className="text-gray-900 font-black">{translateStatus(ord.status, lang) || ord.status || 'Pending'}</span>
-                  </div>
-                </div>
+                      {/* 🚚 LIVE ORDER STATUS STEPPER & TRACKING */}
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 my-2 shadow-2xs">
+                        <div className="flex justify-between text-[8px] font-black uppercase tracking-wider mb-1.5 text-center">
+                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 1 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
+                            <span className="text-[12px]">📝</span>
+                            <span>{lang === 'mr' ? 'नोंदवली' : lang === 'hi' ? 'दर्ज' : 'Placed'}</span>
+                          </span>
+                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 2 ? 'text-indigo-900 font-black' : 'text-gray-400'}`}>
+                            <span className="text-[12px]">📦</span>
+                            <span>{lang === 'mr' ? 'पॅकिंग / प्रोसेस' : lang === 'hi' ? 'पैकिंग / प्रोसेस' : 'Processing'}</span>
+                          </span>
+                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 3 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
+                            <span className="text-[12px]">🚚</span>
+                            <span>{lang === 'mr' ? 'पाठवले' : lang === 'hi' ? 'डिस्पैच' : 'Dispatched'}</span>
+                          </span>
+                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 4 ? 'text-emerald-700 font-black' : 'text-gray-400'}`}>
+                            <span className="text-[12px]">✅</span>
+                            <span>{lang === 'mr' ? 'पूर्ण / पोहोचवले' : lang === 'hi' ? 'पूर्ण / डिलीवर' : 'Completed'}</span>
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden shadow-inner">
+                          <div 
+                            className={`h-full transition-all duration-500 rounded-full ${stepInfo.color}`}
+                            style={{ width: `${stepInfo.percent}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-[10px] text-gray-600 font-bold mt-2 text-center flex items-center justify-center gap-1">
+                          <span className="text-gray-400">{lang === 'mr' ? 'सध्याचे अपडेट:' : lang === 'hi' ? 'वर्तमान अपडेट:' : 'Current Update:'}</span>
+                          <span className="text-gray-900 font-black">{translateStatus(ord.status, lang) || ord.status || 'Pending'}</span>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  );
+                })()}
 
                 {/* 📸 DOCUMENT GALLERY: REAL STOCK PHOTO, INVOICE, BOX PHOTO & CALL RECORDING */}
                 {allAttachments && allAttachments.length > 0 ? (
