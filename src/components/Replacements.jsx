@@ -32,6 +32,7 @@ export default function ReplacementsView(props) {
   // Common states
   const [remarks, setRemarks] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [zoomedMedia, setZoomedMedia] = useState(null);
 
   const categories = [
     { id: "replacement", label: t('cat_replacement', lang), icon: "♻️", desc: t('cat_replacement_desc', lang) },
@@ -270,6 +271,51 @@ export default function ReplacementsView(props) {
     if (s.includes("brand") || s.includes("actioned")) return 80;
     if (s.includes("resolved") || s.includes("approved") || s.includes("dispatched") || s.includes("credit") || s.includes("rejected")) return 100;
     return 20;
+  };
+
+  
+  const getFileId = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (dMatch) return dMatch[1]; 
+    if (idMatch) return idMatch[1]; 
+    return null;
+  };
+
+  const parseTicketItems = (rawString) => {
+    if (!rawString) return [];
+    const parts = String(rawString).split(' | ');
+    return parts.map((part, index) => {
+      let text = part.trim();
+      text = text.replace(/^\d+\.\s*/, '');
+      let defect = '';
+      const defectMatch = text.match(/\[(.*?)\]/);
+      if (defectMatch) {
+        defect = defectMatch[1].trim();
+        text = text.replace(/\[.*?\]/, '').trim();
+      }
+      let qty = 1;
+      const qtyMatch = text.match(/\(x(\d+)\)/i) || text.match(/x(\d+)/i);
+      if (qtyMatch) {
+        qty = parseInt(qtyMatch[1], 10);
+        text = text.replace(/\(x\d+\)/i, '').replace(/x\d+/i, '').trim();
+      }
+      let photosCount = 0;
+      const photoMatch = text.match(/\((\d+)\s*(?:फोटो|photos?)\)/i);
+      if (photoMatch) {
+        photosCount = parseInt(photoMatch[1], 10);
+        text = text.replace(/\(\d+\s*(?:फोटो|photos?)\)/i, '').trim();
+      }
+      const prodName = text.replace(/\s*-\s*$/, '').trim();
+      return {
+        index: index + 1,
+        productName: prodName,
+        qty: qty,
+        defect: defect,
+        photosCount: photosCount
+      };
+    });
   };
 
   return (
@@ -678,22 +724,120 @@ export default function ReplacementsView(props) {
                   </span>
                 </div>
                 
-                <div className="mb-2">
-                  <div className="text-[10px] bg-blue-100 text-blue-900 font-black px-2 py-0.5 rounded inline-block mb-1">
-                    {translateBrand(ticket.brand, lang) || ticket.brand || "Help Ticket"}
+                {/* BRAND BADGES & ITEM COUNT HEADER */}
+                <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2">
+                  <div className="flex flex-wrap gap-1">
+                    {String(ticket.brand || "Help Ticket").split(',').map((b, bIdx) => (
+                      <span key={bIdx} className="text-[10px] bg-blue-100 text-blue-900 font-black px-2 py-0.5 rounded-md border border-blue-200">
+                        {translateBrand(b.trim(), lang) || b.trim()}
+                      </span>
+                    ))}
                   </div>
-                  <h3 className="font-bold text-sm text-gray-800 leading-snug">{translateProductName(ticket.productName, lang)}</h3>
                   {ticket.defectType && (
-                    <p className="text-[11px] text-gray-600 font-bold mt-1">
-                      <span className="text-gray-400">{t('defect_type', lang)}:</span> {translateDefect(ticket.defectType, lang)}
-                    </p>
-                  )}
-                  {ticket.remarks && (
-                    <p className="text-[11px] text-gray-500 mt-1 italic">
-                      "{ticket.remarks}"
-                    </p>
+                    <span className="text-[10px] bg-amber-50 text-amber-900 border border-amber-200 font-bold px-2 py-0.5 rounded-md">
+                      {translateDefect(ticket.defectType, lang)}
+                    </span>
                   )}
                 </div>
+
+                {/* STRUCTURED ITEMS DISPLAY */}
+                {(() => {
+                  const parsed = parseTicketItems(ticket.productName);
+                  if (parsed.length > 1) {
+                    return (
+                      <div className="space-y-2 my-2.5">
+                        <div className="text-[10px] font-black uppercase text-gray-500 tracking-wider flex items-center justify-between">
+                          <span>{lang === 'mr' ? '📦 तक्रारीत समाविष्ट वस्तू:' : lang === 'hi' ? '📦 शिकायत में शामिल सामान:' : '📦 Items in this Ticket:'}</span>
+                          <span className="text-blue-900 bg-blue-50 border border-blue-100 text-[10px] font-black px-2 py-0.5 rounded-full">
+                            {parsed.length} {lang === 'mr' ? 'वस्तू' : lang === 'hi' ? 'सामान' : 'Items'}
+                          </span>
+                        </div>
+                        {parsed.map((it, i) => (
+                          <div key={i} className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 shadow-2xs hover:bg-white transition-all">
+                            <div className="flex items-start gap-2.5">
+                              <span className="bg-blue-900 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                                {it.index}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-bold text-xs text-gray-900 leading-snug">
+                                  {translateProductName(it.productName, lang)}
+                                </h4>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                  {it.defect && (
+                                    <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-200 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                                      <span>⚠️</span> {translateDefect(it.defect, lang)}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] bg-blue-100 text-blue-900 font-black px-2 py-0.5 rounded-md">
+                                    x{it.qty} {lang === 'mr' ? 'नग' : lang === 'hi' ? 'पीस' : 'Qty'}
+                                  </span>
+                                  {it.photosCount > 0 && (
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-900 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                                      <span>📸</span> {it.photosCount} {lang === 'mr' ? 'फोटो संलग्न' : lang === 'hi' ? 'फ़ोटो जुड़े' : 'Photos'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="bg-slate-50 border border-slate-200/90 rounded-xl p-3 my-2 shadow-2xs">
+                        <h4 className="font-bold text-sm text-gray-900 leading-snug">
+                          {translateProductName(parsed.length === 1 ? parsed[0].productName : ticket.productName, lang)}
+                        </h4>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          {(parsed.length === 1 && parsed[0].defect ? parsed[0].defect : ticket.defectType) && (
+                            <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-200 font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>⚠️</span> {translateDefect(parsed.length === 1 && parsed[0].defect ? parsed[0].defect : ticket.defectType, lang)}
+                            </span>
+                          )}
+                          <span className="text-[10px] bg-blue-100 text-blue-900 font-black px-2 py-0.5 rounded-md">
+                            x{parsed.length === 1 ? parsed[0].qty : 1} {lang === 'mr' ? 'नग' : lang === 'hi' ? 'पीस' : 'Qty'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                })()}
+
+                {ticket.remarks && (
+                  <div className="my-2 p-2.5 bg-gray-50 rounded-xl border border-gray-100 text-[11px] text-gray-600 italic">
+                    "{ticket.remarks}"
+                  </div>
+                )}
+
+                {/* ATTACHED TICKET PHOTOS GALLERY */}
+                {ticket.photos && ticket.photos.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-dashed border-gray-100">
+                    <div className="text-[9px] text-gray-500 font-black uppercase mb-1.5 flex items-center gap-1">
+                      <span>📸</span> {lang === 'mr' ? 'तक्रारीचे संलग्न फोटो:' : lang === 'hi' ? 'शिकायत के संलग्न फ़ोटो:' : 'Attached Complaint Photos:'} ({ticket.photos.length})
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                      {ticket.photos.map((phUrl, pIdx) => {
+                        const fileId = getFileId(phUrl);
+                        const thumbUrl = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : phUrl;
+                        return (
+                          <div 
+                            key={pIdx}
+                            onClick={() => setZoomedMedia({ url: phUrl, label: `Photo #${pIdx+1}`, type: 'image' })}
+                            className="w-14 h-14 rounded-xl border border-gray-200 overflow-hidden bg-gray-100 shrink-0 cursor-pointer hover:border-blue-500 shadow-2xs relative active:scale-95 transition-transform"
+                          >
+                            <img 
+                              src={thumbUrl} 
+                              alt="Proof" 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => { e.target.parentNode.innerHTML = '<span class="text-xl">📸</span>'; }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-4">
                   <div className="flex justify-between text-[7px] font-black text-gray-400 uppercase tracking-wider mb-2 text-center">
@@ -727,6 +871,47 @@ export default function ReplacementsView(props) {
               </div>
             ))
           )}
+        </div>
+      )}
+    
+      {/* 🔍 FULL-RESOLUTION MEDIA VIEWER MODAL */}
+      {zoomedMedia && (
+        <div 
+          onClick={() => setZoomedMedia(null)} 
+          className="fixed inset-0 bg-black/85 z-[150] flex flex-col justify-between p-4 backdrop-blur-sm animate-fade-in"
+        >
+          <div className="flex justify-between items-center text-white pt-2">
+            <div>
+              <span className="font-black text-sm tracking-wide block">{zoomedMedia.label}</span>
+              <span className="text-[10px] text-gray-300 font-medium">{t('secure_viewer', lang)}</span>
+            </div>
+            <button 
+              onClick={() => setZoomedMedia(null)} 
+              className="bg-white/20 text-white font-black text-sm w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/30"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center p-2 my-2" onClick={(e) => e.stopPropagation()}>
+            <img 
+              src={zoomedMedia.url} 
+              alt={zoomedMedia.label} 
+              className="max-h-[70vh] max-w-full rounded-2xl shadow-2xl object-contain border border-white/10" 
+            />
+          </div>
+
+          <div className="text-center text-gray-400 text-xs pb-3 flex flex-col items-center gap-2">
+            <span>{t('close_preview', lang)}</span>
+            <a 
+              href={zoomedMedia.url} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="bg-blue-600 text-white font-black text-xs px-4 py-2 rounded-xl shadow-lg hover:bg-blue-700 flex items-center gap-1 active:scale-95"
+            >
+              {t('open_drive_link', lang)}
+            </a>
+          </div>
         </div>
       )}
     </div>
