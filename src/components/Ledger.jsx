@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL } from '../utils/helpers';
-import { t, translateStatus } from '../utils/translations';
+import { t, translateStatus, translateProductName, translatePaymentMode } from '../utils/translations';
 
 export function LedgerView(props) {
   var user = props.user;
@@ -271,7 +271,7 @@ export function OrdersHistoryView(props) {
                     {itemsList.map((it, i) => (
                       <div key={i} className="flex justify-between items-center py-0.5">
                         <span className={it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward") ? "text-green-600 font-black" : ""}>
-                          • {it.trim()}
+                          • {translateProductName(it.trim(), lang)}
                         </span>
                       </div>
                     ))}
@@ -281,7 +281,7 @@ export function OrdersHistoryView(props) {
                 <div className="flex justify-between items-center pt-2">
                   <div>
                     <div className="text-[9px] text-gray-400 font-black uppercase">{t('payment_label', lang)}</div>
-                    <div className="text-xs font-black text-gray-600">{ord.paymentMode}</div>
+                    <div className="text-xs font-black text-gray-600">{translatePaymentMode(ord.paymentMode, lang)}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-[9px] text-gray-400 font-black uppercase">{t('final_amount', lang)}</div>
