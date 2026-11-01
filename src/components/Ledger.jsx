@@ -31,26 +31,148 @@ export function LedgerView(props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const phone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile) : '';
-    if (!phone) {
+    const phone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile).replace(/\D/g, '').slice(-10) : '';
+    const shopName = user && (user.shopName || user.name) ? String(user.shopName || user.name).toLowerCase().trim() : '';
+
+    if (!phone && !shopName) {
       setLoading(false);
       return;
     }
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "getLedger", phone: phone }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => {
-      if (res && res.success && Array.isArray(res.data)) {
-        setLedgerData(res.data);
-      } else if (Array.isArray(res)) {
-        setLedgerData(res);
-      } else {
-        console.warn(res && res.message ? res.message : "Ledger statement sync issue.");
+
+    const BACKEND_FULFILLMENT_API = "https://script.google.com/macros/s/AKfycbyXHJaFTSkjwu6C8ze4czs2Q42NQsgzjW814j8OLA7ztMXTW-nqmh2gkpjebmdSW4YJjA/exec";
+
+    const extractUrl = (str) => {
+      if (!str || typeof str !== 'string') return null;
+      const match = str.match(/(https?:\/\/[^\s|]+)/i);
+      return match ? match[1] : null;
+    };
+
+    const stageLabels = [
+      t('balance_check', lang) || 'Balance Check',
+      t('wa_confirmation', lang) || 'WhatsApp Confirmation',
+      t('stock_photo', lang) || 'Stock Photo',
+      t('invoice_photo', lang) || 'Invoice Photo',
+      t('box_photo', lang) || 'Box Photo',
+      t('runner_dispatched', lang) || 'Runner / Dispatch',
+      t('delivery_notification', lang) || 'Delivery Notification',
+      t('delivery_proof', lang) || 'Delivery Proof (POD)',
+      t('final_rating', lang) || 'Final Call Rating'
+    ];
+
+    const mapBackendOrder = (bo) => {
+      const stageUrls = Array.isArray(bo.stageUrls) ? bo.stageUrls : [];
+      const attachments = [];
+
+      stageUrls.forEach((entry, idx) => {
+        const u = extractUrl(entry);
+        if (u) {
+          const lbl = stageLabels[idx] || ('Stage ' + (idx + 1));
+          attachments.push({
+            label: lbl,
+            url: u,
+            type: u.includes('audio') ? 'audio' : 'image',
+            source: 'backend_stage_' + (idx + 1)
+          });
+        }
+      });
+
+      let status = 'Pending';
+      if (bo.isFullyCompleted || bo.completedStages >= 8) {
+        status = 'Delivered';
+      } else if (bo.completedStages >= 5) {
+        status = 'Dispatched';
+      } else if (bo.completedStages >= 3) {
+        status = 'Packing';
+      } else if (bo.completedStages >= 1) {
+        status = 'Processing';
       }
+
+      const itemsBlueprint = Array.isArray(bo.items) 
+        ? bo.items.map(it => it.name + ' x' + (it.qty || 1)).join(' | ')
+        : (bo.items ? String(bo.items) : 'N/A');
+
+      const stockPhoto = extractUrl(stageUrls[2]);
+      const invoicePhoto = extractUrl(stageUrls[3]);
+      const boxPhoto = extractUrl(stageUrls[4]);
+      const pod = extractUrl(stageUrls[7]);
+
+      return {
+        orderId: bo.orderId,
+        date: bo.date ? new Date(bo.date).toLocaleDateString('en-GB') : '',
+        status: status,
+        payment: bo.paymentMode || 'DAILY',
+        amount: bo.totalValue || 0,
+        items: itemsBlueprint,
+        itemsDetails: bo.items || [],
+        StockPhoto: stockPhoto,
+        InvoicePhoto: invoicePhoto,
+        BoxPhoto: boxPhoto,
+        POD: pod,
+        attachments: attachments,
+        completedStages: bo.completedStages || 0,
+        isFullyCompleted: !!bo.isFullyCompleted
+      };
+    };
+
+    // Parallel fetch from both Live Fulfillment Mainframe & Standard GAS Endpoint
+    const pBackend = fetch(BACKEND_FULFILLMENT_API, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getOrders", staffName: "DealerApp" }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).catch(() => ({ data: [] }));
+
+    const pLocal = fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getDealerOrders", phone: phone }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).catch(() => ({ data: [] }));
+
+    Promise.all([pBackend, pLocal]).then(([resBackend, resLocal]) => {
+      const mergedMap = {};
+
+      // 1. Process local orders first
+      const localList = (resLocal && resLocal.success && Array.isArray(resLocal.data)) ? resLocal.data : (Array.isArray(resLocal) ? resLocal : []);
+      localList.forEach(ord => {
+        if (ord && ord.orderId) {
+          mergedMap[ord.orderId] = ord;
+        }
+      });
+
+      // 2. Overwrite / enrich with Live Fulfillment Backend Orders (Priority: Real status + Step Photos)
+      const backendList = (resBackend && Array.isArray(resBackend.data)) ? resBackend.data : [];
+      const matchingBackend = backendList.filter(bo => {
+        const boPhone = String(bo.phone || '').replace(/\D/g, '').slice(-10);
+        const boShop = String(bo.shopName || '').toLowerCase().trim();
+        return (phone && boPhone === phone) || (shopName && boShop.includes(shopName)) || (shopName && shopName.includes(boShop));
+      });
+
+      matchingBackend.forEach(bo => {
+        const mapped = mapBackendOrder(bo);
+        if (mergedMap[mapped.orderId]) {
+          const prev = mergedMap[mapped.orderId];
+          mergedMap[mapped.orderId] = {
+            ...prev,
+            ...mapped,
+            status: mapped.status !== 'Pending' ? mapped.status : prev.status,
+            attachments: mapped.attachments.length > 0 ? mapped.attachments : prev.attachments,
+            StockPhoto: mapped.StockPhoto || prev.StockPhoto,
+            InvoicePhoto: mapped.InvoicePhoto || prev.InvoicePhoto,
+            BoxPhoto: mapped.BoxPhoto || prev.BoxPhoto,
+            POD: mapped.POD || prev.POD
+          };
+        } else {
+          mergedMap[mapped.orderId] = mapped;
+        }
+      });
+
+      const finalOrders = Object.values(mergedMap);
+      setOrders(finalOrders);
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, [user]);
+    }).catch(err => {
+      console.error("Order sync error:", err);
+      setLoading(false);
+    });
+  }, [user, lang]);
 
   if (loading) {
     return (
