@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { API_URL } from '../utils/helpers';
 import { t, translateStatus, translateProductName, translatePaymentMode } from '../utils/translations';
 
-
 // 🚚 ORDER STATUS STEP CALCULATION
 export const getOrderStatusStep = (statusStr) => {
   if (!statusStr) return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
@@ -31,148 +30,26 @@ export function LedgerView(props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const phone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile).replace(/\D/g, '').slice(-10) : '';
-    const shopName = user && (user.shopName || user.name) ? String(user.shopName || user.name).toLowerCase().trim() : '';
-
-    if (!phone && !shopName) {
+    const phone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile) : '';
+    if (!phone) {
       setLoading(false);
       return;
     }
-
-    const BACKEND_FULFILLMENT_API = "https://script.google.com/macros/s/AKfycbyXHJaFTSkjwu6C8ze4czs2Q42NQsgzjW814j8OLA7ztMXTW-nqmh2gkpjebmdSW4YJjA/exec";
-
-    const extractUrl = (str) => {
-      if (!str || typeof str !== 'string') return null;
-      const match = str.match(/(https?:\/\/[^\s|]+)/i);
-      return match ? match[1] : null;
-    };
-
-    const stageLabels = [
-      t('balance_check', lang) || 'Balance Check',
-      t('wa_confirmation', lang) || 'WhatsApp Confirmation',
-      t('stock_photo', lang) || 'Stock Photo',
-      t('invoice_photo', lang) || 'Invoice Photo',
-      t('box_photo', lang) || 'Box Photo',
-      t('runner_dispatched', lang) || 'Runner / Dispatch',
-      t('delivery_notification', lang) || 'Delivery Notification',
-      t('delivery_proof', lang) || 'Delivery Proof (POD)',
-      t('final_rating', lang) || 'Final Call Rating'
-    ];
-
-    const mapBackendOrder = (bo) => {
-      const stageUrls = Array.isArray(bo.stageUrls) ? bo.stageUrls : [];
-      const attachments = [];
-
-      stageUrls.forEach((entry, idx) => {
-        const u = extractUrl(entry);
-        if (u) {
-          const lbl = stageLabels[idx] || ('Stage ' + (idx + 1));
-          attachments.push({
-            label: lbl,
-            url: u,
-            type: u.includes('audio') ? 'audio' : 'image',
-            source: 'backend_stage_' + (idx + 1)
-          });
-        }
-      });
-
-      let status = 'Pending';
-      if (bo.isFullyCompleted || bo.completedStages >= 8) {
-        status = 'Delivered';
-      } else if (bo.completedStages >= 5) {
-        status = 'Dispatched';
-      } else if (bo.completedStages >= 3) {
-        status = 'Packing';
-      } else if (bo.completedStages >= 1) {
-        status = 'Processing';
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getLedger", phone: phone }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).then(res => {
+      if (res && res.success && Array.isArray(res.data)) {
+        setLedgerData(res.data);
+      } else if (Array.isArray(res)) {
+        setLedgerData(res);
+      } else {
+        console.warn(res && res.message ? res.message : "Ledger statement sync issue.");
       }
-
-      const itemsBlueprint = Array.isArray(bo.items) 
-        ? bo.items.map(it => it.name + ' x' + (it.qty || 1)).join(' | ')
-        : (bo.items ? String(bo.items) : 'N/A');
-
-      const stockPhoto = extractUrl(stageUrls[2]);
-      const invoicePhoto = extractUrl(stageUrls[3]);
-      const boxPhoto = extractUrl(stageUrls[4]);
-      const pod = extractUrl(stageUrls[7]);
-
-      return {
-        orderId: bo.orderId,
-        date: bo.date ? new Date(bo.date).toLocaleDateString('en-GB') : '',
-        status: status,
-        payment: bo.paymentMode || 'DAILY',
-        amount: bo.totalValue || 0,
-        items: itemsBlueprint,
-        itemsDetails: bo.items || [],
-        StockPhoto: stockPhoto,
-        InvoicePhoto: invoicePhoto,
-        BoxPhoto: boxPhoto,
-        POD: pod,
-        attachments: attachments,
-        completedStages: bo.completedStages || 0,
-        isFullyCompleted: !!bo.isFullyCompleted
-      };
-    };
-
-    // Parallel fetch from both Live Fulfillment Mainframe & Standard GAS Endpoint
-    const pBackend = fetch(BACKEND_FULFILLMENT_API, {
-      method: 'POST',
-      body: JSON.stringify({ action: "getOrders", staffName: "DealerApp" }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).catch(() => ({ data: [] }));
-
-    const pLocal = fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "getDealerOrders", phone: phone }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).catch(() => ({ data: [] }));
-
-    Promise.all([pBackend, pLocal]).then(([resBackend, resLocal]) => {
-      const mergedMap = {};
-
-      // 1. Process local orders first
-      const localList = (resLocal && resLocal.success && Array.isArray(resLocal.data)) ? resLocal.data : (Array.isArray(resLocal) ? resLocal : []);
-      localList.forEach(ord => {
-        if (ord && ord.orderId) {
-          mergedMap[ord.orderId] = ord;
-        }
-      });
-
-      // 2. Overwrite / enrich with Live Fulfillment Backend Orders (Priority: Real status + Step Photos)
-      const backendList = (resBackend && Array.isArray(resBackend.data)) ? resBackend.data : [];
-      const matchingBackend = backendList.filter(bo => {
-        const boPhone = String(bo.phone || '').replace(/\D/g, '').slice(-10);
-        const boShop = String(bo.shopName || '').toLowerCase().trim();
-        return (phone && boPhone === phone) || (shopName && boShop.includes(shopName)) || (shopName && shopName.includes(boShop));
-      });
-
-      matchingBackend.forEach(bo => {
-        const mapped = mapBackendOrder(bo);
-        if (mergedMap[mapped.orderId]) {
-          const prev = mergedMap[mapped.orderId];
-          mergedMap[mapped.orderId] = {
-            ...prev,
-            ...mapped,
-            status: mapped.status !== 'Pending' ? mapped.status : prev.status,
-            attachments: mapped.attachments.length > 0 ? mapped.attachments : prev.attachments,
-            StockPhoto: mapped.StockPhoto || prev.StockPhoto,
-            InvoicePhoto: mapped.InvoicePhoto || prev.InvoicePhoto,
-            BoxPhoto: mapped.BoxPhoto || prev.BoxPhoto,
-            POD: mapped.POD || prev.POD
-          };
-        } else {
-          mergedMap[mapped.orderId] = mapped;
-        }
-      });
-
-      const finalOrders = Object.values(mergedMap);
-      setOrders(finalOrders);
       setLoading(false);
-    }).catch(err => {
-      console.error("Order sync error:", err);
-      setLoading(false);
-    });
-  }, [user, lang]);
+    }).catch(() => setLoading(false));
+  }, [user]);
 
   if (loading) {
     return (
@@ -268,30 +145,149 @@ export function OrdersHistoryView(props) {
   const [zoomedMedia, setZoomedMedia] = useState(null); 
 
   useEffect(() => {
-    const phone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile) : '';
-    if (!phone) {
+    const rawPhone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile) : '';
+    const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
+    const shopName = user && (user.shopName || user.name) ? String(user.shopName || user.name).toLowerCase().trim() : '';
+
+    if (!cleanPhone && !shopName) {
       setLoading(false);
       return;
     }
 
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "getDealerOrders", phone: phone }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => {
-      if (res && res.success && Array.isArray(res.data)) {
-        setOrders(res.data); 
-      } else if (Array.isArray(res)) {
-        setOrders(res);
-      } else {
-        console.warn("Orders history sync message:", res && res.message ? res.message : "No orders found");
+    const BACKEND_FULFILLMENT_API = "https://script.google.com/macros/s/AKfycbyXHJaFTSkjwu6C8ze4czs2Q42NQsgzjW814j8OLA7ztMXTW-nqmh2gkpjebmdSW4YJjA/exec";
+
+    const extractUrl = (str) => {
+      if (!str || typeof str !== 'string') return null;
+      const match = str.match(/(https?:\/\/[^\s|]+)/i);
+      return match ? match[1] : null;
+    };
+
+    const stageLabels = [
+      t('balance_check', lang) || 'Balance Check',
+      t('wa_confirmation', lang) || 'WhatsApp Confirmation',
+      t('stock_photo', lang) || 'Stock Photo',
+      t('invoice_photo', lang) || 'Invoice Photo',
+      t('box_photo', lang) || 'Box Photo',
+      t('runner_dispatched', lang) || 'Runner / Dispatch',
+      t('delivery_notification', lang) || 'Delivery Notification',
+      t('delivery_proof', lang) || 'Delivery Proof (POD)',
+      t('final_rating', lang) || 'Final Call Rating'
+    ];
+
+    const mapBackendOrder = (bo) => {
+      const stageUrls = Array.isArray(bo.stageUrls) ? bo.stageUrls : [];
+      const attachments = [];
+
+      stageUrls.forEach((entry, idx) => {
+        const u = extractUrl(entry);
+        if (u) {
+          const lbl = stageLabels[idx] || ('Stage ' + (idx + 1));
+          attachments.push({
+            label: lbl,
+            url: u,
+            type: u.includes('audio') ? 'audio' : 'image',
+            source: 'backend_stage_' + (idx + 1)
+          });
+        }
+      });
+
+      let status = 'Pending';
+      if (bo.isFullyCompleted || bo.completedStages >= 8) {
+        status = 'Delivered';
+      } else if (bo.completedStages >= 5) {
+        status = 'Dispatched';
+      } else if (bo.completedStages >= 3) {
+        status = 'Packing';
+      } else if (bo.completedStages >= 1) {
+        status = 'Processing';
       }
+
+      const itemsBlueprint = Array.isArray(bo.items) 
+        ? bo.items.map(it => it.name + ' x' + (it.qty || 1)).join(' | ')
+        : (bo.items ? String(bo.items) : 'N/A');
+
+      const stockPhoto = extractUrl(stageUrls[2]);
+      const invoicePhoto = extractUrl(stageUrls[3]);
+      const boxPhoto = extractUrl(stageUrls[4]);
+      const pod = extractUrl(stageUrls[7]);
+
+      return {
+        orderId: bo.orderId,
+        date: bo.date ? new Date(bo.date).toLocaleDateString('en-GB') : '',
+        status: status,
+        payment: bo.paymentMode || 'DAILY',
+        amount: bo.totalValue || 0,
+        items: itemsBlueprint,
+        itemsDetails: bo.items || [],
+        StockPhoto: stockPhoto,
+        InvoicePhoto: invoicePhoto,
+        BoxPhoto: boxPhoto,
+        POD: pod,
+        attachments: attachments,
+        completedStages: bo.completedStages || 0,
+        isFullyCompleted: !!bo.isFullyCompleted
+      };
+    };
+
+    // Parallel fetch from both Live Fulfillment Mainframe & Standard GAS Endpoint
+    const pBackend = fetch(BACKEND_FULFILLMENT_API, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getOrders", staffName: "DealerApp" }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).catch(() => ({ data: [] }));
+
+    const pLocal = fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getDealerOrders", phone: cleanPhone }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).catch(() => ({ data: [] }));
+
+    Promise.all([pBackend, pLocal]).then(([resBackend, resLocal]) => {
+      const mergedMap = {};
+
+      // 1. Process local orders first
+      const localList = (resLocal && resLocal.success && Array.isArray(resLocal.data)) ? resLocal.data : (Array.isArray(resLocal) ? resLocal : []);
+      localList.forEach(ord => {
+        if (ord && ord.orderId) {
+          mergedMap[ord.orderId] = ord;
+        }
+      });
+
+      // 2. Overwrite / enrich with Live Fulfillment Backend Orders (Priority: Real status + Step Photos)
+      const backendList = (resBackend && Array.isArray(resBackend.data)) ? resBackend.data : [];
+      const matchingBackend = backendList.filter(bo => {
+        const boPhone = String(bo.phone || '').replace(/\D/g, '').slice(-10);
+        const boShop = String(bo.shopName || '').toLowerCase().trim();
+        return (cleanPhone && boPhone === cleanPhone) || (shopName && boShop.includes(shopName)) || (shopName && shopName.includes(boShop));
+      });
+
+      matchingBackend.forEach(bo => {
+        const mapped = mapBackendOrder(bo);
+        if (mergedMap[mapped.orderId]) {
+          const prev = mergedMap[mapped.orderId];
+          mergedMap[mapped.orderId] = {
+            ...prev,
+            ...mapped,
+            status: mapped.status !== 'Pending' ? mapped.status : prev.status,
+            attachments: mapped.attachments.length > 0 ? mapped.attachments : prev.attachments,
+            StockPhoto: mapped.StockPhoto || prev.StockPhoto,
+            InvoicePhoto: mapped.InvoicePhoto || prev.InvoicePhoto,
+            BoxPhoto: mapped.BoxPhoto || prev.BoxPhoto,
+            POD: mapped.POD || prev.POD
+          };
+        } else {
+          mergedMap[mapped.orderId] = mapped;
+        }
+      });
+
+      const finalOrders = Object.values(mergedMap);
+      setOrders(finalOrders);
       setLoading(false);
     }).catch(err => {
-      console.error("Order history fetch error:", err);
+      console.error("Order sync error:", err);
       setLoading(false);
     });
-  }, [user]);
+  }, [user, lang]);
 
   const getFileId = (url) => {
     if (!url || typeof url !== 'string') return null;
@@ -359,59 +355,53 @@ export function OrdersHistoryView(props) {
       ) : (
         <div className="space-y-4">
           {orders.map((ord, idx) => {
+            const stepInfo = getOrderStatusStep(ord.status);
             const itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
             const allAttachments = collectAttachments(ord);
 
             return (
               <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
-                {(() => {
-                  const stepInfo = getOrderStatusStep(ord.status);
-                  return (
-                    <React.Fragment>
-                      <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
-                        <div>
-                          <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
-                          <div className="font-black text-blue-900 text-xs mt-0.5">{ord.orderId}</div>
-                        </div>
-                        <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs border ${stepInfo.badgeClass}`}>
-                          {translateStatus(ord.status, lang) || ord.status || "Pending"}
-                        </span>
-                      </div>
+                {/* 🚚 LIVE ORDER STATUS STEPPER & TRACKING */}
+                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
+                  <div>
+                    <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
+                    <div className="font-black text-blue-900 text-xs mt-0.5">{ord.orderId}</div>
+                  </div>
+                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs border ${stepInfo.badgeClass}`}>
+                    {translateStatus(ord.status, lang) || ord.status || "Pending"}
+                  </span>
+                </div>
 
-                      {/* 🚚 LIVE ORDER STATUS STEPPER & TRACKING */}
-                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 my-2 shadow-2xs">
-                        <div className="flex justify-between text-[8px] font-black uppercase tracking-wider mb-1.5 text-center">
-                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 1 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
-                            <span className="text-[12px]">📝</span>
-                            <span>{lang === 'mr' ? 'नोंदवली' : lang === 'hi' ? 'दर्ज' : 'Placed'}</span>
-                          </span>
-                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 2 ? 'text-indigo-900 font-black' : 'text-gray-400'}`}>
-                            <span className="text-[12px]">📦</span>
-                            <span>{lang === 'mr' ? 'पॅकिंग / प्रोसेस' : lang === 'hi' ? 'पैकिंग / प्रोसेस' : 'Processing'}</span>
-                          </span>
-                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 3 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
-                            <span className="text-[12px]">🚚</span>
-                            <span>{lang === 'mr' ? 'पाठवले' : lang === 'hi' ? 'डिस्पैच' : 'Dispatched'}</span>
-                          </span>
-                          <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 4 ? 'text-emerald-700 font-black' : 'text-gray-400'}`}>
-                            <span className="text-[12px]">✅</span>
-                            <span>{lang === 'mr' ? 'पूर्ण / पोहोचवले' : lang === 'hi' ? 'पूर्ण / डिलीवर' : 'Completed'}</span>
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden shadow-inner">
-                          <div 
-                            className={`h-full transition-all duration-500 rounded-full ${stepInfo.color}`}
-                            style={{ width: `${stepInfo.percent}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-[10px] text-gray-600 font-bold mt-2 text-center flex items-center justify-center gap-1">
-                          <span className="text-gray-400">{lang === 'mr' ? 'सध्याचे अपडेट:' : lang === 'hi' ? 'वर्तमान अपडेट:' : 'Current Update:'}</span>
-                          <span className="text-gray-900 font-black">{translateStatus(ord.status, lang) || ord.status || 'Pending'}</span>
-                        </div>
-                      </div>
-                    </React.Fragment>
-                  );
-                })()}
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 my-2 shadow-2xs">
+                  <div className="flex justify-between text-[8px] font-black uppercase tracking-wider mb-1.5 text-center">
+                    <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 1 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
+                      <span className="text-[12px]">📝</span>
+                      <span>{lang === 'mr' ? 'नोंदवली' : lang === 'hi' ? 'दर्ज' : 'Placed'}</span>
+                    </span>
+                    <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 2 ? 'text-indigo-900 font-black' : 'text-gray-400'}`}>
+                      <span className="text-[12px]">📦</span>
+                      <span>{lang === 'mr' ? 'पॅकिंग / प्रोसेस' : lang === 'hi' ? 'पैकिंग / प्रोसेस' : 'Processing'}</span>
+                    </span>
+                    <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 3 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
+                      <span className="text-[12px]">🚚</span>
+                      <span>{lang === 'mr' ? 'पाठवले' : lang === 'hi' ? 'डिस्पैच' : 'Dispatched'}</span>
+                    </span>
+                    <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 4 ? 'text-emerald-700 font-black' : 'text-gray-400'}`}>
+                      <span className="text-[12px]">✅</span>
+                      <span>{lang === 'mr' ? 'पूर्ण / पोहोचवले' : lang === 'hi' ? 'पूर्ण / डिलीवर' : 'Completed'}</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className={`h-full transition-all duration-500 rounded-full ${stepInfo.color}`}
+                      style={{ width: `${stepInfo.percent}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-[10px] text-gray-600 font-bold mt-2 text-center flex items-center justify-center gap-1">
+                    <span className="text-gray-400">{lang === 'mr' ? 'सध्याचे अपडेट:' : lang === 'hi' ? 'वर्तमान अपडेट:' : 'Current Update:'}</span>
+                    <span className="text-gray-900 font-black">{translateStatus(ord.status, lang) || ord.status || 'Pending'}</span>
+                  </div>
+                </div>
 
                 {/* 📸 DOCUMENT GALLERY: REAL STOCK PHOTO, INVOICE, BOX PHOTO & CALL RECORDING */}
                 {allAttachments && allAttachments.length > 0 ? (
@@ -498,8 +488,8 @@ export function OrdersHistoryView(props) {
                           }`}
                         >
                           <span className="flex items-center gap-1.5 min-w-0 flex-1 pr-2 truncate">
-                            <span>{isDiscount ? '🎁' : '•'}</span>
-                            <span className="truncate">{translateProductName(it.trim(), lang)}</span>
+                            <span className="text-[10px]">{isDiscount ? '🎁' : '•'}</span>
+                            <span className="truncate">{translateProductName(it, lang)}</span>
                           </span>
                         </div>
                       );
@@ -510,12 +500,12 @@ export function OrdersHistoryView(props) {
                 <div className="flex justify-between items-center pt-2">
                   <div>
                     <div className="text-[9px] text-gray-400 font-black uppercase">{t('payment_label', lang)}</div>
-                    <div className="text-xs font-black text-gray-600">{translatePaymentMode(ord.paymentMode, lang)}</div>
+                    <div className="text-xs font-black text-gray-600">{translatePaymentMode(ord.payment || ord.paymentMode, lang)}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-[9px] text-gray-400 font-black uppercase">{t('final_amount', lang)}</div>
                     <div className="text-base font-black text-blue-900">
-                      ₹{Number(ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}
+                      ₹{Number(ord.amount || ord.finalAmount || ord.totalAmount || 0).toLocaleString('en-IN')}
                     </div>
                   </div>
                 </div>
