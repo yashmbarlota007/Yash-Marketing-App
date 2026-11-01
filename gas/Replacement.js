@@ -146,15 +146,21 @@ function getReplacements(phone) {
         if (cleanRowPhone === targetPhone) {
           var dateVal = data[i][1]; 
           var dateStr = (dateVal instanceof Date) ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), "dd-MM-yyyy") : dateVal.toString();
+          var fileUrlRaw = data[i][8] ? data[i][8].toString().trim() : "";
+          var photosList = fileUrlRaw ? fileUrlRaw.split(" | ") : [];
           list.push({
             ticketId: data[i][0] || "N/A", 
             date: dateStr,
             brand: data[i][4] || "", 
             productName: data[i][5] || "", 
             defectType: data[i][7] || "", 
+            fileUrl: fileUrlRaw,
+            photos: photosList,
             status: data[i][9] || "Raised", 
             resolutionType: data[i][10] || "", 
-            resolutionDetails: data[i][11] || "" 
+            resolutionDetails: data[i][11] || "",
+            remarks: data[i][12] || "",
+            audioUrl: data[i][13] || ""
           });
         }
       }
