@@ -109,6 +109,23 @@ function getDealerOrders(phone) {
           if (screenshotUrl) attachments.push({ label: "Payment Slip", type: "image", url: screenshotUrl });
           if (ratingVal) attachments.push({ label: "Order Rating", type: "rating", url: ratingVal });
 
+          // Scan all columns for any Google Drive or image URLs
+          for (var colIdx = 0; colIdx < row.length; colIdx++) {
+            var cellVal = String(row[colIdx] || "").trim();
+            if (cellVal && (cellVal.indexOf("drive.google.com") !== -1 || cellVal.indexOf("http") !== -1)) {
+              var alreadyAdded = attachments.some(function(a) { return a.url === cellVal; });
+              if (!alreadyAdded) {
+                var colHeader = headers[colIdx] ? String(headers[colIdx]).trim() : "Doc";
+                var isAudio = cellVal.indexOf(".mp3") !== -1 || cellVal.indexOf(".wav") !== -1 || cellVal.indexOf(".m4a") !== -1 || colHeader.toLowerCase().indexOf("call") !== -1;
+                attachments.push({
+                  label: colHeader,
+                  type: isAudio ? "audio" : "image",
+                  url: cellVal
+                });
+              }
+            }
+          }
+
           list.push({
             date: dateStr,
             orderId: orderId,
