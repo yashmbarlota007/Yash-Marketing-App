@@ -2,6 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { API_URL } from '../utils/helpers';
 import { t, translateStatus, translateProductName, translatePaymentMode } from '../utils/translations';
 
+
+// 🚚 ORDER STATUS STEP CALCULATION
+export const getOrderStatusStep = (statusStr) => {
+  if (!statusStr) return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
+  const s = String(statusStr).toLowerCase().trim();
+  
+  // Stage 4: Completed / Delivered / Done / Closed (100%)
+  if (s.includes('deliver') || s.includes('complete') || s.includes('done') || s.includes('closed') || s.includes('पोहोचवले') || s.includes('पूर्ण') || s.includes('झाले') || s.includes('यशस्वी')) {
+    return { step: 4, percent: 100, color: 'bg-emerald-600', badgeClass: 'bg-green-100 text-green-700 border-green-200' };
+  }
+  // Stage 3: Dispatched / In Transit / Out for Delivery (75%)
+  if (s.includes('dispatch') || s.includes('transit') || s.includes('shipped') || s.includes('out') || s.includes('sent') || s.includes('पाठवले') || s.includes('मार्गावर') || s.includes('डिस्पॅच')) {
+    return { step: 3, percent: 75, color: 'bg-blue-600', badgeClass: 'bg-blue-100 text-blue-700 border-blue-200' };
+  }
+  // Stage 2: Packing / Processed / Billed / In Review (50%)
+  if (s.includes('pack') || s.includes('process') || s.includes('bill') || s.includes('review') || s.includes('ready') || s.includes('inward') || s.includes('पॅकिंग') || s.includes('बिल') || s.includes('प्रक्रिया')) {
+    return { step: 2, percent: 50, color: 'bg-indigo-600', badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+  }
+  // Stage 1: Placed / Pending / Raised (25%)
+  return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
+};
+
 export function LedgerView(props) {
   var user = props.user;
   var lang = props.lang || 'en';
@@ -29,27 +51,6 @@ export function LedgerView(props) {
       setLoading(false);
     }).catch(() => setLoading(false));
   }, [user]);
-
-  
-  const getOrderStatusStep = (statusStr) => {
-    if (!statusStr) return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
-    const s = String(statusStr).toLowerCase().trim();
-    
-    // Stage 4: Completed / Delivered / Done / Closed (100%)
-    if (s.includes('deliver') || s.includes('complete') || s.includes('done') || s.includes('closed') || s.includes('पोहोचवले') || s.includes('पूर्ण') || s.includes('झाले')) {
-      return { step: 4, percent: 100, color: 'bg-emerald-600', badgeClass: 'bg-green-100 text-green-700 border-green-200' };
-    }
-    // Stage 3: Dispatched / In Transit / Out for Delivery (75%)
-    if (s.includes('dispatch') || s.includes('transit') || s.includes('shipped') || s.includes('out') || s.includes('sent') || s.includes('पाठवले')) {
-      return { step: 3, percent: 75, color: 'bg-blue-600', badgeClass: 'bg-blue-100 text-blue-700 border-blue-200' };
-    }
-    // Stage 2: Packing / Processed / Billed / In Review (50%)
-    if (s.includes('pack') || s.includes('process') || s.includes('bill') || s.includes('review') || s.includes('ready') || s.includes('inward') || s.includes('पॅकिंग')) {
-      return { step: 2, percent: 50, color: 'bg-indigo-600', badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
-    }
-    // Stage 1: Placed / Pending / Raised (25%)
-    return { step: 1, percent: 25, color: 'bg-amber-500', badgeClass: 'bg-amber-100 text-amber-800 border-amber-200' };
-  };
 
   if (loading) {
     return (
@@ -199,6 +200,21 @@ export function OrdersHistoryView(props) {
     addIfMissing(t('payment_proof', lang), ord.PaymentScreenshot || ord.screenshotUrl, 'image');
     addIfMissing(t('call_recording', lang), ord.CallRecording || ord.callRecording || ord.Call1 || ord.Call2, 'audio');
 
+    // Deep key search for any drive/http photo or recording urls
+    Object.keys(ord || {}).forEach(k => {
+      const lk = k.toLowerCase().replace(/[\s_-]/g, '');
+      const v = ord[k];
+      if (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))) {
+        if (lk.includes('stock')) addIfMissing(t('stock_photo', lang), v, 'image');
+        else if (lk.includes('invoice') || lk.includes('bill')) addIfMissing(t('invoice_photo', lang), v, 'image');
+        else if (lk.includes('box') || lk.includes('packing')) addIfMissing(t('box_photo', lang), v, 'image');
+        else if (lk.includes('pod') || lk.includes('delivery')) addIfMissing(t('delivery_proof', lang), v, 'image');
+        else if (lk.includes('pay') || lk.includes('screen') || lk.includes('utr')) addIfMissing(t('payment_proof', lang), v, 'image');
+        else if (lk.includes('call') || lk.includes('audio') || lk.includes('record')) addIfMissing(t('call_recording', lang), v, 'audio');
+        else if (lk.includes('photo') || lk.includes('image') || lk.includes('drive') || lk.includes('file')) addIfMissing('Photo', v, 'image');
+      }
+    });
+
     return atts;
   };
 
@@ -332,10 +348,12 @@ export function OrdersHistoryView(props) {
                         {lang === 'mr' ? 'पडताळणी व डिस्पॅच अपडेट' : lang === 'hi' ? 'सत्यापन व डिस्पैच अपडेट' : 'Verification & Dispatch Update'}
                       </div>
                       <div className="text-amber-900 font-medium">
-                        {(ord.status || '').toLowerCase().includes('deliver')
-                          ? (lang === 'mr' ? 'ऑर्डर यशस्वीरीत्या पोहोचवली गेली आहे.' : lang === 'hi' ? 'ऑर्डर सफलतापूर्वक डिलीवर हो चुकी है।' : 'Order successfully delivered.')
-                          : (ord.status || '').toLowerCase().includes('dispatch')
+                        {stepInfo.step === 4
+                          ? (lang === 'mr' ? 'ऑर्डर यशस्वीरीत्या पूर्ण व वितरित झाली आहे.' : lang === 'hi' ? 'ऑर्डर सफलतापूर्वक पूर्ण और डिलीवर हो चुकी है।' : 'Order successfully completed and delivered.')
+                          : stepInfo.step === 3
                           ? (lang === 'mr' ? 'ऑर्डर गोदामातून डिस्पॅच झाली आहे. लवकरच पोहोचेल.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस से डिस्पैच हो चुकी है। जल्द ही पहुंचेगी।' : 'Order dispatched from warehouse. Arriving soon.')
+                          : stepInfo.step === 2
+                          ? (lang === 'mr' ? 'ऑर्डर गोदामात पॅकिंग व प्रोसेस होत आहे. लवकरच पाठवले जाईल.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस में पैकिंग और प्रोसेस हो रही है। जल्द डिस्पैच होगी।' : 'Order is being packed and prepared for dispatch.')
                           : (lang === 'mr' ? 'ऑर्डर गोदामात पॅकिंगसाठी प्रलंबित आहे. पॅक होताच प्रत्यक्ष स्टॉक, बॉक्स व इनव्हॉइस फोटो येथे उपलब्ध होतील.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस में पैकिंग के लिए लंबित है। पैक होते ही स्टॉक, बॉक्स और बिल के फ़ोटो यहाँ उपलब्ध होंगे।' : 'Order is pending warehouse packing. Live photos of stock, box, and invoice will be updated once packed.')}
                       </div>
                     </div>
