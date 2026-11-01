@@ -208,20 +208,64 @@ export function OrdersHistoryView(props) {
                 <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
                   <div>
                     <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
-                    <div className="font-black text-gray-800 text-xs mt-1">{ord.orderId}</div>
+                    <div className="font-black text-blue-900 text-xs mt-0.5">{ord.orderId}</div>
                   </div>
-                  <span className={`text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${ord.status === "Delivered" ? "bg-green-100 text-green-700" : ord.status === "Dispatched" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>
+                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs ${(ord.status || '').toLowerCase().includes('deliver') ? "bg-green-100 text-green-700 border border-green-200" : (ord.status || '').toLowerCase().includes('dispatch') ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-amber-100 text-amber-800 border border-amber-200"}`}>
                     {translateStatus(ord.status, lang) || ord.status || "Pending"}
                   </span>
                 </div>
 
+                {/* 🚚 LIVE ORDER STATUS STEPPER & TRACKING */}
+                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 my-2 shadow-2xs">
+                  <div className="flex justify-between text-[8px] font-black text-gray-500 uppercase tracking-wider mb-1.5 text-center">
+                    <span className="w-1/4 flex flex-col items-center">
+                      <span className="text-[11px]">📝</span>
+                      <span>{lang === 'mr' ? 'नोंदवली' : lang === 'hi' ? 'दर्ज' : 'Placed'}</span>
+                    </span>
+                    <span className="w-1/4 flex flex-col items-center">
+                      <span className="text-[11px]">📦</span>
+                      <span>{lang === 'mr' ? 'पॅकिंग सुरू' : lang === 'hi' ? 'पैकिंग जारी' : 'Packing'}</span>
+                    </span>
+                    <span className="w-1/4 flex flex-col items-center">
+                      <span className="text-[11px]">🚚</span>
+                      <span>{lang === 'mr' ? 'पाठवले' : lang === 'hi' ? 'डिस्पैच' : 'Dispatched'}</span>
+                    </span>
+                    <span className="w-1/4 flex flex-col items-center">
+                      <span className="text-[11px]">✅</span>
+                      <span>{lang === 'mr' ? 'पोहोचवले' : lang === 'hi' ? 'डिलीवर' : 'Delivered'}</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden shadow-inner">
+                    <div 
+                      className={`h-full transition-all duration-500 rounded-full ${
+                        (ord.status || '').toLowerCase().includes('deliver') ? 'bg-emerald-600' :
+                        (ord.status || '').toLowerCase().includes('dispatch') ? 'bg-blue-600' :
+                        (ord.status || '').toLowerCase().includes('process') || (ord.status || '').toLowerCase().includes('pack') ? 'bg-indigo-600' :
+                        'bg-amber-500'
+                      }`}
+                      style={{
+                        width: 
+                          (ord.status || '').toLowerCase().includes('deliver') ? '100%' :
+                          (ord.status || '').toLowerCase().includes('dispatch') ? '75%' :
+                          (ord.status || '').toLowerCase().includes('process') || (ord.status || '').toLowerCase().includes('pack') ? '50%' :
+                          '25%'
+                      }}
+                    ></div>
+                  </div>
+                  <div className="text-[10px] text-gray-600 font-bold mt-2 text-center flex items-center justify-center gap-1">
+                    <span className="text-gray-400">{lang === 'mr' ? 'सध्याचे अपडेट:' : lang === 'hi' ? 'वर्तमान अपडेट:' : 'Current Update:'}</span>
+                    <span className="text-gray-900 font-black">{translateStatus(ord.status, lang) || ord.status || 'Pending'}</span>
+                  </div>
+                </div>
+
                 {/* 📸 DOCUMENT GALLERY: REAL STOCK PHOTO, INVOICE, BOX PHOTO & CALL RECORDING */}
-                {allAttachments && allAttachments.length > 0 && (
-                  <div className="py-3 border-b border-dashed border-gray-100">
-                    <div className="text-[9px] text-gray-400 font-black uppercase mb-2 flex items-center gap-1">
-                      <span>📁</span> {t('order_docs', lang)}
+                {allAttachments && allAttachments.length > 0 ? (
+                  <div className="py-2.5 border-b border-dashed border-gray-100">
+                    <div className="text-[9px] text-gray-400 font-black uppercase mb-1.5 flex items-center justify-between">
+                      <span className="flex items-center gap-1"><span>📁</span> {t('order_docs', lang)}</span>
+                      <span className="text-blue-900 font-bold bg-blue-50 px-2 py-0.5 rounded-full text-[9px]">{allAttachments.length} Documents</span>
                     </div>
-                    <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                    <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
                       {allAttachments.map((att, i) => {
                         const fileId = getFileId(att.url);
                         const isAudio = att.type === 'audio' || (att.label && att.label.toLowerCase().includes('call'));
@@ -232,9 +276,9 @@ export function OrdersHistoryView(props) {
                           <div 
                             key={i} 
                             onClick={() => setZoomedMedia({ ...att, fileId, isAudio })} 
-                            className="min-w-[76px] w-[76px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                            className="min-w-[72px] w-[72px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
                           >
-                            <div className="w-16 h-16 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden flex items-center justify-center shadow-sm relative group">
+                            <div className="w-16 h-16 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden flex items-center justify-center shadow-xs relative group">
                               {isAudio ? (
                                 <div className="flex flex-col items-center justify-center bg-blue-50 w-full h-full text-blue-900">
                                   <span className="text-2xl animate-pulse">🎧</span>
@@ -263,18 +307,46 @@ export function OrdersHistoryView(props) {
                       })}
                     </div>
                   </div>
+                ) : (
+                  <div className="py-2.5 px-3 bg-amber-50/70 border border-amber-200/60 rounded-xl my-2 flex items-start gap-2">
+                    <span className="text-base shrink-0 mt-0.5">📦</span>
+                    <div className="text-[11px] leading-tight flex-1">
+                      <div className="font-black text-amber-950 uppercase tracking-wider text-[9px] mb-0.5">
+                        {lang === 'mr' ? 'पडताळणी व डिस्पॅच अपडेट' : lang === 'hi' ? 'सत्यापन व डिस्पैच अपडेट' : 'Verification & Dispatch Update'}
+                      </div>
+                      <div className="text-amber-900 font-medium">
+                        {(ord.status || '').toLowerCase().includes('deliver')
+                          ? (lang === 'mr' ? 'ऑर्डर यशस्वीरीत्या पोहोचवली गेली आहे.' : lang === 'hi' ? 'ऑर्डर सफलतापूर्वक डिलीवर हो चुकी है।' : 'Order successfully delivered.')
+                          : (ord.status || '').toLowerCase().includes('dispatch')
+                          ? (lang === 'mr' ? 'ऑर्डर गोदामातून डिस्पॅच झाली आहे. लवकरच पोहोचेल.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस से डिस्पैच हो चुकी है। जल्द ही पहुंचेगी।' : 'Order dispatched from warehouse. Arriving soon.')
+                          : (lang === 'mr' ? 'ऑर्डर गोदामात पॅकिंगसाठी प्रलंबित आहे. पॅक होताच प्रत्यक्ष स्टॉक, बॉक्स व इनव्हॉइस फोटो येथे उपलब्ध होतील.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस में पैकिंग के लिए लंबित है। पैक होते ही स्टॉक, बॉक्स और बिल के फ़ोटो यहाँ उपलब्ध होंगे।' : 'Order is pending warehouse packing. Live photos of stock, box, and invoice will be updated once packed.')}
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 <div className="py-3 border-b border-dashed border-gray-100">
-                  <div className="text-[9px] text-gray-400 font-black uppercase mb-1">{t('order_billing_blueprint', lang)}</div>
-                  <div className="text-xs font-bold text-gray-700 leading-relaxed whitespace-pre-line">
-                    {itemsList.map((it, i) => (
-                      <div key={i} className="flex justify-between items-center py-0.5">
-                        <span className={it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward") ? "text-green-600 font-black" : ""}>
-                          • {translateProductName(it.trim(), lang)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="text-[9px] text-gray-400 font-black uppercase mb-1.5 flex items-center justify-between">
+                    <span>{t('order_billing_blueprint', lang)}</span>
+                    <span className="text-gray-500 font-bold text-[9px]">{itemsList.length} Items</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {itemsList.map((it, i) => {
+                      const isDiscount = it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward");
+                      return (
+                        <div 
+                          key={i} 
+                          className={`text-xs p-2 rounded-lg flex items-center justify-between ${
+                            isDiscount ? 'bg-emerald-50 text-emerald-800 font-black border border-emerald-200' : 'bg-gray-50 text-gray-800 font-bold border border-gray-100'
+                          }`}
+                        >
+                          <span className="flex items-center gap-1.5 min-w-0 flex-1 pr-2 truncate">
+                            <span>{isDiscount ? '🎁' : '•'}</span>
+                            <span className="truncate">{translateProductName(it.trim(), lang)}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
