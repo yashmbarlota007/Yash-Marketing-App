@@ -285,10 +285,11 @@ export default function ReplacementsView(props) {
 
   const parseTicketItems = (rawString) => {
     if (!rawString) return [];
+    const toAsciiDigits = (s) => String(s).replace(/[०-९]/g, d => '०१२३४५६७८९'.indexOf(d));
     const parts = String(rawString).split(' | ');
     return parts.map((part, index) => {
       let text = part.trim();
-      text = text.replace(/^\d+\.\s*/, '');
+      text = text.replace(/^[\d०-९]+\.\s*/, '');
       let defect = '';
       const defectMatch = text.match(/\[(.*?)\]/);
       if (defectMatch) {
@@ -296,16 +297,16 @@ export default function ReplacementsView(props) {
         text = text.replace(/\[.*?\]/, '').trim();
       }
       let qty = 1;
-      const qtyMatch = text.match(/\(x(\d+)\)/i) || text.match(/x(\d+)/i);
+      const qtyMatch = text.match(/\(x([\d०-९]+)\)/i) || text.match(/x([\d०-९]+)/i);
       if (qtyMatch) {
-        qty = parseInt(qtyMatch[1], 10);
-        text = text.replace(/\(x\d+\)/i, '').replace(/x\d+/i, '').trim();
+        qty = parseInt(toAsciiDigits(qtyMatch[1]), 10) || 1;
+        text = text.replace(/\(x[\d०-९]+\)/i, '').replace(/x[\d०-९]+/i, '').trim();
       }
       let photosCount = 0;
-      const photoMatch = text.match(/\((\d+)\s*(?:फोटो|photos?)\)/i);
+      const photoMatch = text.match(/\(([\d०-९]+)\s*(?:फोटो|photos?)\)/i);
       if (photoMatch) {
-        photosCount = parseInt(photoMatch[1], 10);
-        text = text.replace(/\(\d+\s*(?:फोटो|photos?)\)/i, '').trim();
+        photosCount = parseInt(toAsciiDigits(photoMatch[1]), 10) || 0;
+        text = text.replace(/\([\d०-९]+\s*(?:फोटो|photos?)\)/i, '').trim();
       }
       const prodName = text.replace(/\s*-\s*$/, '').trim();
       return {
