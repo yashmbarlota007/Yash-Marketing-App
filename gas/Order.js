@@ -1,34 +1,60 @@
 function getDealerOrders(phone) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Orders");
-    
-    // Support fallback to Main Yash Marketing Catalogue Backend Sheet if local sheet has no orders
-    var mainBackendSpreadsheetId = "1nFxdcul3UiAgOoEaF2y-ejqSaMhFwDDGTnbp8BMvmvI";
-    var sheetsToSearch = [];
-    if (sheet) sheetsToSearch.push(sheet);
-    try {
-      if (!sheet || ss.getId() !== mainBackendSpreadsheetId) {
-        var mainBackendSs = SpreadsheetApp.openById(mainBackendSpreadsheetId);
-        var mainOrdersSheet = mainBackendSs ? mainBackendSs.getSheetByName("Orders") : null;
-        if (mainOrdersSheet) sheetsToSearch.push(mainOrdersSheet);
-      }
-    } catch(e) {}
-
-    if (sheetsToSearch.length === 0) return { success: true, data: [] };
-
     var targetPhone = phone ? phone.toString().replace(/\D/g, '').slice(-10) : "";
     if (targetPhone === "") return { success: false, message: "Invalid phone check." };
 
-    var list = [];
-    var seenOrderIds = {};
+    var sheetsToSearch = [];
+
+    // 1. Prioritize Main Yash Marketing Catalogue Backend Sheet (where staff actively enters status & photos)
+    var mainBackendSpreadsheetId = "1nFxdcul3UiAgOoEaF2y-ejqSaMhFwDDGTnbp8BMvmvI";
+    try {
+      var mainBackendSs = SpreadsheetApp.openById(mainBackendSpreadsheetId);
+      if (mainBackendSs) {
+        var mainOrdersSheet = mainBackendSs.getSheetByName("Orders") || mainBackendSs.getSheetByName("orders");
+        if (mainOrdersSheet) sheetsToSearch.push({ sheet: mainOrdersSheet, name: "MainBackendOrders" });
+      }
+    } catch(mainErr) {
+      Logger.log("Main Backend Sheet Access Error: " + mainErr.toString());
+    }
+
+    // 2. Also check Connected Master FMS Sheet (where dispatch, tracking, and fulfillment happens)
+    var fmsSpreadsheetId = "1VTbtmkLL5R8PVdqv6PcTNn7I5aVjkjsT99QvNJMMHAA";
+    try {
+      var fmsSpreadsheet = SpreadsheetApp.openById(fmsSpreadsheetId);
+      if (fmsSpreadsheet) {
+        var fmsSheet = fmsSpreadsheet.getSheetByName("FMS") || fmsSpreadsheet.getSheetByName("Orders");
+        if (fmsSheet) sheetsToSearch.push({ sheet: fmsSheet, name: "FMS" });
+      }
+    } catch(fmsErr) {
+      Logger.log("FMS Sheet Access Error: " + fmsErr.toString());
+    }
+
+    // 3. Fallback / local sheet
+    try {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var localSheet = ss ? (ss.getSheetByName("Orders") || ss.getSheetByName("orders")) : null;
+      if (localSheet) {
+        var isAlreadyIn = false;
+        for (var si = 0; si < sheetsToSearch.length; si++) {
+          if (sheetsToSearch[si].sheet.getSheetId() === localSheet.getSheetId()) {
+            isAlreadyIn = true;
+            break;
+          }
+        }
+        if (!isAlreadyIn) sheetsToSearch.push({ sheet: localSheet, name: "LocalOrders" });
+      }
+    } catch(locErr) {}
+
+    if (sheetsToSearch.length === 0) return { success: true, data: [] };
+
+    var ordersMap = {};
 
     for (var s = 0; s < sheetsToSearch.length; s++) {
-      var curSheet = sheetsToSearch[s];
+      var sheetObj = sheetsToSearch[s];
+      var curSheet = sheetObj.sheet;
       var data = curSheet.getDataRange().getValues();
       if (!data || data.length <= 1) continue;
 
-      // Dynamically locate column indices from headers (Row 1)
       var headers = data[0];
       var phoneCol = 3;
       var dateCol = 0;
@@ -37,7 +63,7 @@ function getDealerOrders(phone) {
       var itemsCol = 4;
       var amountCol = 5;
       var paymentCol = 6;
-      var statusCol = 7;
+      var statusCol = -1;
       var stockPhotoCol = -1;
       var invoicePhotoCol = -1;
       var boxPhotoCol = -1;
@@ -46,14 +72,17 @@ function getDealerOrders(phone) {
       var ratingCol = -1;
       var screenshotCol = -1;
 
+      // Detect column indices dynamically
       for (var h = 0; h < headers.length; h++) {
         var headerStr = String(headers[h] || "").toLowerCase().replace(/[^a-z0-9]/g, "");
         if (headerStr.indexOf("phone") !== -1 || headerStr.indexOf("mobile") !== -1 || headerStr.indexOf("contact") !== -1) phoneCol = h;
         else if (headerStr === "orderid" || headerStr === "orderno" || headerStr === "ordernumber") orderIdCol = h;
         else if (headerStr.indexOf("shop") !== -1 || headerStr.indexOf("dealer") !== -1) shopCol = h;
-        else if (headerStr.indexOf("status") !== -1) statusCol = h;
+        else if (headerStr === "status" || headerStr.indexOf("orderstatus") !== -1 || headerStr.indexOf("dispatchstatus") !== -1 || headerStr.indexOf("fmsstatus") !== -1 || headerStr === "stage") {
+          if (statusCol === -1 || headerStr.indexOf("dispatch") !== -1 || headerStr.indexOf("status") !== -1) statusCol = h;
+        }
         else if (headerStr.indexOf("item") !== -1 || headerStr.indexOf("product") !== -1) itemsCol = h;
-        else if (headerStr.indexOf("amount") !== -1 || headerStr.indexOf("total") !== -1) amountCol = h;
+        else if (headerStr.indexOf("amount") !== -1 || headerStr.indexOf("total") !== -1 || headerStr.indexOf("price") !== -1) amountCol = h;
         else if (headerStr.indexOf("payment") !== -1 || headerStr.indexOf("mode") !== -1) paymentCol = h;
         else if (headerStr.indexOf("stockphoto") !== -1 || (headerStr.indexOf("stock") !== -1 && headerStr.indexOf("photo") !== -1)) stockPhotoCol = h;
         else if (headerStr.indexOf("invoicephoto") !== -1 || headerStr.indexOf("billphoto") !== -1 || (headerStr.indexOf("invoice") !== -1 && headerStr.indexOf("photo") !== -1)) invoicePhotoCol = h;
@@ -64,7 +93,7 @@ function getDealerOrders(phone) {
         else if (headerStr.indexOf("screenshot") !== -1 || headerStr.indexOf("slip") !== -1) screenshotCol = h;
       }
 
-      // Fallbacks to known standard positions if header matching didn't find specific media cols
+      if (statusCol === -1) statusCol = 7;
       if (stockPhotoCol === -1) stockPhotoCol = headers.length > 12 ? 12 : 10;
       if (invoicePhotoCol === -1) invoicePhotoCol = headers.length > 13 ? 13 : 11;
       if (boxPhotoCol === -1) boxPhotoCol = headers.length > 14 ? 14 : 12;
@@ -80,9 +109,8 @@ function getDealerOrders(phone) {
 
         var cleanRowPhone = rowPhoneRaw.toString().replace(/\D/g, '').slice(-10);
         if (cleanRowPhone === targetPhone) {
-          var orderId = row[orderIdCol] ? row[orderIdCol].toString() : "N/A";
-          if (seenOrderIds[orderId]) continue; // Avoid duplicates across sheets
-          seenOrderIds[orderId] = true;
+          var orderId = row[orderIdCol] ? row[orderIdCol].toString().trim() : "N/A";
+          if (!orderId || orderId === "N/A") continue;
 
           var dateVal = row[dateCol];
           var dateStr = "";
@@ -90,6 +118,25 @@ function getDealerOrders(phone) {
             dateStr = Utilities.formatDate(dateVal, Session.getScriptTimeZone(), "dd-MM-yyyy HH:mm");
           } else {
             dateStr = dateVal ? dateVal.toString() : "";
+          }
+
+          var rowStatus = (statusCol >= 0 && row[statusCol]) ? row[statusCol].toString().trim() : "Pending";
+          
+          // Also check other cells in row for higher status (e.g. Completed, Dispatched, Delivered)
+          for (var c = 0; c < row.length; c++) {
+            var cellTxt = String(row[c] || "").trim().toLowerCase();
+            if (cellTxt === "completed" || cellTxt === "complete" || cellTxt === "delivered" || cellTxt === "done") {
+              rowStatus = "Completed";
+              break;
+            } else if (cellTxt === "dispatched" || cellTxt === "in transit" || cellTxt === "out for delivery") {
+              if (rowStatus.toLowerCase() !== "completed" && rowStatus.toLowerCase() !== "delivered") {
+                rowStatus = "Dispatched";
+              }
+            } else if (cellTxt === "processed" || cellTxt === "packing" || cellTxt === "packed" || cellTxt === "billed") {
+              if (rowStatus.toLowerCase() === "pending" || !rowStatus) {
+                rowStatus = "Processed";
+              }
+            }
           }
 
           var stockPhotoUrl = (stockPhotoCol >= 0 && row[stockPhotoCol]) ? row[stockPhotoCol].toString().trim() : "";
@@ -109,7 +156,7 @@ function getDealerOrders(phone) {
           if (screenshotUrl) attachments.push({ label: "Payment Slip", type: "image", url: screenshotUrl });
           if (ratingVal) attachments.push({ label: "Order Rating", type: "rating", url: ratingVal });
 
-          // Scan all columns for any Google Drive or image URLs
+          // Scan all row columns for any Google Drive or image URLs
           for (var colIdx = 0; colIdx < row.length; colIdx++) {
             var cellVal = String(row[colIdx] || "").trim();
             if (cellVal && (cellVal.indexOf("drive.google.com") !== -1 || cellVal.indexOf("http") !== -1)) {
@@ -126,28 +173,52 @@ function getDealerOrders(phone) {
             }
           }
 
-          list.push({
-            date: dateStr,
-            orderId: orderId,
-            shopName: row[shopCol] ? row[shopCol].toString() : "N/A",
-            items: row[itemsCol] ? row[itemsCol].toString() : "N/A",
-            finalAmount: row[amountCol] ? row[amountCol].toString() : "0",
-            paymentMode: row[paymentCol] ? row[paymentCol].toString() : "N/A",
-            status: row[statusCol] ? row[statusCol].toString() : "Pending",
-            StockPhoto: stockPhotoUrl,
-            InvoicePhoto: invoicePhotoUrl,
-            BoxPhoto: boxPhotoUrl,
-            POD: podUrl,
-            CallRecording: callRecordingUrl,
-            PaymentScreenshot: screenshotUrl,
-            OrderRating: ratingVal,
-            attachments: attachments
-          });
+          if (!ordersMap[orderId]) {
+            ordersMap[orderId] = {
+              date: dateStr,
+              orderId: orderId,
+              shopName: row[shopCol] ? row[shopCol].toString() : "N/A",
+              items: row[itemsCol] ? row[itemsCol].toString() : "N/A",
+              finalAmount: row[amountCol] ? row[amountCol].toString() : "0",
+              paymentMode: row[paymentCol] ? row[paymentCol].toString() : "N/A",
+              status: rowStatus,
+              StockPhoto: stockPhotoUrl,
+              InvoicePhoto: invoicePhotoUrl,
+              BoxPhoto: boxPhotoUrl,
+              POD: podUrl,
+              CallRecording: callRecordingUrl,
+              PaymentScreenshot: screenshotUrl,
+              OrderRating: ratingVal,
+              attachments: attachments
+            };
+          } else {
+            // Merge row details: prioritize non-pending status and any new attachments
+            var existing = ordersMap[orderId];
+            if ((existing.status === "Pending" || !existing.status) && rowStatus !== "Pending") {
+              existing.status = rowStatus;
+            }
+            if (attachments.length > 0) {
+              attachments.forEach(function(att) {
+                var exists = existing.attachments.some(function(ea) { return ea.url === att.url; });
+                if (!exists) existing.attachments.push(att);
+              });
+            }
+            if (!existing.StockPhoto && stockPhotoUrl) existing.StockPhoto = stockPhotoUrl;
+            if (!existing.InvoicePhoto && invoicePhotoUrl) existing.InvoicePhoto = invoicePhotoUrl;
+            if (!existing.BoxPhoto && boxPhotoUrl) existing.BoxPhoto = boxPhotoUrl;
+            if (!existing.POD && podUrl) existing.POD = podUrl;
+            if (!existing.CallRecording && callRecordingUrl) existing.CallRecording = callRecordingUrl;
+          }
         }
       }
     }
 
-    return { success: true, data: list };
+    var orderList = [];
+    for (var k in ordersMap) {
+      orderList.push(ordersMap[k]);
+    }
+
+    return { success: true, data: orderList };
   } catch(e) {
     return { success: false, message: e.toString() };
   }
