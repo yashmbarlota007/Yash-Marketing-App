@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_URL, getProp, compressImageFile } from '../utils/helpers';
 import { ScannerModal } from './SharedUI';
-import { t, translateStatus, translateDefect } from '../utils/translations';
+import { t, translateStatus, translateDefect, translateProductName, translateBrand } from '../utils/translations';
 
 export default function ReplacementsView(props) {
   var user = props.user;
@@ -394,7 +394,7 @@ export default function ReplacementsView(props) {
                       <option value="">-- {t('select_product', lang)} --</option>
                       {filteredProducts.map((p, idx) => {
                         const name = String(getProp(p, "ProductName"));
-                        return <option key={idx} value={name}>{name}</option>;
+                        return <option key={idx} value={name}>{translateProductName(name, lang)}</option>;
                       })}
                     </select>
                   </div>
@@ -505,10 +505,10 @@ export default function ReplacementsView(props) {
                           <div className="flex justify-between items-start">
                             <div className="flex-1 pr-2">
                               <span className="text-[9px] bg-blue-100 text-blue-900 font-black px-1.5 py-0.5 rounded mr-1">
-                                {item.brand}
+                                {translateBrand(item.brand, lang) || item.brand}
                               </span>
                               <span className="text-xs font-black text-gray-800">
-                                {item.productName}
+                                {translateProductName(item.productName, lang)}
                               </span>
                               <div className="text-[10px] text-gray-500 font-bold mt-1">
                                 {t('defect_type', lang)}: <span className="text-red-700 font-black">{translateDefect(item.defectType, lang)}</span> • {t('quantity', lang)}: <span className="font-black text-blue-900">{item.qty}</span>
@@ -680,9 +680,9 @@ export default function ReplacementsView(props) {
                 
                 <div className="mb-2">
                   <div className="text-[10px] bg-blue-100 text-blue-900 font-black px-2 py-0.5 rounded inline-block mb-1">
-                    {ticket.brand || "Help Ticket"}
+                    {translateBrand(ticket.brand, lang) || ticket.brand || "Help Ticket"}
                   </div>
-                  <h3 className="font-bold text-sm text-gray-800 leading-snug">{ticket.productName}</h3>
+                  <h3 className="font-bold text-sm text-gray-800 leading-snug">{translateProductName(ticket.productName, lang)}</h3>
                   {ticket.defectType && (
                     <p className="text-[11px] text-gray-600 font-bold mt-1">
                       <span className="text-gray-400">{t('defect_type', lang)}:</span> {translateDefect(ticket.defectType, lang)}
@@ -700,7 +700,7 @@ export default function ReplacementsView(props) {
                     <span className="w-1/5">{t('ticket_status_raised', lang)}</span>
                     <span className="w-1/5">{t('ticket_status_in_progress', lang)}</span>
                     <span className="w-1/5">{t('ticket_status_approved', lang)}</span>
-                    <span className="w-1/5">Actioned</span>
+                    <span className="w-1/5">{t('ticket_status_actioned', lang)}</span>
                     <span className="w-1/5">{t('ticket_status_resolved', lang)}</span>
                   </div>
                   <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
@@ -710,7 +710,7 @@ export default function ReplacementsView(props) {
                     ></div>
                   </div>
                   <div className="text-[10px] text-gray-500 font-bold mt-3 text-center">
-                    Status: <span className="text-gray-800 font-black">{translateStatus(ticket.status, lang) || ticket.status}</span>
+                    {t('ticket_status_label', lang)}: <span className="text-gray-800 font-black">{translateStatus(ticket.status, lang) || ticket.status}</span>
                   </div>
                 </div>
 
