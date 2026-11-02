@@ -36,6 +36,8 @@ export const translations = {
     target_congrats_quarterly: "🏆 Quarterly Target achieved! +2% Additional Discount active.",
     target_growth_basis: "Targets based on 6-month avg sales + 20% growth.",
     target_unlocked_badge: "TARGET UNLOCKED",
+    target_extra_discount_badge: "(+2% Extra Discount)",
+    target_discount_active_badge: "+{percent}% Extra Discount Active",
     target_in_progress: "IN PROGRESS",
 
     // Bottom Nav
@@ -274,6 +276,8 @@ export const translations = {
     target_congrats_quarterly: "🏆 तिमाही टारगेट पूरा! +२% अतिरिक्त बोनस छूट सक्रिय है।",
     target_growth_basis: "पिछले ६ महीनों की औसत बिक्री + २०% विकास पर आधारित।",
     target_unlocked_badge: "टारगेट पूरा",
+    target_extra_discount_badge: "(+२% अतिरिक्त छूट)",
+    target_discount_active_badge: "+{percent}% अतिरिक्त छूट सक्रिय",
     target_in_progress: "प्रगति पर",
 
     // Bottom Nav
@@ -512,6 +516,8 @@ export const translations = {
     target_congrats_quarterly: "🏆 तिमाही उद्दिष्ट पूर्ण! +२% अतिरिक्त बोनस सूट सुरू.",
     target_growth_basis: "मागील ६ महिन्यांची सरासरी विक्री + २०% वाढीवर आधारित.",
     target_unlocked_badge: "उद्दिष्ट साध्य",
+    target_extra_discount_badge: "(+२% अतिरिक्त सूट)",
+    target_discount_active_badge: "+{percent}% अतिरिक्त सूट सुरू",
     target_in_progress: "प्रगतीपथावर",
 
     // Bottom Nav
