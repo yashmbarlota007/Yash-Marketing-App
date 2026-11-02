@@ -1,3 +1,7 @@
+// =====================================================================
+// 🎯 DEALER TARGETS MANAGEMENT SYSTEM (6-MONTH AVG + 20% GROWTH)
+// =====================================================================
+
 function verifyDealer(phone) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Dealers");
   var data = sheet.getDataRange().getValues();
@@ -12,11 +16,212 @@ function verifyDealer(phone) {
     if (sheetPhoneRaw) {
       var sheetPhoneClean = sheetPhoneRaw.toString().replace(/\D/g, '').slice(-10);
       if (sheetPhoneClean === targetPhoneClean) {
-        return { success: true, shopName: data[i][1] };
+        var mTarget = Number(data[i][5]) || 0;
+        var qTarget = Number(data[i][6]) || 0;
+        return { 
+          success: true, 
+          shopName: data[i][1],
+          phone: targetPhoneClean,
+          monthlyTarget: mTarget,
+          quarterlyTarget: qTarget
+        };
       }
     }
   }
   return { success: false, message: "Number not registered." };
+}
+
+function calculateAndSetupDealerTargets() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var dealersSheet = ss.getSheetByName("Dealers");
+    if (!dealersSheet) return { success: false, message: "Dealers sheet not found" };
+
+    var dealersData = dealersSheet.getDataRange().getValues();
+    if (dealersData.length < 2) return { success: false, message: "No dealers found in sheet" };
+
+    // 1. Rename Column F (6) and Column G (7)
+    dealersSheet.getRange(1, 6).setValue("Monthly Targets");
+    dealersSheet.getRange(1, 7).setValue("Quarterly Targets");
+
+    dealersSheet.getRange(1, 6, 1, 2)
+      .setFontWeight("bold")
+      .setBackground("#1e3a8a")
+      .setFontColor("#ffffff")
+      .setHorizontalAlignment("center");
+
+    // 2. Cutoff: 180 days ago (last 6 months)
+    var now = new Date();
+    var sixMonthsAgo = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
+
+    var salesByPhone = {};
+    var salesByShop = {};
+
+    function cleanPhone(p) {
+      return p ? p.toString().replace(/\D/g, '').slice(-10) : "";
+    }
+    function cleanStr(s) {
+      return s ? s.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
+    }
+
+    // A. Ledger debits (bills)
+    try {
+      var ledgerSheet = ss.getSheetByName("Ledger");
+      if (ledgerSheet) {
+        var lData = ledgerSheet.getDataRange().getValues();
+        var currentSectionShop = "";
+        var drIdx = 6;
+
+        for (var j = 0; j < lData.length; j++) {
+          var row = lData[j];
+          var colA = row[0] ? row[0].toString().trim() : "";
+          var colB = row[1] ? row[1].toString().trim() : "";
+
+          if (colA !== "" && colA.toLowerCase().indexOf("ledger:") > -1) {
+            currentSectionShop = cleanStr(colB);
+            drIdx = 6;
+            continue;
+          }
+
+          if (currentSectionShop !== "") {
+            if (colA.toLowerCase() === "date" || colA.toLowerCase().indexOf("date") === 0) {
+              for (var c = 0; c < row.length; c++) {
+                var h = row[c] ? row[c].toString().toLowerCase().replace(/\./g, '').trim() : "";
+                if (h === "debit") drIdx = c;
+              }
+              continue;
+            }
+
+            var debitVal = parseFloat(row[drIdx] ? row[drIdx].toString().replace(/,/g, '') : "0") || 0;
+            if (debitVal > 0) {
+              var txDate = null;
+              if (row[0] instanceof Date) {
+                txDate = row[0];
+              } else if (colA.includes('-')) {
+                var p = colA.split('-');
+                if (p.length === 3) {
+                  if (p[0].length === 4) txDate = new Date(colA);
+                  else txDate = new Date(p[2] + '-' + p[1] + '-' + p[0]);
+                }
+              }
+
+              if (!txDate || txDate >= sixMonthsAgo) {
+                salesByShop[currentSectionShop] = (salesByShop[currentSectionShop] || 0) + debitVal;
+              }
+            }
+          }
+        }
+      }
+    } catch(lErr) {
+      Logger.log("Ledger calculation err: " + lErr.toString());
+    }
+
+    // B. Orders sheet
+    try {
+      var ordersSheet = ss.getSheetByName("Orders") || ss.getSheetByName("orders");
+      if (ordersSheet) {
+        var oData = ordersSheet.getDataRange().getValues();
+        if (oData.length > 1) {
+          var oHeaders = oData[0].map(function(h) { return h ? h.toString().toLowerCase().replace(/[\s_-]/g, '') : ""; });
+          var phIdx = oHeaders.indexOf("phone");
+          if (phIdx === -1) phIdx = oHeaders.indexOf("mobile");
+          var shopIdx = oHeaders.indexOf("shopname");
+          var amtIdx = oHeaders.indexOf("totalvalue");
+          if (amtIdx === -1) amtIdx = oHeaders.indexOf("finalamount");
+          if (amtIdx === -1) amtIdx = oHeaders.indexOf("amount");
+          var dateIdx = oHeaders.indexOf("date");
+          var statusIdx = oHeaders.indexOf("status");
+
+          for (var k = 1; k < oData.length; k++) {
+            var oRow = oData[k];
+            var oStatus = statusIdx > -1 && oRow[statusIdx] ? oRow[statusIdx].toString().toLowerCase() : "";
+            if (oStatus === "cancelled" || oStatus === "rejected") continue;
+
+            var oAmt = parseFloat(amtIdx > -1 && oRow[amtIdx] ? oRow[amtIdx].toString().replace(/,/g, '') : "0") || 0;
+            if (oAmt > 0) {
+              var oPhone = phIdx > -1 ? cleanPhone(oRow[phIdx]) : "";
+              var oShop = shopIdx > -1 ? cleanStr(oRow[shopIdx]) : "";
+
+              var ordDate = null;
+              if (dateIdx > -1 && oRow[dateIdx] instanceof Date) {
+                ordDate = oRow[dateIdx];
+              } else if (dateIdx > -1 && oRow[dateIdx]) {
+                var ds = oRow[dateIdx].toString();
+                if (ds.includes('-')) {
+                  var dp = ds.split('-');
+                  if (dp[0].length === 4) ordDate = new Date(ds);
+                  else ordDate = new Date(dp[2] + '-' + dp[1] + '-' + dp[0]);
+                }
+              }
+
+              if (!ordDate || ordDate >= sixMonthsAgo) {
+                if (oPhone) salesByPhone[oPhone] = (salesByPhone[oPhone] || 0) + oAmt;
+                if (oShop) salesByShop[oShop] = (salesByShop[oShop] || 0) + oAmt;
+              }
+            }
+          }
+        }
+      }
+    } catch(oErr) {
+      Logger.log("Orders calculation err: " + oErr.toString());
+    }
+
+    // 3. Calculate 6-month avg + 20% growth and write
+    var updatedDealers = [];
+    var targetsRange = dealersSheet.getRange(2, 6, dealersData.length - 1, 2);
+    var targetsValues = [];
+
+    for (var i = 1; i < dealersData.length; i++) {
+      var dPhone = cleanPhone(dealersData[i][0]);
+      var dShop = dealersData[i][1] ? dealersData[i][1].toString().trim() : "";
+      var normDShop = cleanStr(dShop);
+
+      var existingM = Number(dealersData[i][5]) || 0;
+      var existingQ = Number(dealersData[i][6]) || 0;
+
+      var totalSales6M = Math.max(
+        salesByPhone[dPhone] || 0,
+        salesByShop[normDShop] || 0
+      );
+
+      var monthlyTarget = 0;
+      var quarterlyTarget = 0;
+
+      if (totalSales6M > 0) {
+        var monthlyAvg = totalSales6M / 6;
+        monthlyTarget = Math.round((monthlyAvg * 1.20) / 100) * 100;
+        if (monthlyTarget < 10000) monthlyTarget = 10000;
+      } else if (existingM > 0) {
+        monthlyTarget = existingM;
+      } else {
+        monthlyTarget = 15000;
+      }
+
+      quarterlyTarget = (existingQ > 0 && totalSales6M === 0) ? existingQ : (monthlyTarget * 3);
+
+      targetsValues.push([monthlyTarget, quarterlyTarget]);
+
+      updatedDealers.push({
+        phone: dPhone,
+        shopName: dShop,
+        sales6Months: Math.round(totalSales6M),
+        monthlyTarget: monthlyTarget,
+        quarterlyTarget: quarterlyTarget
+      });
+    }
+
+    targetsRange.setValues(targetsValues);
+    targetsRange.setNumberFormat("₹#,##0");
+
+    return {
+      success: true,
+      message: "Successfully populated Column F (Monthly Targets) and Column G (Quarterly Targets)",
+      count: updatedDealers.length,
+      sample: updatedDealers.slice(0, 10)
+    };
+  } catch(err) {
+    return { success: false, message: err.toString() };
+  }
 }
 
 function getLedger(phone) {
