@@ -236,6 +236,33 @@ function MainApp() {
   const [announcements, setAnnouncements] = useState([]);
   const [showNotice, setShowNotice] = useState(false);
   const [isNotificationGranted, setIsNotificationGranted] = useState(true);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+    if (isStandalone) return;
+    const handlePrompt = (e) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+      setShowInstallBanner(true);
+    };
+    window.addEventListener("beforeinstallprompt", handlePrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handlePrompt);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredInstallPrompt) {
+      alert("Browser menu (3 dots) me jakar 'Install app' ya 'Add to Home screen' par click karein.");
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === "accepted") {
+      setShowInstallBanner(false);
+    }
+    setDeferredInstallPrompt(null);
+  };
 
   useEffect(() => {
     window.history.replaceState({ page: 'catalog' }, '');
@@ -529,6 +556,27 @@ function MainApp() {
     <div className="max-w-md mx-auto bg-gray-100 min-h-screen relative pb-[80px] shadow-xl">
       {/* 🌐 PROMINENT TOP LANGUAGE BAR (ONLY 1 SINGLE CLEAN BAR ON SCREEN) */}
       <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
+
+      {/* 📲 NATIVE PWA ONE-TAP INSTALL BANNER */}
+      {showInstallBanner && !customerMode && (
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-3 py-2 flex items-center justify-between shadow-md relative z-50 border-b border-orange-400 animate-slide-up">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📲</span>
+            <div>
+              <div className="text-[11px] font-black leading-tight">Yash Marketing App Install Karein</div>
+              <div className="text-[9px] text-amber-100">App drawer me as a real app add karein</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button onClick={handleInstallApp} className="bg-white text-orange-700 font-black text-[10px] px-2.5 py-1.5 rounded-lg shadow active:scale-95">
+              INSTALL
+            </button>
+            <button onClick={() => setShowInstallBanner(false)} className="text-amber-200 hover:text-white font-bold text-xs p-1">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sticky Main Header */}
       <div className="bg-blue-900 text-white p-3.5 sticky top-0 z-40 flex justify-between items-center shadow-md">
