@@ -14,6 +14,25 @@ export const getNum = (val) => {
   return Number(clean) || 0;
 };
 
+
+// 🎯 9 / 49 / 99 Wholesale Pricing Round Figure Formatter
+export function roundToNine(price) {
+  var num = getNum(price);
+  if (!num || isNaN(num) || num <= 0) return num;
+
+  if (num < 100) {
+    return Math.max(9, Math.round(num / 10) * 10 - 1);
+  } else if (num < 300) {
+    var mod50 = num % 50;
+    if (mod50 >= 40 || mod50 <= 10) {
+      return Math.round(num / 50) * 50 - 1;
+    }
+    return Math.round(num / 10) * 10 - 1;
+  } else {
+    return Math.round(num / 50) * 50 - 1;
+  }
+}
+
 export function getProp(obj, propName) {
   if (!obj) return "";
   if (obj[propName] !== undefined) return obj[propName];
