@@ -106,7 +106,8 @@ function doPost(e) {
     var payload = JSON.parse(e.postData.contents);
     var action = payload.action;
 
-    if (action === "verifyDealer") return ContentService.createTextOutput(JSON.stringify(verifyDealer(payload.phone))).setMimeType(ContentService.MimeType.JSON);
+    if (action === "setupTargets") return ContentService.createTextOutput(JSON.stringify(calculateAndSetupDealerTargets())).setMimeType(ContentService.MimeType.JSON);
+    else if (action === "verifyDealer") return ContentService.createTextOutput(JSON.stringify(verifyDealer(payload.phone))).setMimeType(ContentService.MimeType.JSON);
     else if (action === "getProducts") return ContentService.createTextOutput(JSON.stringify(getProducts())).setMimeType(ContentService.MimeType.JSON);
     else if (action === "placeOrder") return ContentService.createTextOutput(JSON.stringify(saveOrder(payload.order))).setMimeType(ContentService.MimeType.JSON);
     else if (action === "getLedger") return ContentService.createTextOutput(JSON.stringify(getLedger(payload.phone))).setMimeType(ContentService.MimeType.JSON);
