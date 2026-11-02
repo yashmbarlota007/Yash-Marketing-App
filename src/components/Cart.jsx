@@ -179,7 +179,8 @@ export function Cart(props) {
   const nonComboAfterPotentialBulk = nonComboAmount - potentialBulkDiscount;
   const potentialCashDiscount = nonComboAfterPotentialBulk > 0 ? Math.round(nonComboAfterPotentialBulk * 0.02) : 0;
 
-  const isEligibleForDiscount = paymentMode === 'COD' || paymentMode === 'UPI';
+  const isNoDiscountMode = paymentMode === 'NO_DISCOUNT';
+  const isEligibleForDiscount = !isNoDiscountMode && (paymentMode === 'COD' || paymentMode === 'UPI' || paymentMode === 'DAILY');
   const bulkDiscountAmount = isEligibleForDiscount ? potentialBulkDiscount : 0;
   const cashDiscountAmount = isEligibleForDiscount ? potentialCashDiscount : 0;
   const totalMissedSavings = potentialBulkDiscount + potentialCashDiscount;
@@ -287,6 +288,9 @@ export function Cart(props) {
     }
     if (targetDiscountAmount > 0) {
       itemsList.push(`🎯 APPLIED: Target Achievement Bonus (${targetBonusPercent}%) - Saved ₹${targetDiscountAmount}`);
+    }
+    if (paymentMode === "NO_DISCOUNT") {
+      itemsList.push(`ℹ️ PAYMENT: No Discount (0% Applied)`);
     }
 
     var finalItemsStr = itemsList.join(" | ");
@@ -569,7 +573,7 @@ export function Cart(props) {
                 ⚠️ MISSED SAVINGS: ₹{totalMissedSavings.toLocaleString('en-IN')}
               </h4>
               <p className="text-[10px] font-bold text-red-700 mt-1.5 leading-snug">
-                तुम्ही <strong>₹{potentialBulkDiscount.toLocaleString('en-IN')} चे Bulk Discount</strong> आणि <strong>₹{potentialCashDiscount.toLocaleString('en-IN')} चे Cash Discount</strong> गमावत आहात! तुमचे पैसे वाचवण्यासाठी कृपया खाली <strong>COD</strong> किंवा <strong>UPI</strong> पेमेंट पर्याय निवडा.
+                {t('missed_savings_hint', lang)} (Save ₹{totalMissedSavings.toLocaleString('en-IN')} via COD, UPI, or Daily Collection)
               </p>
             </div>
           )}
@@ -644,14 +648,15 @@ export function Cart(props) {
             
             <div 
               onClick={() => setPaymentMode('DAILY')} 
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-gray-800 bg-gray-50 shadow-md' : 'border-gray-200 bg-white'}`}
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-emerald-600 bg-emerald-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
-                <div className="font-black text-gray-800 text-sm">
-                  {t('payment_daily', lang)}
+                <div className="font-black text-emerald-950 flex items-center gap-1.5 tracking-tight text-sm">
+                  <span>🤝</span> {t('payment_daily', lang)}
+                  <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-300">(2% DISCOUNT)</span>
                 </div>
-                <div className="bg-red-100 text-red-700 border border-red-200 text-[8px] px-2 py-0.5 rounded font-black uppercase">
-                  0% Discount
+                <div className="bg-red-500 text-white text-[8px] px-2 py-0.5 rounded font-black">
+                  EXTRA SAVINGS
                 </div>
               </div>
               
@@ -667,6 +672,23 @@ export function Cart(props) {
                   ></iframe>
                 </div>
               )}
+            </div>
+            {/* 🚫 NO DISCOUNT OPTION */}
+            <div 
+              onClick={() => setPaymentMode('NO_DISCOUNT')} 
+              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'NO_DISCOUNT' ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-gray-200 bg-white'}`}
+            >
+              <div className="flex justify-between items-center">
+                <div className="font-black text-gray-800 flex items-center gap-1.5 tracking-tight text-sm">
+                  <span>🚫</span> {t('payment_no_discount', lang)}
+                </div>
+                <div className="bg-gray-200 text-gray-600 border border-gray-300 text-[8px] px-2 py-0.5 rounded font-black uppercase">
+                  0% Discount
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-500 font-bold mt-1">
+                {t('payment_no_discount_desc', lang)}
+              </p>
             </div>
           </div>
           
