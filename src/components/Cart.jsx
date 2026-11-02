@@ -8,7 +8,8 @@ import {
   getProductSchemes,
   compressImageFile,
   PHONEPE_QR_URL, 
-  OFFICE_NUMBER 
+  OFFICE_NUMBER,
+  roundToNine
 } from '../utils/helpers';
 import { t, translateOfferText, translateReward, translateProductName } from '../utils/translations';
 
@@ -153,7 +154,7 @@ export function Cart(props) {
   }
 
   const baseTotalAmount = cartItems.reduce((acc, item) => {
-    return acc + (getNum(getProp(item, "DealerPrice")) * getNum(item.qty));
+    return acc + (roundToNine(getProp(item, "DealerPrice")) * getNum(item.qty));
   }, 0);
   
   const totalAmount = baseTotalAmount - comboDiscountAmount;
