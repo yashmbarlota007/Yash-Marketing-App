@@ -18,12 +18,14 @@ function verifyDealer(phone) {
       if (sheetPhoneClean === targetPhoneClean) {
         var mTarget = Number(data[i][5]) || 0;
         var qTarget = Number(data[i][6]) || 0;
+        var stats = getDealerTargetStats(targetPhoneClean);
         return { 
           success: true, 
           shopName: data[i][1],
           phone: targetPhoneClean,
           monthlyTarget: mTarget,
-          quarterlyTarget: qTarget
+          quarterlyTarget: qTarget,
+          targetStats: stats
         };
       }
     }
@@ -189,12 +191,13 @@ function calculateAndSetupDealerTargets() {
 
       if (totalSales6M > 0) {
         var monthlyAvg = totalSales6M / 6;
+        // 20% Growth Target
         monthlyTarget = Math.round((monthlyAvg * 1.20) / 100) * 100;
         if (monthlyTarget < 10000) monthlyTarget = 10000;
       } else if (existingM > 0) {
         monthlyTarget = existingM;
       } else {
-        monthlyTarget = 15000;
+        monthlyTarget = 15000; // Base target for zero-sales dealers
       }
 
       quarterlyTarget = (existingQ > 0 && totalSales6M === 0) ? existingQ : (monthlyTarget * 3);
@@ -276,7 +279,7 @@ function getLedger(phone) {
       if (colA !== "" && colA.toLowerCase().indexOf("ledger:") > -1) {
         isTargetSection = false; 
         var normSection = cleanStr(colB);
-        if (normSection === normTarget) {
+        if (normSection.indexOf(normTarget) === 0) {
           isTargetSection = true;
           lastSeenDate = ""; 
           drIdx = 6; crIdx = 7; vchTypeIdx = 4; vchNoIdx = 5; partIdx = 2;
@@ -353,5 +356,197 @@ function getLedger(phone) {
     return { success: true, data: dealerTransactions };
   } catch (err) {
     return { success: false, message: err.toString() };
+  }
+}
+
+
+function getDealerTargetStats(phone) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var dealersSheet = ss.getSheetByName("Dealers");
+    if (!dealersSheet) return { success: false, message: "Dealers sheet not found" };
+
+    var targetPhoneClean = phone ? phone.toString().replace(/\D/g, '').slice(-10) : "";
+    if (!targetPhoneClean) return { success: false, message: "Invalid phone number." };
+
+    var dData = dealersSheet.getDataRange().getValues();
+    var targetShopName = "";
+    var mTarget = 0;
+    var qTarget = 0;
+
+    for (var i = 1; i < dData.length; i++) {
+      var rawP = dData[i][0];
+      if (rawP && rawP.toString().replace(/\D/g, '').slice(-10) === targetPhoneClean) {
+        targetShopName = dData[i][1] ? dData[i][1].toString().trim() : "";
+        mTarget = Number(dData[i][5]) || 0;
+        qTarget = Number(dData[i][6]) || 0;
+        break;
+      }
+    }
+
+    if (!targetShopName) {
+      return { success: false, message: "Dealer not found" };
+    }
+
+    // Current Date bounds
+    var now = new Date();
+    var curYear = now.getFullYear();
+    var curMonth = now.getMonth(); // 0-11
+    var startOfMonth = new Date(curYear, curMonth, 1, 0, 0, 0);
+
+    // Current Quarter (Financial Year Quarter: Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar)
+    var qStartMonth;
+    if (curMonth >= 3 && curMonth <= 5) qStartMonth = 3; // Apr
+    else if (curMonth >= 6 && curMonth <= 8) qStartMonth = 6; // Jul
+    else if (curMonth >= 9 && curMonth <= 11) qStartMonth = 9; // Oct
+    else qStartMonth = 0; // Jan
+
+    var qStartYear = curYear;
+    var startOfQuarter = new Date(qStartYear, qStartMonth, 1, 0, 0, 0);
+
+    var curMonthSales = 0;
+    var curQuarterSales = 0;
+
+    // 1. Calculate from Ledger debits
+    var ledgerSheet = ss.getSheetByName("Ledger");
+    if (ledgerSheet) {
+      var lData = ledgerSheet.getDataRange().getValues();
+      var cleanTargetShop = targetShopName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      var inTargetSection = false;
+      var drIdx = 6;
+
+      for (var j = 0; j < lData.length; j++) {
+        var row = lData[j];
+        var colA = row[0] ? row[0].toString().trim() : "";
+        var colB = row[1] ? row[1].toString().trim() : "";
+
+        if (colA !== "" && colA.toLowerCase().indexOf("ledger:") > -1) {
+          var sName = colB.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (sName === cleanTargetShop || sName.indexOf(cleanTargetShop) > -1 || cleanTargetShop.indexOf(sName) > -1) {
+            inTargetSection = true;
+          } else {
+            inTargetSection = false;
+          }
+          drIdx = 6;
+          continue;
+        }
+
+        if (inTargetSection) {
+          if (colA.toLowerCase() === "date" || colA.toLowerCase().indexOf("date") === 0) {
+            for (var c = 0; c < row.length; c++) {
+              var h = row[c] ? row[c].toString().toLowerCase().replace(/\./g, '').trim() : "";
+              if (h === "debit") drIdx = c;
+            }
+            continue;
+          }
+
+          var debitVal = parseFloat(row[drIdx] ? row[drIdx].toString().replace(/,/g, '') : "0") || 0;
+          if (debitVal > 0) {
+            var txDate = null;
+            if (row[0] instanceof Date) {
+              txDate = row[0];
+            } else if (colA.includes('-')) {
+              var p = colA.split('-');
+              if (p.length === 3) {
+                if (p[0].length === 4) txDate = new Date(colA);
+                else txDate = new Date(p[2] + '-' + p[1] + '-' + p[0]);
+              }
+            }
+
+            if (txDate) {
+              if (txDate >= startOfMonth) {
+                curMonthSales += debitVal;
+              }
+              if (txDate >= startOfQuarter) {
+                curQuarterSales += debitVal;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Also check Orders sheet for any recent orders from this dealer placed this month/quarter
+    var ordersSheet = ss.getSheetByName("Orders") || ss.getSheetByName("orders");
+    if (ordersSheet) {
+      var oData = ordersSheet.getDataRange().getValues();
+      if (oData.length > 1) {
+        var oHeaders = oData[0].map(function(h) { return h ? h.toString().toLowerCase().replace(/[\s_-]/g, '') : ""; });
+        var phIdx = oHeaders.indexOf("phone");
+        if (phIdx === -1) phIdx = oHeaders.indexOf("mobile");
+        var amtIdx = oHeaders.indexOf("totalvalue");
+        if (amtIdx === -1) amtIdx = oHeaders.indexOf("finalamount");
+        if (amtIdx === -1) amtIdx = oHeaders.indexOf("amount");
+        var dateIdx = oHeaders.indexOf("date");
+        var statusIdx = oHeaders.indexOf("status");
+
+        var appOrdersMonth = 0;
+        var appOrdersQuarter = 0;
+
+        for (var k = 1; k < oData.length; k++) {
+          var oRow = oData[k];
+          var oStatus = statusIdx > -1 && oRow[statusIdx] ? oRow[statusIdx].toString().toLowerCase() : "";
+          if (oStatus === "cancelled" || oStatus === "rejected") continue;
+
+          var oPhone = phIdx > -1 && oRow[phIdx] ? oRow[phIdx].toString().replace(/\D/g, '').slice(-10) : "";
+          if (oPhone === targetPhoneClean) {
+            var oAmt = parseFloat(amtIdx > -1 && oRow[amtIdx] ? oRow[amtIdx].toString().replace(/,/g, '') : "0") || 0;
+            if (oAmt > 0) {
+              var ordDate = null;
+              if (dateIdx > -1 && oRow[dateIdx] instanceof Date) {
+                ordDate = oRow[dateIdx];
+              } else if (dateIdx > -1 && oRow[dateIdx]) {
+                var ds = oRow[dateIdx].toString();
+                if (ds.includes('-')) {
+                  var sp = ds.split('-');
+                  if (sp.length === 3) {
+                    if (sp[0].length === 4) ordDate = new Date(ds);
+                    else ordDate = new Date(sp[2] + '-' + sp[1] + '-' + sp[0]);
+                  }
+                }
+              }
+
+              if (ordDate) {
+                if (ordDate >= startOfMonth) appOrdersMonth += oAmt;
+                if (ordDate >= startOfQuarter) appOrdersQuarter += oAmt;
+              }
+            }
+          }
+        }
+
+        // Take max of Ledger vs App orders
+        if (appOrdersMonth > curMonthSales) curMonthSales = appOrdersMonth;
+        if (appOrdersQuarter > curQuarterSales) curQuarterSales = appOrdersQuarter;
+      }
+    }
+
+    var monthlyAchieved = Math.round(curMonthSales);
+    var quarterlyAchieved = Math.round(curQuarterSales);
+
+    var monthlyPercent = mTarget > 0 ? Math.min(200, Math.round((monthlyAchieved / mTarget) * 100)) : 0;
+    var quarterlyPercent = qTarget > 0 ? Math.min(200, Math.round((quarterlyAchieved / qTarget) * 100)) : 0;
+
+    var monthlyUnlocked = mTarget > 0 && monthlyAchieved >= mTarget;
+    var quarterlyUnlocked = qTarget > 0 && quarterlyAchieved >= qTarget;
+    var targetDiscountPercent = (monthlyUnlocked ? 2 : 0) + (quarterlyUnlocked ? 2 : 0);
+
+    return {
+      success: true,
+      phone: targetPhoneClean,
+      shopName: targetShopName,
+      monthlyTarget: mTarget,
+      quarterlyTarget: qTarget,
+      monthlyAchieved: monthlyAchieved,
+      quarterlyAchieved: quarterlyAchieved,
+      monthlyPercent: monthlyPercent,
+      quarterlyPercent: quarterlyPercent,
+      monthlyUnlocked: monthlyUnlocked,
+      quarterlyUnlocked: quarterlyUnlocked,
+      targetDiscountPercent: targetDiscountPercent,
+      remainingForMonthly: Math.max(0, mTarget - monthlyAchieved),
+      remainingForQuarterly: Math.max(0, qTarget - quarterlyAchieved)
+    };
+  } catch(e) {
+    return { success: false, message: e.toString() };
   }
 }
