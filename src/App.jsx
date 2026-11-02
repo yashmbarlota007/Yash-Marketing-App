@@ -91,8 +91,17 @@ function LoginScreen(props) {
     }).then(r => r.json()).then(function(res) {
       setLoading(false);
       if (res && res.success) {
-        var dealerData = { phone: phone, shopName: res.shopName };
+        var dealerData = { 
+          phone: phone, 
+          shopName: res.shopName,
+          monthlyTarget: Number(res.monthlyTarget) || 0,
+          quarterlyTarget: Number(res.quarterlyTarget) || 0,
+          targetStats: res.targetStats || null
+        };
         localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
+        if (res.targetStats) {
+          try { localStorage.setItem("yashDealerTargetStats", JSON.stringify(res.targetStats)); } catch(e) {}
+        }
         onLogin(dealerData);
       } else {
         alert((res && res.message) ? res.message : t('invalid_number', lang));
@@ -197,6 +206,30 @@ function MainApp() {
 
   // cartItems, totalItems, and totalAmount initialized safely at top level
 
+
+    const [targetStats, setTargetStats] = useState(() => {
+    try {
+      const saved = localStorage.getItem("yashDealerTargetStats");
+      return saved ? JSON.parse(saved) : (user?.targetStats || null);
+    } catch (e) {
+      return user?.targetStats || null;
+    }
+  });
+
+  // 🎯 Auto-fetch and sync dealer target vs achievement in background
+  useEffect(() => {
+    if (!user || !user.phone) return;
+    fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: "getTargetStats", phone: user.phone }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    }).then(r => r.json()).then(res => {
+      if (res && res.success) {
+        setTargetStats(res);
+        try { localStorage.setItem("yashDealerTargetStats", JSON.stringify(res)); } catch(e) {}
+      }
+    }).catch(() => {});
+  }, [user?.phone]);
 
   const [loading, setLoading] = useState(false);
   const [customerMode, setCustomerMode] = useState(false);
@@ -527,11 +560,11 @@ function MainApp() {
       <div className="relative">
         {view === "catalog" ? (
           <ErrorBoundary componentName="Catalog" lang={lang} onReset={() => handleSetView("catalog")}>
-            <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} />
+            <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} targetStats={targetStats} />
           </ErrorBoundary>
         ) : view === "cart" ? (
           <ErrorBoundary componentName="Cart" lang={lang} onReset={() => handleSetView("catalog")}>
-            <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} lang={lang} />
+            <Cart user={user} cart={cart} setCart={setCart} setView={handleSetView} callAPI={callAPI} globalProps={globalProps} schemes={schemes} lang={lang} targetStats={targetStats} />
           </ErrorBoundary>
         ) : view === "offers" ? (
           <ErrorBoundary componentName="Offers" lang={lang} onReset={() => handleSetView("catalog")}>
