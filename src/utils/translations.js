@@ -20,6 +20,24 @@ export const translations = {
     language: "Language",
     change_language_instruction: "👉 Click Here to Change Language:",
     
+    // 🎯 Target vs Achievement Keys
+    target_vs_achievement: "Target vs Achievement",
+    monthly_target: "Monthly Target",
+    quarterly_target: "Quarterly Target",
+    monthly_progress: "Monthly Progress",
+    quarterly_progress: "Quarterly Progress",
+    achieved: "Achieved",
+    remaining: "Remaining",
+    target_bonus_2: "+2% Extra Discount Unlocked!",
+    target_bonus_4: "🏆 +4% Total Target Bonus Unlocked!",
+    target_discount_label: "Target Achievement Discount",
+    unlock_target_discount_msg: "Buy ₹{amount} more to unlock +2% Extra Discount!",
+    target_congrats_monthly: "🎉 Monthly Target achieved! +2% Extra Discount active on all orders.",
+    target_congrats_quarterly: "🏆 Quarterly Target achieved! +2% Additional Discount active.",
+    target_growth_basis: "Targets based on 6-month avg sales + 20% growth.",
+    target_unlocked_badge: "TARGET UNLOCKED",
+    target_in_progress: "IN PROGRESS",
+
     // Bottom Nav
     nav_home: "Home",
     nav_offers: "Offers",
@@ -240,6 +258,24 @@ export const translations = {
     language: "भाषा",
     change_language_instruction: "👉 भाषा बदलने के लिए यहाँ क्लिक करें:",
     
+    // 🎯 Target vs Achievement Keys
+    target_vs_achievement: "टारगेट vs अचीवमेंट",
+    monthly_target: "मासिक टारगेट",
+    quarterly_target: "तिमाही टारगेट",
+    monthly_progress: "मासिक प्रगति",
+    quarterly_progress: "तिमाही प्रगति",
+    achieved: "प्राप्त किया",
+    remaining: "बाकी राशि",
+    target_bonus_2: "+२% अतिरिक्त छूट अनलॉक!",
+    target_bonus_4: "🏆 +४% कुल टारगेट बोनस अनलॉक!",
+    target_discount_label: "टारगेट अचीवमेंट छूट",
+    unlock_target_discount_msg: "अतिरिक्त २% छूट पाने के लिए ₹{amount} का और सामान खरीदें!",
+    target_congrats_monthly: "🎉 मासिक टारगेट पूरा! सभी ऑर्डर्स पर +२% अतिरिक्त छूट सक्रिय है।",
+    target_congrats_quarterly: "🏆 तिमाही टारगेट पूरा! +२% अतिरिक्त बोनस छूट सक्रिय है।",
+    target_growth_basis: "पिछले ६ महीनों की औसत बिक्री + २०% विकास पर आधारित।",
+    target_unlocked_badge: "टारगेट पूरा",
+    target_in_progress: "प्रगति पर",
+
     // Bottom Nav
     nav_home: "होम",
     nav_offers: "ऑफ़र्स",
@@ -460,6 +496,24 @@ export const translations = {
     language: "भाषा",
     change_language_instruction: "👉 भाषा बदलण्यासाठी येथे क्लिक करा:",
     
+    // 🎯 Target vs Achievement Keys
+    target_vs_achievement: "उद्दिष्ट आणि प्रगती (Target vs Achievement)",
+    monthly_target: "चालू महिना उद्दिष्ट",
+    quarterly_target: "चालू तिमाही उद्दिष्ट",
+    monthly_progress: "मासिक प्रगती",
+    quarterly_progress: "तिमाही प्रगती",
+    achieved: "पूर्ण झाले",
+    remaining: "शिल्लक उद्दिष्ट",
+    target_bonus_2: "+२% अतिरिक्त सूट सुरू झाली!",
+    target_bonus_4: "🏆 +४% एकूण उद्दिष्टपूर्ती सूट सुरू झाली!",
+    target_discount_label: "उद्दिष्टपूर्ती बोनस सूट",
+    unlock_target_discount_msg: "अतिरिक्त २% सूट मिळवण्यासाठी ₹{amount} ची आणखी खरेदी करा!",
+    target_congrats_monthly: "🎉 चालू महिन्याचे उद्दिष्ट पूर्ण! सर्व ऑर्डर्सवर +२% अतिरिक्त सूट सुरू.",
+    target_congrats_quarterly: "🏆 तिमाही उद्दिष्ट पूर्ण! +२% अतिरिक्त बोनस सूट सुरू.",
+    target_growth_basis: "मागील ६ महिन्यांची सरासरी विक्री + २०% वाढीवर आधारित.",
+    target_unlocked_badge: "उद्दिष्ट साध्य",
+    target_in_progress: "प्रगतीपथावर",
+
     // Bottom Nav
     nav_home: "मुख्यपृष्ठ",
     nav_offers: "ऑफर्स",
