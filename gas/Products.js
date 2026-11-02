@@ -335,3 +335,75 @@ function generateWebsiteLinks() {
     SpreadsheetApp.flush();
   } catch (err) {}
 }
+
+function increaseAllProductRates(percent) {
+  try {
+    var pct = typeof percent === 'number' ? percent : (parseFloat(percent) || 5);
+    var multiplier = 1 + (pct / 100);
+    
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Products");
+    if (!sheet) return { success: false, message: "Products sheet not found" };
+
+    // 1. Safe backup sheet before rate increase
+    var backupSheetName = "Products_Backup_Before_5pct";
+    var existingBackup = ss.getSheetByName(backupSheetName);
+    if (!existingBackup) {
+      sheet.copyTo(ss).setName(backupSheetName);
+    }
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return { success: false, message: "No product data found" };
+
+    var headers = data[0].map(function(h) { 
+      return h ? h.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : ""; 
+    });
+
+    var dealerPriceColIdx = headers.indexOf("dealerprice");
+    if (dealerPriceColIdx === -1) dealerPriceColIdx = headers.indexOf("rate");
+    if (dealerPriceColIdx === -1) dealerPriceColIdx = headers.indexOf("price");
+
+    if (dealerPriceColIdx === -1) {
+      return { success: false, message: "DealerPrice column not found in Products sheet" };
+    }
+
+    var updatedCount = 0;
+    var sampleChanges = [];
+
+    var range = sheet.getRange(2, dealerPriceColIdx + 1, data.length - 1, 1);
+    var currentValues = range.getValues();
+
+    for (var i = 0; i < currentValues.length; i++) {
+      var rawVal = currentValues[i][0];
+      var oldPrice = parseFloat(rawVal ? rawVal.toString().replace(/,/g, '') : "0");
+      if (!isNaN(oldPrice) && oldPrice > 0) {
+        var newPrice = Math.round(oldPrice * multiplier);
+        currentValues[i][0] = newPrice;
+        updatedCount++;
+        if (sampleChanges.length < 6) {
+          sampleChanges.push({
+            row: i + 2,
+            itemCode: data[i + 1][0],
+            name: data[i + 1][2],
+            oldPrice: oldPrice,
+            newPrice: newPrice
+          });
+        }
+      }
+    }
+
+    range.setValues(currentValues);
+    SpreadsheetApp.flush();
+
+    return {
+      success: true,
+      message: "Successfully increased all product rates by " + pct + "%",
+      updatedCount: updatedCount,
+      percent: pct,
+      backupSheetCreated: !existingBackup,
+      sampleChanges: sampleChanges
+    };
+  } catch(e) {
+    return { success: false, message: e.toString() };
+  }
+}
