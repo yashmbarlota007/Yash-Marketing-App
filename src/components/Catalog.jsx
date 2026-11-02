@@ -51,7 +51,7 @@ export function TargetCard({ targetStats, lang, customerMode }) {
 
         {totalBonusPercent > 0 ? (
           <span className="bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-950 text-[10px] font-black px-2.5 py-1 rounded-full shadow-md animate-pulse flex items-center gap-1">
-            <span>🎉</span> +{totalBonusPercent}% OFF ACTIVE
+            <span>🎉</span> {t('target_discount_active_badge', lang, { percent: totalBonusPercent })}
           </span>
         ) : (
           <span className="bg-blue-800/80 text-blue-200 text-[9px] font-bold px-2 py-0.5 rounded-full border border-blue-600/50">
@@ -90,7 +90,7 @@ export function TargetCard({ targetStats, lang, customerMode }) {
                 </span>
               ) : (
                 <span className="text-amber-200 font-bold">
-                  {t('remaining', lang)}: ₹{Math.max(0, mTarget - mAchieved).toLocaleString('en-IN')} (+2% Extra)
+                  {t('remaining', lang)}: ₹{Math.max(0, mTarget - mAchieved).toLocaleString('en-IN')} {t('target_extra_discount_badge', lang)}
                 </span>
               )}
             </div>
@@ -125,7 +125,7 @@ export function TargetCard({ targetStats, lang, customerMode }) {
                 </span>
               ) : (
                 <span className="text-cyan-200 font-bold">
-                  {t('remaining', lang)}: ₹{Math.max(0, qTarget - qAchieved).toLocaleString('en-IN')} (+2% Extra)
+                  {t('remaining', lang)}: ₹{Math.max(0, qTarget - qAchieved).toLocaleString('en-IN')} {t('target_extra_discount_badge', lang)}
                 </span>
               )}
             </div>
