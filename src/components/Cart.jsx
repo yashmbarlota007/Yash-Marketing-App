@@ -23,6 +23,7 @@ export function Cart(props) {
   var callAPI = props.callAPI;
   var globalProps = props.globalProps || {};
   var lang = props.lang || 'en';
+  var targetStats = props.targetStats || (user && user.targetStats) || {};
   
   const [loading, setLoading] = useState(false);
   // 🟢 SYNCHRONOUS LOCK FOR DOUBLE CLICKS
@@ -192,7 +193,17 @@ export function Cart(props) {
     totalFreebieCost += (freeQty * 1); 
   });
 
-  const finalAmount = totalComboValue + (nonComboAmount - bulkDiscountAmount - cashDiscountAmount) + totalFreebieCost;
+    // 🎯 Target Achievement Bonus Calculation (+2% for Monthly, +2% for Quarterly, up to +4%)
+  const targetBonusPercent = Number(targetStats.targetDiscountPercent) || (
+    ((targetStats.monthlyUnlocked || (targetStats.monthlyTarget > 0 && targetStats.monthlyAchieved >= targetStats.monthlyTarget)) ? 2 : 0) +
+    ((targetStats.quarterlyUnlocked || (targetStats.quarterlyTarget > 0 && targetStats.quarterlyAchieved >= targetStats.quarterlyTarget)) ? 2 : 0)
+  );
+
+  const targetDiscountAmount = (targetBonusPercent > 0 && nonComboAmount > 0)
+    ? Math.round(nonComboAmount * (targetBonusPercent / 100))
+    : 0;
+
+  const finalAmount = Math.max(0, totalComboValue + (nonComboAmount - bulkDiscountAmount - cashDiscountAmount - targetDiscountAmount) + totalFreebieCost);
 
   // ==========================================
   // 4. EVENT HANDLERS
@@ -274,6 +285,9 @@ export function Cart(props) {
     if (combosApplied > 0) {
       itemsList.push(`🎁 APPLIED: Combo Offer (${combosApplied}x) - Saved ₹${comboDiscountAmount}`);
     }
+    if (targetDiscountAmount > 0) {
+      itemsList.push(`🎯 APPLIED: Target Achievement Bonus (${targetBonusPercent}%) - Saved ₹${targetDiscountAmount}`);
+    }
 
     var finalItemsStr = itemsList.join(" | ");
     
@@ -290,6 +304,8 @@ export function Cart(props) {
         bulkDiscount: bulkDiscountAmount, 
         bulkPercent: potentialBulkPercent, 
         upiDiscount: cashDiscountAmount,
+        targetDiscount: targetDiscountAmount,
+        targetPercent: targetBonusPercent,
         rewards: unlockedSchemes.map(s => s.reward).join(", "), 
         remarks: orderRemarks,
         screenshot: screenshotData
@@ -530,6 +546,17 @@ export function Cart(props) {
                 </span>
               </div>
             )}
+            {targetDiscountAmount > 0 && (
+              <div className="flex justify-between items-center mt-2 text-emerald-700 bg-emerald-50 p-2 rounded-xl border border-emerald-200">
+                <span className="font-black uppercase text-[10px] flex items-center gap-1">
+                  <span>🎯</span> {t('target_discount_label', lang)} ({targetBonusPercent}%)
+                </span>
+                <span className="font-black text-sm">
+                  -₹{targetDiscountAmount.toLocaleString('en-IN')}
+                </span>
+              </div>
+            )}
+
           </React.Fragment>
         )}
       </div>
