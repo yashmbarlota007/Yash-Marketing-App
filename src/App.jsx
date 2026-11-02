@@ -195,7 +195,8 @@ function MainApp() {
     }
   });
 
-  // cartItems, totalItems, and totalAmount are initialized safely above early returns
+  // cartItems, totalItems, and totalAmount initialized safely at top level
+
 
   const [loading, setLoading] = useState(false);
   const [customerMode, setCustomerMode] = useState(false);
@@ -244,10 +245,11 @@ function MainApp() {
   const [celebrationReward, setCelebrationReward] = useState(null);
 
   useEffect(() => {
-    if (!user || !schemes || schemes.length === 0 || !cartItems || cartItems.length === 0) return;
+    const currentItems = cart && typeof cart === 'object' && !Array.isArray(cart) ? Object.values(cart) : [];
+    if (!user || !schemes || schemes.length === 0 || currentItems.length === 0) return;
 
     const unlocked = schemes.filter(s => {
-      const prog = calculateSchemeProgress(cartItems, s);
+      const prog = calculateSchemeProgress(currentItems, s);
       return prog && prog.isUnlocked;
     });
 
@@ -259,7 +261,7 @@ function MainApp() {
       setTimeout(() => setCelebrationReward(null), 4000);
     }
     previousUnlockedCountRef.current = unlocked.length;
-  }, [cart, schemes]);
+  }, [cart, schemes, user]);
 
 
   useEffect(() => {
