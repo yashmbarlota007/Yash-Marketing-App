@@ -4,19 +4,42 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <meta name="theme-color" content="#1e3a8a" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Yash Marketing" />
 <title>Yash Marketing</title>
-<link rel="icon" href="https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_VUpH4G6yRPwhc03t&sz=w180" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+
 <!-- External Libraries Required for App Features -->
 <script src="https://unpkg.com/html5-qrcode" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+
+<!-- Service Worker Registration for PWA WebAPK install -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('YM PWA ServiceWorker registered:', reg.scope);
+    }).catch(function(err) {
+      console.error('YM ServiceWorker error:', err);
+    });
+  });
+}
+</script>
+
 <!-- OneSignal Push Notifications -->
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 OneSignalDeferred.push(async function(OneSignal) {
-await OneSignal.init({ appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f" });
+  await OneSignal.init({ 
+    appId: "73a96bf6-8439-4452-b6ae-53d97d28c89f",
+    serviceWorkerParam: { scope: "/" },
+    serviceWorkerPath: "/OneSignalSDKWorker.js"
+  });
 });
 </script>
 </head>
