@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError } from './utils/helpers';
+import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError, roundToNine } from './utils/helpers';
 import { LANGUAGES, t, translateReward } from './utils/translations';
 import { Catalog } from './components/Catalog';
 import { Cart } from './components/Cart';
@@ -510,7 +510,7 @@ function MainApp() {
   const totalItems = cartItems.reduce((a, b) => a + (getNum(b.qty) || 0), 0);
   
   const totalAmount = cartItems.reduce((a, b) => {
-    const itemPrice = getNum(getProp(b, "DealerPrice"));
+    const itemPrice = roundToNine(getNum(getProp(b, "DealerPrice")));
     return a + (itemPrice * (getNum(b.qty) || 0));
   }, 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
