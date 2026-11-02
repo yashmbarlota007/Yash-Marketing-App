@@ -12,6 +12,138 @@ import {
 import { ProgressBar } from './SharedUI';
 import { t, translateOfferText, translateReward, translateCategory, translateProductName, translateBrand } from '../utils/translations';
 
+
+// 🎯 TARGET VS ACHIEVEMENT COMPONENT (MONTHLY & QUARTERLY 20% GROWTH DASHBOARD)
+export function TargetCard({ targetStats, lang, customerMode }) {
+  if (customerMode) return null;
+  if (!targetStats) return null;
+  const mTarget = Number(targetStats.monthlyTarget) || 0;
+  const qTarget = Number(targetStats.quarterlyTarget) || 0;
+  if (mTarget === 0 && qTarget === 0) return null;
+
+  const mAchieved = Number(targetStats.monthlyAchieved) || 0;
+  const qAchieved = Number(targetStats.quarterlyAchieved) || 0;
+
+  const mPercent = mTarget > 0 ? Math.min(200, Math.round((mAchieved / mTarget) * 100)) : 0;
+  const qPercent = qTarget > 0 ? Math.min(200, Math.round((qAchieved / qTarget) * 100)) : 0;
+
+  const mUnlocked = mTarget > 0 && mAchieved >= mTarget;
+  const qUnlocked = qTarget > 0 && qAchieved >= qTarget;
+  const totalBonusPercent = (mUnlocked ? 2 : 0) + (qUnlocked ? 2 : 0);
+
+  return (
+    <div className="mb-4 bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-950 text-white rounded-3xl p-4 shadow-xl border border-blue-700/50 relative overflow-hidden">
+      <div className="absolute -top-12 -right-12 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🎯</span>
+          <div>
+            <h3 className="font-black text-sm tracking-wide">
+              {t('target_vs_achievement', lang)}
+            </h3>
+            <p className="text-[9px] text-blue-200/80 font-semibold">
+              {t('target_growth_basis', lang)}
+            </p>
+          </div>
+        </div>
+
+        {totalBonusPercent > 0 ? (
+          <span className="bg-gradient-to-r from-amber-400 to-yellow-300 text-gray-950 text-[10px] font-black px-2.5 py-1 rounded-full shadow-md animate-pulse flex items-center gap-1">
+            <span>🎉</span> +{totalBonusPercent}% OFF ACTIVE
+          </span>
+        ) : (
+          <span className="bg-blue-800/80 text-blue-200 text-[9px] font-bold px-2 py-0.5 rounded-full border border-blue-600/50">
+            {t('target_in_progress', lang)}
+          </span>
+        )}
+      </div>
+
+      {/* Targets Grid */}
+      <div className="grid grid-cols-1 gap-2.5">
+        {/* Monthly Target Box */}
+        {mTarget > 0 && (
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <div className="flex justify-between items-center text-xs mb-1 font-bold">
+              <span className="flex items-center gap-1 text-blue-100">
+                <span>📅</span> {t('monthly_target', lang)}: ₹{mTarget.toLocaleString('en-IN')}
+              </span>
+              <span className={`text-[11px] font-black ${mUnlocked ? 'text-green-300' : 'text-amber-300'}`}>
+                {mUnlocked ? `✅ 100%+ ${t('target_unlocked_badge', lang)}` : `${mPercent}%`}
+              </span>
+            </div>
+
+            {/* Monthly Progress Bar */}
+            <div className="w-full bg-blue-950/70 h-2.5 rounded-full overflow-hidden border border-blue-800/50 shadow-inner">
+              <div 
+                className={`h-full transition-all duration-700 rounded-full ${mUnlocked ? 'bg-gradient-to-r from-green-400 to-emerald-400' : 'bg-gradient-to-r from-amber-400 to-orange-400'}`}
+                style={{ width: `${Math.min(100, mPercent)}%` }}
+              ></div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] mt-1.5 text-blue-200/90 font-medium">
+              <span>{t('achieved', lang)}: <b className="text-white font-black">₹{mAchieved.toLocaleString('en-IN')}</b></span>
+              {mUnlocked ? (
+                <span className="text-green-300 font-black flex items-center gap-0.5">
+                  <span>✨</span> {t('target_bonus_2', lang)}
+                </span>
+              ) : (
+                <span className="text-amber-200 font-bold">
+                  {t('remaining', lang)}: ₹{Math.max(0, mTarget - mAchieved).toLocaleString('en-IN')} (+2% Extra)
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quarterly Target Box */}
+        {qTarget > 0 && (
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+            <div className="flex justify-between items-center text-xs mb-1 font-bold">
+              <span className="flex items-center gap-1 text-blue-100">
+                <span>🏆</span> {t('quarterly_target', lang)}: ₹{qTarget.toLocaleString('en-IN')}
+              </span>
+              <span className={`text-[11px] font-black ${qUnlocked ? 'text-green-300' : 'text-amber-300'}`}>
+                {qUnlocked ? `✅ 100%+ ${t('target_unlocked_badge', lang)}` : `${qPercent}%`}
+              </span>
+            </div>
+
+            {/* Quarterly Progress Bar */}
+            <div className="w-full bg-blue-950/70 h-2.5 rounded-full overflow-hidden border border-blue-800/50 shadow-inner">
+              <div 
+                className={`h-full transition-all duration-700 rounded-full ${qUnlocked ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-blue-400 to-cyan-300'}`}
+                style={{ width: `${Math.min(100, qPercent)}%` }}
+              ></div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px] mt-1.5 text-blue-200/90 font-medium">
+              <span>{t('achieved', lang)}: <b className="text-white font-black">₹{qAchieved.toLocaleString('en-IN')}</b></span>
+              {qUnlocked ? (
+                <span className="text-green-300 font-black flex items-center gap-0.5">
+                  <span>✨</span> {t('target_bonus_2', lang)}
+                </span>
+              ) : (
+                <span className="text-cyan-200 font-bold">
+                  {t('remaining', lang)}: ₹{Math.max(0, qTarget - qAchieved).toLocaleString('en-IN')} (+2% Extra)
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Celebration Banner */}
+      {totalBonusPercent > 0 && (
+        <div className="mt-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/40 rounded-xl p-2.5 text-center text-[11px] font-bold text-green-200 flex items-center justify-center gap-1.5">
+          <span>🎁</span>
+          <span>{totalBonusPercent === 4 ? t('target_bonus_4', lang) : t('target_bonus_2', lang)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Catalog(props) {
   // ==========================================
   // 1. PROPS & STATE INITIALIZATION
@@ -25,6 +157,7 @@ export function Catalog(props) {
   var passedSchemes = props.schemes || [];
   var lang = props.lang || 'en';
   var setLang = props.setLang;
+  var targetStats = props.targetStats || (user && user.targetStats) || null;
   
   const [loading, setLoading] = useState(products.length === 0);
   const [schemes, setSchemes] = useState(passedSchemes);
@@ -467,6 +600,8 @@ export function Catalog(props) {
     
     mainContent = (
       <div className="p-4 pb-[140px]">
+        {/* 🎯 DEALER TARGET VS ACHIEVEMENT DASHBOARD */}
+        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps.customerMode} />
         <h2 className="font-black text-gray-800 text-xl mb-4">{t('select_category', lang)}</h2>
         {types.length === 0 && !loading && (
           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
