@@ -7,7 +7,8 @@ import {
   groupProductsByVariant,
   calculateSchemeProgress,
   getProductSchemes,
-  triggerCelebration
+  triggerCelebration,
+  roundToNine
 } from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
 import { t, translateOfferText, translateReward, translateCategory, translateProductName, translateBrand } from '../utils/translations';
@@ -198,7 +199,14 @@ export function Catalog(props) {
       .then((r) => r.json())
       .then((res) => { 
         if (res && res.success && Array.isArray(res.data)) {
-          setProducts(res.data);
+          const roundedProducts = res.data.map(p => {
+            const copy = Object.assign({}, p);
+            if (copy.DealerPrice) {
+              copy.DealerPrice = roundToNine(copy.DealerPrice);
+            }
+            return copy;
+          });
+          setProducts(roundedProducts);
         }
         setLoading(false); 
       })
