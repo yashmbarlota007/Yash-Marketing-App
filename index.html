@@ -13,6 +13,16 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-192.png" />
 
+<!-- Early capture of PWA beforeinstallprompt -->
+<script>
+window.__deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  window.__deferredInstallPrompt = e;
+  window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+});
+</script>
+
 <!-- External Libraries Required for App Features -->
 <script src="https://unpkg.com/html5-qrcode" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
