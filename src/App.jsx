@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError, roundToNine } from './utils/helpers';
+import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError, roundToNine, calculateGenuineSales } from './utils/helpers';
 import { LANGUAGES, t, translateReward } from './utils/translations';
 import { Catalog } from './components/Catalog';
 import { Cart } from './components/Cart';
@@ -261,17 +261,43 @@ function MainApp() {
     }
   });
 
-  // 🎯 Auto-fetch and sync dealer target vs achievement in background
+  // 🎯 Auto-fetch and sync dealer target vs achievement with Strict Genuine Sales Filter
   useEffect(() => {
     if (!user || !user.phone) return;
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "getTargetStats", phone: user.phone }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).then(r => r.json()).then(res => {
-      if (res && res.success) {
-        setTargetStats(res);
-        try { localStorage.setItem("yashDealerTargetStats", JSON.stringify(res)); } catch(e) {}
+
+    Promise.all([
+      fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "getTargetStats", phone: user.phone }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      }).then(r => r.json()).catch(() => null),
+      fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "getLedger", phone: user.phone }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      }).then(r => r.json()).catch(() => null)
+    ]).then(([statsRes, ledgerRes]) => {
+      if (statsRes && statsRes.success) {
+        let stats = { ...statsRes };
+        // Apply strict genuine sales filter: exclude Cheque Bounces, Bank entries, Charges, Penalties
+        if (ledgerRes && ledgerRes.success && Array.isArray(ledgerRes.data)) {
+          const genuine = calculateGenuineSales(ledgerRes.data);
+          stats.monthlyAchieved = genuine.monthlyAchieved;
+          stats.quarterlyAchieved = genuine.quarterlyAchieved;
+
+          const mTarget = Number(stats.monthlyTarget) || 0;
+          const qTarget = Number(stats.quarterlyTarget) || 0;
+
+          stats.monthlyPercent = mTarget > 0 ? Math.min(200, Math.round((genuine.monthlyAchieved / mTarget) * 100)) : 0;
+          stats.quarterlyPercent = qTarget > 0 ? Math.min(200, Math.round((genuine.quarterlyAchieved / qTarget) * 100)) : 0;
+          stats.monthlyUnlocked = mTarget > 0 && genuine.monthlyAchieved >= mTarget;
+          stats.quarterlyUnlocked = qTarget > 0 && genuine.quarterlyAchieved >= qTarget;
+          stats.targetDiscountPercent = (stats.monthlyUnlocked ? 2 : 0) + (stats.quarterlyUnlocked ? 2 : 0);
+          stats.remainingForMonthly = Math.max(0, mTarget - genuine.monthlyAchieved);
+          stats.remainingForQuarterly = Math.max(0, qTarget - genuine.quarterlyAchieved);
+        }
+        setTargetStats(stats);
+        try { localStorage.setItem("yashDealerTargetStats", JSON.stringify(stats)); } catch(e) {}
       }
     }).catch(() => {});
   }, [user?.phone]);
