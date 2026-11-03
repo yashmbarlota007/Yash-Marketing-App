@@ -114,12 +114,21 @@ function LoginScreen(props) {
     }).then(r => r.json()).then(function(res) {
       setLoading(false);
       if (res && res.success) {
+        const rawM = Number(res.monthlyTarget) || 0;
+        const finalM = rawM > 0 ? Math.max(15000, rawM) : 15000;
+        const rawQ = Number(res.quarterlyTarget) || 0;
+        const finalQ = rawQ > 0 ? Math.max(45000, rawQ) : (finalM * 3);
+
         var dealerData = { 
           phone: phone, 
           shopName: res.shopName,
-          monthlyTarget: Number(res.monthlyTarget) || 0,
-          quarterlyTarget: Number(res.quarterlyTarget) || 0,
-          targetStats: res.targetStats || null
+          monthlyTarget: finalM,
+          quarterlyTarget: finalQ,
+          targetStats: res.targetStats ? {
+            ...res.targetStats,
+            monthlyTarget: finalM,
+            quarterlyTarget: finalQ
+          } : null
         };
         localStorage.setItem("yashDealerSession", JSON.stringify(dealerData));
         if (res.targetStats) {
@@ -303,8 +312,13 @@ function MainApp() {
           stats.monthlyAchieved = genuine.monthlyAchieved;
           stats.quarterlyAchieved = genuine.quarterlyAchieved;
 
-          const mTarget = Number(stats.monthlyTarget) || 0;
-          const qTarget = Number(stats.quarterlyTarget) || 0;
+          const rawM = Number(stats.monthlyTarget) || 0;
+          const mTarget = rawM > 0 ? Math.max(15000, rawM) : 15000;
+          const rawQ = Number(stats.quarterlyTarget) || 0;
+          const qTarget = rawQ > 0 ? Math.max(45000, rawQ) : (mTarget * 3);
+
+          stats.monthlyTarget = mTarget;
+          stats.quarterlyTarget = qTarget;
 
           stats.monthlyPercent = mTarget > 0 ? Math.min(200, Math.round((genuine.monthlyAchieved / mTarget) * 100)) : 0;
           stats.quarterlyPercent = qTarget > 0 ? Math.min(200, Math.round((genuine.quarterlyAchieved / qTarget) * 100)) : 0;
