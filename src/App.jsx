@@ -261,6 +261,24 @@ function MainApp() {
     }
   });
 
+  // 📲 SYNC ONESIGNAL DEALER EXTERNAL USER ID
+  useEffect(() => {
+    if (!user || !user.phone) return;
+    const cleanPhone = String(user.phone).replace(/\D/g, '').slice(-10);
+    if (window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        try {
+          if (typeof OneSignal.login === 'function') {
+            await OneSignal.login(cleanPhone);
+            console.log("OneSignal linked to dealer phone:", cleanPhone);
+          }
+        } catch (err) {
+          console.error("OneSignal login error:", err);
+        }
+      });
+    }
+  }, [user?.phone]);
+
   // 🎯 Auto-fetch and sync dealer target vs achievement with Strict Genuine Sales Filter
   useEffect(() => {
     if (!user || !user.phone) return;
@@ -592,6 +610,11 @@ function MainApp() {
   };
 
   const handleLogout = () => {
+    if (window.OneSignalDeferred) {
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        try { if (typeof OneSignal.logout === 'function') await OneSignal.logout(); } catch(e) {}
+      });
+    }
     localStorage.removeItem("yashDealerSession");
     localStorage.removeItem("yashDealerCart");
     setUser(null);
