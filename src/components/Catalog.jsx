@@ -18,9 +18,12 @@ import { t, translateOfferText, translateReward, translateCategory, translatePro
 export function TargetCard({ targetStats, lang, customerMode }) {
   if (customerMode) return null;
   if (!targetStats) return null;
-  const mTarget = Number(targetStats.monthlyTarget) || 0;
-  const qTarget = Number(targetStats.quarterlyTarget) || 0;
-  if (mTarget === 0 && qTarget === 0) return null;
+  const rawM = Number(targetStats.monthlyTarget) || 0;
+  // Minimum monthly target for any dealer is ?15,000
+  const mTarget = rawM > 0 ? Math.max(15000, rawM) : 15000;
+  const rawQ = Number(targetStats.quarterlyTarget) || 0;
+  // Minimum quarterly target is ?45,000 (3x monthly target)
+  const qTarget = rawQ > 0 ? Math.max(45000, rawQ) : (mTarget * 3);
 
   const mAchieved = Number(targetStats.monthlyAchieved) || 0;
   const qAchieved = Number(targetStats.quarterlyAchieved) || 0;
@@ -40,14 +43,9 @@ export function TargetCard({ targetStats, lang, customerMode }) {
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <span className="text-xl">🎯</span>
-          <div>
-            <h3 className="font-black text-sm tracking-wide">
-              {t('target_vs_achievement', lang)}
-            </h3>
-            <p className="text-[9px] text-blue-200/80 font-semibold">
-              {t('target_growth_basis', lang)}
-            </p>
-          </div>
+          <h3 className="font-black text-sm tracking-wide">
+            {t('target_vs_achievement', lang)}
+          </h3>
         </div>
 
         {totalBonusPercent > 0 ? (
