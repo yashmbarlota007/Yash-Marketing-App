@@ -426,3 +426,100 @@ if (typeof window !== 'undefined') {
     }
   };
 }
+
+// 🎯 STRICT GENUINE SALES CALCULATION (FILTER OUT CHEQUE BOUNCES & BANK CHARGES)
+export function calculateGenuineSales(ledgerData, appOrders = []) {
+  var now = new Date();
+  var curYear = now.getFullYear();
+  var curMonth = now.getMonth(); // 0-11
+  var startOfMonth = new Date(curYear, curMonth, 1, 0, 0, 0);
+
+  // Financial Year Quarter (Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar)
+  var qStartMonth;
+  if (curMonth >= 3 && curMonth <= 5) qStartMonth = 3;
+  else if (curMonth >= 6 && curMonth <= 8) qStartMonth = 6;
+  else if (curMonth >= 9 && curMonth <= 11) qStartMonth = 9;
+  else qStartMonth = 0;
+
+  var startOfQuarter = new Date(curYear, qStartMonth, 1, 0, 0, 0);
+
+  var monthSales = 0;
+  var quarterSales = 0;
+
+  if (Array.isArray(ledgerData)) {
+    ledgerData.forEach(function(e) {
+      var txDate = null;
+      if (e.date) {
+        if (e.date instanceof Date) {
+          txDate = e.date;
+        } else if (typeof e.date === 'string' && e.date.includes('-')) {
+          var p = e.date.split('-');
+          if (p.length === 3) {
+            if (p[0].length === 4) txDate = new Date(e.date);
+            else txDate = new Date(p[2] + '-' + p[1] + '-' + p[0]);
+          }
+        }
+      }
+
+      if (!txDate || isNaN(txDate.getTime())) return;
+
+      var particulars = (e.particulars || '').toString().toLowerCase();
+      var vchType = (e.vchType || '').toString().toLowerCase();
+      var debit = parseFloat(String(e.debit || 0).replace(/,/g, '')) || 0;
+      var credit = parseFloat(String(e.credit || 0).replace(/,/g, '')) || 0;
+
+      // 🔍 STRICT GENUINE SALES FILTER:
+      // Genuine sales have voucher types or particulars like *Sale*, *Corporate*, *Velocity Corporate*
+      // Exclude: Payments (Cheque Bounces), Bank entries, Bouncing Charges, Penalties, Journals
+      var isSale = vchType.includes('sale') || vchType.includes('corp') || particulars.includes('sale');
+      var isNonSaleDebit = particulars.includes('bounc') || particulars.includes('bank') || particulars.includes('penalty') ||
+                           particulars.includes('charge') || vchType === 'payment' || vchType === 'receipt' || vchType === 'journal';
+
+      if (debit > 0 && isSale && !isNonSaleDebit) {
+        if (txDate >= startOfMonth) monthSales += debit;
+        if (txDate >= startOfQuarter) quarterSales += debit;
+      }
+
+      // Deduct Sales Returns (Credit Notes) if any
+      if (credit > 0 && (vchType.includes('credit note') || particulars.includes('return'))) {
+        if (txDate >= startOfMonth) monthSales = Math.max(0, monthSales - credit);
+        if (txDate >= startOfQuarter) quarterSales = Math.max(0, quarterSales - credit);
+      }
+    });
+  }
+
+  // Also include recent app orders if not yet reflected in physical ledger
+  if (Array.isArray(appOrders)) {
+    var appMonth = 0;
+    var appQuarter = 0;
+    appOrders.forEach(function(o) {
+      var st = (o.status || '').toLowerCase();
+      if (st === 'cancelled' || st === 'rejected') return;
+      var oAmt = parseFloat(String(o.totalValue || o.finalAmount || o.amount || 0).replace(/,/g, '')) || 0;
+      if (oAmt <= 0) return;
+
+      var ordDate = null;
+      if (o.date) {
+        if (o.date instanceof Date) ordDate = o.date;
+        else if (typeof o.date === 'string' && o.date.includes('-')) {
+          var sp = o.date.split('-');
+          if (sp.length === 3) {
+            if (sp[0].length === 4) ordDate = new Date(o.date);
+            else ordDate = new Date(sp[2] + '-' + sp[1] + '-' + sp[0]);
+          }
+        }
+      }
+      if (ordDate && !isNaN(ordDate.getTime())) {
+        if (ordDate >= startOfMonth) appMonth += oAmt;
+        if (ordDate >= startOfQuarter) appQuarter += oAmt;
+      }
+    });
+    if (appMonth > monthSales) monthSales = appMonth;
+    if (appQuarter > quarterSales) quarterSales = appQuarter;
+  }
+
+  return {
+    monthlyAchieved: Math.round(monthSales),
+    quarterlyAchieved: Math.round(quarterSales)
+  };
+}
