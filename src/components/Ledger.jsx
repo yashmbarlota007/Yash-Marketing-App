@@ -557,7 +557,11 @@ export function OrdersHistoryView(props) {
                                   e.target.src = `https://drive.google.com/thumbnail?id=${photo.fileId}&sz=w400`;
                                 } else {
                                   e.target.style.display = 'none';
-                                  e.target.parentNode.innerHTML = '<span class="text-2xl">📸</span>';
+                                  const p = e.target.parentNode;
+                                  if (p) {
+                                    p.className = "w-20 h-20 bg-amber-50 rounded-2xl border-2 border-amber-300 flex flex-col items-center justify-center p-1 text-center shadow-xs cursor-pointer";
+                                    p.innerHTML = "<span class=\"text-xl\">??</span><span class=\"text-[8px] font-black text-amber-800 uppercase mt-0.5 leading-tight\">TAP TO VIEW</span>";
+                                  }
                                 }
                               }}
                             />
