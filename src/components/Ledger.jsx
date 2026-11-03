@@ -142,9 +142,155 @@ export function OrdersHistoryView(props) {
   var lang = props.lang || 'en';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [zoomedMedia, setZoomedMedia] = useState(null); 
+  const [refreshing, setRefreshing] = useState(false);
+  const [zoomedMedia, setZoomedMedia] = useState(null);
+  const [expandedTimelines, setExpandedTimelines] = useState({});
 
-  useEffect(() => {
+  const BACKEND_FULFILLMENT_API = "https://script.google.com/macros/s/AKfycbyXHJaFTSkjwu6C8ze4czs2Q42NQsgzjW814j8OLA7ztMXTW-nqmh2gkpjebmdSW4YJjA/exec";
+
+  // 🚚 GOOGLE DRIVE FILE & PHOTO HELPERS
+  const getFileId = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return dMatch ? dMatch[1] : (idMatch ? idMatch[1] : null);
+  };
+
+  const getDriveThumbUrl = (urlOrId) => {
+    if (!urlOrId || typeof urlOrId !== 'string') return '';
+    const fileId = getFileId(urlOrId) || urlOrId;
+    if (!fileId || typeof fileId !== 'string' || fileId.includes('/')) return urlOrId;
+    return `https://lh3.googleusercontent.com/d/${fileId}=w400`;
+  };
+
+  const getDriveHighResUrl = (urlOrId) => {
+    if (!urlOrId || typeof urlOrId !== 'string') return '';
+    const fileId = getFileId(urlOrId) || urlOrId;
+    if (!fileId || typeof fileId !== 'string' || fileId.includes('/')) return urlOrId;
+    return `https://lh3.googleusercontent.com/d/${fileId}`;
+  };
+
+  // 📋 FULFILLMENT STAGES CONFIGURATION (9 STAGES)
+  const FULFILLMENT_STAGES_CONFIG = [
+    { id: 0, key: 'balance_check', en: 'Balance / Advance Check', hi: 'एडवांस / बैलेंस चेक', mr: 'अॅडव्हान्स / शिल्लक पडताळणी', icon: '💳' },
+    { id: 1, key: 'wa_confirm', en: 'Order Confirmation', hi: 'ऑर्डर कन्फर्मेशन', mr: 'ऑर्डर निश्चिती', icon: '📝' },
+    { id: 2, key: 'stock_photo', en: 'Stock Photo', hi: 'स्टॉक फोटो', mr: 'स्टॉक फोटो', icon: '📦' },
+    { id: 3, key: 'invoice_photo', en: 'Invoice / Bill Photo', hi: 'बिल / इनवॉइस फोटो', mr: 'बिल / इनव्हॉइस फोटो', icon: '🧾' },
+    { id: 4, key: 'box_photo', en: 'Box Packing Photo', hi: 'बॉक्स पॅकिंग फोटो', mr: 'खोका / बॉक्स पॅकिंग फोटो', icon: '🎁' },
+    { id: 5, key: 'dispatch', en: 'Dispatched / Runner Assigned', hi: 'डिस्पैच / रनर रवाना', mr: 'डिस्पॅच / डिलिव्हरीसाठी रवाना', icon: '🚚' },
+    { id: 6, key: 'out_for_delivery', en: 'Out for Delivery Update', hi: 'डिलिव्हरी सूचना', mr: 'डिलिव्हरी सूचना पाठवली', icon: '📲' },
+    { id: 7, key: 'delivery_proof', en: 'Delivery Proof (POD)', hi: 'डिलिव्हरी पावती (POD)', mr: 'डिलिव्हरी पावती (POD)', icon: '✅' },
+    { id: 8, key: 'feedback', en: 'Order Completed & Rated', hi: 'ऑर्डर पूर्ण व फीडबॅक', mr: 'ऑर्डर पूर्ण व अभिप्राय', icon: '⭐' }
+  ];
+
+  // 🛠️ PARSER FOR STAGE URLS WITH TIMESTAMPS, STAFF & MULTIPLE PHOTOS
+  const parseOrderStages = (ord) => {
+    const stageUrls = Array.isArray(ord.stageUrls) ? ord.stageUrls : [];
+    const timeline = [];
+    const allPhotos = [];
+    let runnerDetails = ord.DeliveryDetails || "";
+    let latestCompletedTime = "";
+
+    stageUrls.forEach((rawEntry, idx) => {
+      if (!rawEntry || typeof rawEntry !== 'string' || !rawEntry.trim()) return;
+      const parts = rawEntry.split('||').map(p => p.trim());
+      const mainContent = parts[0] || '';
+      
+      let timeFormatted = "";
+      let staffName = "";
+
+      parts.slice(1).forEach(p => {
+        if (p.startsWith('TIME:')) {
+          const tVal = p.replace('TIME:', '').trim();
+          const num = Number(tVal);
+          if (!isNaN(num) && num > 0) {
+            const d = new Date(num);
+            timeFormatted = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' +
+                            d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            latestCompletedTime = timeFormatted;
+          }
+        } else if (p.startsWith('STAFF:')) {
+          staffName = p.replace('STAFF:', '').trim();
+        }
+      });
+
+      const cfg = FULFILLMENT_STAGES_CONFIG[idx] || { id: idx, key: 'stage_' + idx, en: 'Stage ' + (idx + 1), hi: 'स्टेज ' + (idx + 1), mr: 'टप्पा ' + (idx + 1), icon: '📌' };
+      const stageName = cfg[lang] || cfg.en;
+      const isSkipped = mainContent.toLowerCase().includes('skipped') || mainContent.toLowerCase().includes('didn\'t respond');
+
+      // Extract all URLs (supports multiple comma-separated URLs)
+      const stagePhotos = [];
+      const tokens = mainContent.split(',').map(s => s.trim());
+      tokens.forEach((tok, tokIdx) => {
+        const match = tok.match(/(https?:\/\/[^\s]+)/i);
+        if (match) {
+          const url = match[1];
+          const fileId = getFileId(url);
+          const photoLabel = tokens.length > 1 ? `${stageName} (${tokIdx + 1})` : stageName;
+          const photoObj = {
+            label: photoLabel,
+            stageIndex: idx,
+            stageName: stageName,
+            url: url,
+            fileId: fileId,
+            thumbUrl: getDriveThumbUrl(fileId || url),
+            highResUrl: getDriveHighResUrl(fileId || url),
+            time: timeFormatted,
+            staff: staffName
+          };
+          stagePhotos.push(photoObj);
+          allPhotos.push(photoObj);
+        }
+      });
+
+      if (mainContent.includes('[Runner:') || mainContent.includes('Runner:')) {
+        runnerDetails = mainContent.replace(/^\[|\]$/g, '').trim();
+      }
+
+      timeline.push({
+        stageIndex: idx,
+        name: stageName,
+        icon: cfg.icon,
+        isCompleted: !isSkipped && (stagePhotos.length > 0 || mainContent.startsWith('[') || mainContent.length > 3),
+        isSkipped: isSkipped,
+        time: timeFormatted,
+        staff: staffName,
+        details: mainContent.startsWith('[') ? mainContent.replace(/^\[|\]$/g, '') : (stagePhotos.length > 0 ? `${stagePhotos.length} Photo(s) Attached` : mainContent),
+        photos: stagePhotos
+      });
+    });
+
+    // Also include any photos explicitly mapped from legacy order columns
+    const legacyPhotos = [
+      { label: t('stock_photo', lang) || 'Stock Photo', url: ord.StockPhoto || ord.stockPhoto, icon: '📦' },
+      { label: t('invoice_photo', lang) || 'Invoice Photo', url: ord.InvoicePhoto || ord.invoicePhoto, icon: '🧾' },
+      { label: t('box_photo', lang) || 'Box Photo', url: ord.BoxPhoto || ord.boxPhoto, icon: '🎁' },
+      { label: t('delivery_proof', lang) || 'Delivery Proof (POD)', url: ord.POD || ord.pod || ord.DeliveryProof, icon: '✅' }
+    ];
+
+    legacyPhotos.forEach(leg => {
+      if (leg.url && typeof leg.url === 'string' && leg.url.startsWith('http')) {
+        const fileId = getFileId(leg.url);
+        if (!allPhotos.some(p => p.url === leg.url || (fileId && p.fileId === fileId))) {
+          allPhotos.push({
+            label: leg.label,
+            stageIndex: -1,
+            stageName: leg.label,
+            url: leg.url,
+            fileId: fileId,
+            thumbUrl: getDriveThumbUrl(fileId || leg.url),
+            highResUrl: getDriveHighResUrl(fileId || leg.url),
+            time: ord.date || '',
+            staff: ''
+          });
+        }
+      }
+    });
+
+    return { timeline, allPhotos, runnerDetails, latestCompletedTime };
+  };
+
+  const fetchOrders = (isManualRefresh = false) => {
     const rawPhone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile) : '';
     const cleanPhone = rawPhone.replace(/\D/g, '').slice(-10);
     const shopName = user && (user.shopName || user.name) ? String(user.shopName || user.name).toLowerCase().trim() : '';
@@ -154,82 +300,8 @@ export function OrdersHistoryView(props) {
       return;
     }
 
-    const BACKEND_FULFILLMENT_API = "https://script.google.com/macros/s/AKfycbyXHJaFTSkjwu6C8ze4czs2Q42NQsgzjW814j8OLA7ztMXTW-nqmh2gkpjebmdSW4YJjA/exec";
+    if (isManualRefresh) setRefreshing(true);
 
-    const extractUrl = (str) => {
-      if (!str || typeof str !== 'string') return null;
-      const match = str.match(/(https?:\/\/[^\s|]+)/i);
-      return match ? match[1] : null;
-    };
-
-    const stageLabels = [
-      t('balance_check', lang) || 'Balance Check',
-      t('wa_confirmation', lang) || 'WhatsApp Confirmation',
-      t('stock_photo', lang) || 'Stock Photo',
-      t('invoice_photo', lang) || 'Invoice Photo',
-      t('box_photo', lang) || 'Box Photo',
-      t('runner_dispatched', lang) || 'Runner / Dispatch',
-      t('delivery_notification', lang) || 'Delivery Notification',
-      t('delivery_proof', lang) || 'Delivery Proof (POD)',
-      t('final_rating', lang) || 'Final Call Rating'
-    ];
-
-    const mapBackendOrder = (bo) => {
-      const stageUrls = Array.isArray(bo.stageUrls) ? bo.stageUrls : [];
-      const attachments = [];
-
-      stageUrls.forEach((entry, idx) => {
-        const u = extractUrl(entry);
-        if (u) {
-          const lbl = stageLabels[idx] || ('Stage ' + (idx + 1));
-          attachments.push({
-            label: lbl,
-            url: u,
-            type: u.includes('audio') ? 'audio' : 'image',
-            source: 'backend_stage_' + (idx + 1)
-          });
-        }
-      });
-
-      let status = 'Pending';
-      if (bo.isFullyCompleted || bo.completedStages >= 8) {
-        status = 'Delivered';
-      } else if (bo.completedStages >= 5) {
-        status = 'Dispatched';
-      } else if (bo.completedStages >= 3) {
-        status = 'Packing';
-      } else if (bo.completedStages >= 1) {
-        status = 'Processing';
-      }
-
-      const itemsBlueprint = Array.isArray(bo.items) 
-        ? bo.items.map(it => it.name + ' x' + (it.qty || 1)).join(' | ')
-        : (bo.items ? String(bo.items) : 'N/A');
-
-      const stockPhoto = extractUrl(stageUrls[2]);
-      const invoicePhoto = extractUrl(stageUrls[3]);
-      const boxPhoto = extractUrl(stageUrls[4]);
-      const pod = extractUrl(stageUrls[7]);
-
-      return {
-        orderId: bo.orderId,
-        date: bo.date ? new Date(bo.date).toLocaleDateString('en-GB') : '',
-        status: status,
-        payment: bo.paymentMode || 'DAILY',
-        amount: bo.totalValue || 0,
-        items: itemsBlueprint,
-        itemsDetails: bo.items || [],
-        StockPhoto: stockPhoto,
-        InvoicePhoto: invoicePhoto,
-        BoxPhoto: boxPhoto,
-        POD: pod,
-        attachments: attachments,
-        completedStages: bo.completedStages || 0,
-        isFullyCompleted: !!bo.isFullyCompleted
-      };
-    };
-
-    // Parallel fetch from both Live Fulfillment Mainframe & Standard GAS Endpoint
     const pBackend = fetch(BACKEND_FULFILLMENT_API, {
       method: 'POST',
       body: JSON.stringify({ action: "getOrders", staffName: "DealerApp" }),
@@ -245,7 +317,7 @@ export function OrdersHistoryView(props) {
     Promise.all([pBackend, pLocal]).then(([resBackend, resLocal]) => {
       const mergedMap = {};
 
-      // 1. Process local orders first
+      // 1. Local sheet orders
       const localList = (resLocal && resLocal.success && Array.isArray(resLocal.data)) ? resLocal.data : (Array.isArray(resLocal) ? resLocal : []);
       localList.forEach(ord => {
         if (ord && ord.orderId) {
@@ -253,7 +325,7 @@ export function OrdersHistoryView(props) {
         }
       });
 
-      // 2. Overwrite / enrich with Live Fulfillment Backend Orders (Priority: Real status + Step Photos)
+      // 2. Overwrite / enrich with Live Fulfillment Backend Orders (Priority: Real status + Step Photos + Timestamps)
       const backendList = (resBackend && Array.isArray(resBackend.data)) ? resBackend.data : [];
       const matchingBackend = backendList.filter(bo => {
         const boPhone = String(bo.phone || '').replace(/\D/g, '').slice(-10);
@@ -262,18 +334,42 @@ export function OrdersHistoryView(props) {
       });
 
       matchingBackend.forEach(bo => {
-        const mapped = mapBackendOrder(bo);
+        let status = 'Pending';
+        if (bo.isFullyCompleted || bo.completedStages >= 8) {
+          status = 'Delivered';
+        } else if (bo.completedStages >= 5) {
+          status = 'Dispatched';
+        } else if (bo.completedStages >= 3) {
+          status = 'Packing';
+        } else if (bo.completedStages >= 1) {
+          status = 'Processing';
+        }
+
+        const itemsBlueprint = Array.isArray(bo.items) 
+          ? bo.items.map(it => it.name + ' x' + (it.qty || 1)).join(' | ')
+          : (bo.items ? String(bo.items) : 'N/A');
+
+        const mapped = {
+          orderId: bo.orderId,
+          date: bo.date ? new Date(bo.date).toLocaleDateString('en-GB') : '',
+          status: status,
+          payment: bo.paymentMode || 'DAILY',
+          amount: bo.totalValue || 0,
+          items: itemsBlueprint,
+          itemsDetails: bo.items || [],
+          stageUrls: bo.stageUrls || [],
+          completedStages: bo.completedStages || 0,
+          isFullyCompleted: !!bo.isFullyCompleted,
+          lastUpdatedBy: bo.lastUpdatedBy || ''
+        };
+
         if (mergedMap[mapped.orderId]) {
           const prev = mergedMap[mapped.orderId];
           mergedMap[mapped.orderId] = {
             ...prev,
             ...mapped,
             status: mapped.status !== 'Pending' ? mapped.status : prev.status,
-            attachments: mapped.attachments.length > 0 ? mapped.attachments : prev.attachments,
-            StockPhoto: mapped.StockPhoto || prev.StockPhoto,
-            InvoicePhoto: mapped.InvoicePhoto || prev.InvoicePhoto,
-            BoxPhoto: mapped.BoxPhoto || prev.BoxPhoto,
-            POD: mapped.POD || prev.POD
+            stageUrls: mapped.stageUrls.length > 0 ? mapped.stageUrls : prev.stageUrls
           };
         } else {
           mergedMap[mapped.orderId] = mapped;
@@ -281,64 +377,41 @@ export function OrdersHistoryView(props) {
       });
 
       const finalOrders = Object.values(mergedMap);
+      // Sort orders descending by date
+      finalOrders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+      // Auto-expand timeline of latest order by default
+      if (finalOrders.length > 0 && Object.keys(expandedTimelines).length === 0) {
+        setExpandedTimelines({ [finalOrders[0].orderId]: true });
+      }
+
       setOrders(finalOrders);
       setLoading(false);
+      setRefreshing(false);
     }).catch(err => {
       console.error("Order sync error:", err);
       setLoading(false);
+      setRefreshing(false);
     });
-  }, [user, lang]);
-
-  const getFileId = (url) => {
-    if (!url || typeof url !== 'string') return null;
-    const dMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (dMatch) return dMatch[1]; 
-    if (idMatch) return idMatch[1]; 
-    return null;
   };
 
-  // Collect all photos, invoice, box photo, and call recordings from any mapped column
-  const collectAttachments = (ord) => {
-    const atts = Array.isArray(ord.attachments) ? [...ord.attachments] : [];
+  useEffect(() => {
+    fetchOrders(false);
+    const handleFocus = () => fetchOrders(false);
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, lang]);
 
-    const addIfMissing = (label, url, type = 'image') => {
-      if (!url || typeof url !== 'string') return;
-      const cleanUrl = url.trim();
-      if (!cleanUrl || cleanUrl.toLowerCase() === 'undefined' || cleanUrl.toLowerCase() === 'null') return;
-      if (!atts.some(a => a.url === cleanUrl || a.label.toLowerCase() === label.toLowerCase())) {
-        atts.push({ label, url: cleanUrl, type });
-      }
-    };
-
-    addIfMissing(t('stock_photo', lang), ord.StockPhoto || ord.stockPhoto, 'image');
-    addIfMissing(t('invoice_photo', lang), ord.InvoicePhoto || ord.invoicePhoto, 'image');
-    addIfMissing(t('box_photo', lang), ord.BoxPhoto || ord.boxPhoto, 'image');
-    addIfMissing(t('delivery_proof', lang), ord.POD || ord.pod || ord.DeliveryProof, 'image');
-    addIfMissing(t('payment_proof', lang), ord.PaymentScreenshot || ord.screenshotUrl, 'image');
-    addIfMissing(t('call_recording', lang), ord.CallRecording || ord.callRecording || ord.Call1 || ord.Call2, 'audio');
-
-    // Deep key search for any drive/http photo or recording urls
-    Object.keys(ord || {}).forEach(k => {
-      const lk = k.toLowerCase().replace(/[\s_-]/g, '');
-      const v = ord[k];
-      if (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))) {
-        if (lk.includes('stock')) addIfMissing(t('stock_photo', lang), v, 'image');
-        else if (lk.includes('invoice') || lk.includes('bill')) addIfMissing(t('invoice_photo', lang), v, 'image');
-        else if (lk.includes('box') || lk.includes('packing')) addIfMissing(t('box_photo', lang), v, 'image');
-        else if (lk.includes('pod') || lk.includes('delivery')) addIfMissing(t('delivery_proof', lang), v, 'image');
-        else if (lk.includes('pay') || lk.includes('screen') || lk.includes('utr')) addIfMissing(t('payment_proof', lang), v, 'image');
-        else if (lk.includes('call') || lk.includes('audio') || lk.includes('record')) addIfMissing(t('call_recording', lang), v, 'audio');
-        else if (lk.includes('photo') || lk.includes('image') || lk.includes('drive') || lk.includes('file')) addIfMissing('Photo', v, 'image');
-      }
-    });
-
-    return atts;
+  const toggleTimeline = (orderId) => {
+    setExpandedTimelines(prev => ({
+      ...prev,
+      [orderId]: !prev[orderId]
+    }));
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900">
+      <div className="flex flex-col justify-center items-center h-[70vh] text-blue-900 font-sans">
         <div className="border-4 border-current border-t-transparent w-12 h-12 rounded-full spinner mb-4"></div>
         <p className="font-bold">{t('generating_order_history', lang)}</p>
       </div>
@@ -347,7 +420,28 @@ export function OrdersHistoryView(props) {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans relative">
-      <h2 className="font-black text-gray-800 text-lg mb-4 px-1 uppercase tracking-wide">{t('my_past_orders', lang)}</h2>
+      {/* Top Header & Refresh Control */}
+      <div className="flex justify-between items-center mb-4 px-1">
+        <div>
+          <h2 className="font-black text-gray-800 text-lg uppercase tracking-wide">
+            {t('my_past_orders', lang)} ({orders.length})
+          </h2>
+          <div className="flex items-center gap-1.5 text-[10px] text-emerald-700 font-bold mt-0.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Live Warehouse Updates Active</span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => fetchOrders(true)}
+          disabled={refreshing}
+          className="bg-blue-900 hover:bg-blue-800 text-white font-black text-xs px-3 py-2 rounded-xl shadow active:scale-95 transition-all flex items-center gap-1.5"
+        >
+          <span className={refreshing ? "animate-spin inline-block" : ""}>🔄</span>
+          <span>{refreshing ? "Updating..." : "Refresh"}</span>
+        </button>
+      </div>
+
       {orders.length === 0 ? (
         <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold uppercase">
           {t('no_orders_record', lang)}
@@ -357,38 +451,59 @@ export function OrdersHistoryView(props) {
           {orders.map((ord, idx) => {
             const stepInfo = getOrderStatusStep(ord.status);
             const itemsList = ord.items ? ord.items.toString().split(" | ") : ["N/A"];
-            const allAttachments = collectAttachments(ord);
+            const { timeline, allPhotos, runnerDetails, latestCompletedTime } = parseOrderStages(ord);
+            const isTimelineOpen = !!expandedTimelines[ord.orderId];
 
             return (
-              <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in">
-                {/* 🚚 LIVE ORDER STATUS STEPPER & TRACKING */}
-                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-2">
+              <div key={idx} className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between animate-fade-in relative overflow-hidden">
+                
+                {/* 🚚 Order Header */}
+                <div className="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
                   <div>
-                    <div className="text-[10px] text-gray-400 font-bold">{ord.date}</div>
-                    <div className="font-black text-blue-900 text-xs mt-0.5">{ord.orderId}</div>
+                    <div className="font-black text-blue-900 text-sm">{ord.orderId}</div>
+                    <div className="text-[10px] text-gray-500 font-semibold mt-0.5 flex items-center gap-1">
+                      <span>📅</span>
+                      <span>{ord.date}</span>
+                    </div>
                   </div>
-                  <span className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs border ${stepInfo.badgeClass}`}>
+                  <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-xs border ${stepInfo.badgeClass}`}>
                     {translateStatus(ord.status, lang) || ord.status || "Pending"}
                   </span>
                 </div>
 
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 my-2 shadow-2xs">
-                  <div className="flex justify-between text-[8px] font-black uppercase tracking-wider mb-1.5 text-center">
+                {/* 🏃 Runner & Transport Alert Badge */}
+                {runnerDetails && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-2.5 mb-3 flex items-center gap-2.5">
+                    <span className="text-xl">🚚</span>
+                    <div className="text-xs">
+                      <div className="font-black text-blue-950 uppercase tracking-tight text-[11px]">
+                        {lang === 'mr' ? 'डिलिव्हरी रनर माहिती:' : lang === 'hi' ? 'डिस्पैच व रनर जानकारी:' : 'Dispatch & Runner Info:'}
+                      </div>
+                      <div className="font-bold text-blue-800 text-[11px] mt-0.5">
+                        {runnerDetails}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🚚 4-Stage Summary Progress Stepper */}
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/80 mb-3 shadow-2xs">
+                  <div className="flex justify-between text-[8px] font-black uppercase tracking-wider mb-2 text-center">
                     <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 1 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
-                      <span className="text-[12px]">📝</span>
+                      <span className="text-[14px]">📝</span>
                       <span>{lang === 'mr' ? 'नोंदवली' : lang === 'hi' ? 'दर्ज' : 'Placed'}</span>
                     </span>
                     <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 2 ? 'text-indigo-900 font-black' : 'text-gray-400'}`}>
-                      <span className="text-[12px]">📦</span>
-                      <span>{lang === 'mr' ? 'पॅकिंग / प्रोसेस' : lang === 'hi' ? 'पैकिंग / प्रोसेस' : 'Processing'}</span>
+                      <span className="text-[14px]">📦</span>
+                      <span>{lang === 'mr' ? 'पॅकिंग' : lang === 'hi' ? 'पैकिंग' : 'Packing'}</span>
                     </span>
                     <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 3 ? 'text-blue-900 font-black' : 'text-gray-400'}`}>
-                      <span className="text-[12px]">🚚</span>
+                      <span className="text-[14px]">🚚</span>
                       <span>{lang === 'mr' ? 'पाठवले' : lang === 'hi' ? 'डिस्पैच' : 'Dispatched'}</span>
                     </span>
                     <span className={`w-1/4 flex flex-col items-center ${stepInfo.step >= 4 ? 'text-emerald-700 font-black' : 'text-gray-400'}`}>
-                      <span className="text-[12px]">✅</span>
-                      <span>{lang === 'mr' ? 'पूर्ण / पोहोचवले' : lang === 'hi' ? 'पूर्ण / डिलीवर' : 'Completed'}</span>
+                      <span className="text-[14px]">✅</span>
+                      <span>{lang === 'mr' ? 'पोहोचवले' : lang === 'hi' ? 'डिलीवर' : 'Completed'}</span>
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden shadow-inner">
@@ -397,93 +512,180 @@ export function OrdersHistoryView(props) {
                       style={{ width: `${stepInfo.percent}%` }}
                     ></div>
                   </div>
-                  <div className="text-[10px] text-gray-600 font-bold mt-2 text-center flex items-center justify-center gap-1">
-                    <span className="text-gray-400">{lang === 'mr' ? 'सध्याचे अपडेट:' : lang === 'hi' ? 'वर्तमान अपडेट:' : 'Current Update:'}</span>
-                    <span className="text-gray-900 font-black">{translateStatus(ord.status, lang) || ord.status || 'Pending'}</span>
-                  </div>
+                  {latestCompletedTime && (
+                    <div className="text-[9px] text-gray-500 font-bold mt-2 text-center flex items-center justify-center gap-1">
+                      <span>⏱️</span>
+                      <span>Last Update: <strong>{latestCompletedTime}</strong></span>
+                    </div>
+                  )}
                 </div>
 
-                {/* 📸 DOCUMENT GALLERY: REAL STOCK PHOTO, INVOICE, BOX PHOTO & CALL RECORDING */}
-                {allAttachments && allAttachments.length > 0 ? (
-                  <div className="py-2.5 border-b border-dashed border-gray-100">
-                    <div className="text-[9px] text-gray-400 font-black uppercase mb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1"><span>📁</span> {t('order_docs', lang)}</span>
-                      <span className="text-blue-900 font-bold bg-blue-50 px-2 py-0.5 rounded-full text-[9px]">{allAttachments.length} Documents</span>
+                {/* 📸 DIRECT PHOTO GALLERY STRIP: STOCK PHOTO, BILL PHOTO, BOX PHOTO, POD */}
+                {allPhotos.length > 0 ? (
+                  <div className="py-2.5 mb-3 border-b border-dashed border-gray-200">
+                    <div className="text-[10px] text-gray-700 font-black uppercase mb-2 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-blue-950">
+                        <span>📸</span>
+                        <span>{t('order_docs', lang)} ({allPhotos.length} Photos)</span>
+                      </span>
+                      <span className="text-[9px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full font-bold">
+                        Tap to View & Zoom
+                      </span>
                     </div>
+                    
                     <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
-                      {allAttachments.map((att, i) => {
-                        const fileId = getFileId(att.url);
-                        const isAudio = att.type === 'audio' || (att.label && att.label.toLowerCase().includes('call'));
-                        const isImage = !isAudio && att.type !== 'rating';
-                        const thumbUrl = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w400` : att.url;
-
-                        return (
-                          <div 
-                            key={i} 
-                            onClick={() => setZoomedMedia({ ...att, fileId, isAudio })} 
-                            className="min-w-[72px] w-[72px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
-                          >
-                            <div className="w-16 h-16 bg-gray-100 rounded-xl border-2 border-gray-200 overflow-hidden flex items-center justify-center shadow-xs relative group">
-                              {isAudio ? (
-                                <div className="flex flex-col items-center justify-center bg-blue-50 w-full h-full text-blue-900">
-                                  <span className="text-2xl animate-pulse">🎧</span>
-                                  <span className="text-[7px] font-black text-blue-700 uppercase">PLAY</span>
-                                </div>
-                              ) : isImage && fileId ? (
-                                <img 
-                                  src={thumbUrl} 
-                                  alt={att.label} 
-                                  className="w-full h-full object-cover" 
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.style.display = 'none';
-                                    e.target.parentNode.innerHTML = '<span class="text-2xl">📸</span>';
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-2xl">📸</span>
-                              )}
-                            </div>
-                            <span className="text-[8px] font-black text-gray-700 text-center leading-tight line-clamp-2 w-full">
-                              {att.label}
-                            </span>
+                      {allPhotos.map((photo, pIdx) => (
+                        <div 
+                          key={pIdx} 
+                          onClick={() => setZoomedMedia(photo)} 
+                          className="min-w-[84px] w-[84px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                        >
+                          <div className="w-20 h-20 bg-gray-100 rounded-2xl border-2 border-blue-200/80 overflow-hidden flex items-center justify-center shadow-xs relative group">
+                            <img 
+                              src={photo.thumbUrl} 
+                              alt={photo.label} 
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              loading="lazy"
+                              onError={(e) => {
+                                if (photo.fileId && !e.target.src.includes('thumbnail?id')) {
+                                  e.target.src = `https://drive.google.com/thumbnail?id=${photo.fileId}&sz=w400`;
+                                } else {
+                                  e.target.style.display = 'none';
+                                  e.target.parentNode.innerHTML = '<span class="text-2xl">📸</span>';
+                                }
+                              }}
+                            />
+                            {photo.time && (
+                              <div className="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-xs text-[7px] text-white font-bold px-1 py-0.5 text-center truncate">
+                                {photo.time.split(',')[1] || photo.time}
+                              </div>
+                            )}
                           </div>
-                        );
-                      })}
+                          <span className="text-[8px] font-black text-gray-800 text-center leading-tight line-clamp-2 w-full mt-0.5">
+                            {photo.label}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="py-2.5 px-3 bg-amber-50/70 border border-amber-200/60 rounded-xl my-2 flex items-start gap-2">
-                    <span className="text-base shrink-0 mt-0.5">📦</span>
-                    <div className="text-[11px] leading-tight flex-1">
-                      <div className="font-black text-amber-950 uppercase tracking-wider text-[9px] mb-0.5">
-                        {lang === 'mr' ? 'पडताळणी व डिस्पॅच अपडेट' : lang === 'hi' ? 'सत्यापन व डिस्पैच अपडेट' : 'Verification & Dispatch Update'}
-                      </div>
-                      <div className="text-amber-900 font-medium">
-                        {stepInfo.step === 4
-                          ? (lang === 'mr' ? 'ऑर्डर यशस्वीरीत्या पूर्ण व वितरित झाली आहे.' : lang === 'hi' ? 'ऑर्डर सफलतापूर्वक पूर्ण और डिलीवर हो चुकी है।' : 'Order successfully completed and delivered.')
-                          : stepInfo.step === 3
-                          ? (lang === 'mr' ? 'ऑर्डर गोदामातून डिस्पॅच झाली आहे. लवकरच पोहोचेल.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस से डिस्पैच हो चुकी है। जल्द ही पहुंचेगी।' : 'Order dispatched from warehouse. Arriving soon.')
-                          : stepInfo.step === 2
-                          ? (lang === 'mr' ? 'ऑर्डर गोदामात पॅकिंग व प्रोसेस होत आहे. लवकरच पाठवले जाईल.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस में पैकिंग और प्रोसेस हो रही है। जल्द डिस्पैच होगी।' : 'Order is being packed and prepared for dispatch.')
-                          : (lang === 'mr' ? 'ऑर्डर गोदामात पॅकिंगसाठी प्रलंबित आहे. पॅक होताच प्रत्यक्ष स्टॉक, बॉक्स व इनव्हॉइस फोटो येथे उपलब्ध होतील.' : lang === 'hi' ? 'ऑर्डर वेयरहाउस में पैकिंग के लिए लंबित है। पैक होते ही स्टॉक, बॉक्स और बिल के फ़ोटो यहाँ उपलब्ध होंगे।' : 'Order is pending warehouse packing. Live photos of stock, box, and invoice will be updated once packed.')}
-                      </div>
+                  <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl mb-3 flex items-start gap-2 text-xs">
+                    <span className="text-base">📦</span>
+                    <div className="text-[11px] text-amber-950 font-medium leading-relaxed">
+                      <strong>{lang === 'mr' ? 'पॅकिंग व पडताळणी सुरू आहे:' : lang === 'hi' ? 'पैकिंग और सत्यापन जारी है:' : 'Warehouse Verification in Progress:'}</strong>{' '}
+                      {lang === 'mr' 
+                        ? 'ऑर्डर पॅक होताच स्टॉक फोटो, इनव्हॉइस आणि खोक्याचे प्रत्यक्ष फोटो येथे उपलब्ध होतील.' 
+                        : lang === 'hi' 
+                        ? 'ऑर्डर पैक होते ही स्टॉक फोटो, बिल और बॉक्स का फोटो यहाँ स्वतः आ जाएगा।' 
+                        : 'Live stock photo, bill photo, and box packing photos will appear here as soon as completed in warehouse.'}
                     </div>
                   </div>
                 )}
 
-                <div className="py-3 border-b border-dashed border-gray-100">
+                {/* ⏱️ STEP-BY-STEP AUDIT TRAIL / TIMELINE (HAR STEP KA TIME) */}
+                {timeline.length > 0 && (
+                  <div className="mb-3 border border-gray-200 rounded-2xl overflow-hidden bg-white">
+                    <button
+                      onClick={() => toggleTimeline(ord.orderId)}
+                      className="w-full p-3 bg-gray-50 hover:bg-gray-100 flex items-center justify-between text-left transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">⏱️</span>
+                        <div>
+                          <div className="text-xs font-black text-gray-900">
+                            {lang === 'mr' ? 'प्रत्येक टप्प्याची वेळ (Step Timestamps)' : lang === 'hi' ? 'हर स्टेप का समय (Step Timelines)' : 'Step-by-Step Completion Times'}
+                          </div>
+                          <div className="text-[9px] text-gray-500 font-semibold">
+                            {timeline.filter(t => t.isCompleted).length} of {timeline.length} Steps Completed
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-gray-500 font-black text-xs">
+                        {isTimelineOpen ? '▲ Hide' : '▼ View Times'}
+                      </span>
+                    </button>
+
+                    {isTimelineOpen && (
+                      <div className="p-3.5 space-y-3 bg-white border-t border-gray-100">
+                        {timeline.map((st, sIdx) => {
+                          const isLast = sIdx === timeline.length - 1;
+                          return (
+                            <div key={sIdx} className="flex items-start gap-3 relative">
+                              {!isLast && (
+                                <div className={`absolute left-3.5 top-6 bottom-0 w-0.5 ${st.isCompleted ? 'bg-emerald-400' : 'bg-gray-200'}`}></div>
+                              )}
+                              
+                              <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs shadow-xs z-10 ${
+                                st.isCompleted ? 'bg-emerald-600 text-white font-bold' : (st.isSkipped ? 'bg-gray-200 text-gray-500' : 'bg-amber-100 text-amber-800')
+                              }`}>
+                                {st.isCompleted ? '✓' : st.icon}
+                              </div>
+
+                              <div className="flex-1 pb-1">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
+                                  <span className="font-black text-xs text-gray-900 flex items-center gap-1.5">
+                                    <span>{st.icon}</span>
+                                    <span>{st.name}</span>
+                                  </span>
+                                  {st.time ? (
+                                    <span className="text-[10px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                      ⏰ {st.time}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-bold text-gray-400">
+                                      {st.isSkipped ? 'Skipped' : 'Pending'}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {st.staff && (
+                                  <div className="text-[10px] text-gray-500 font-semibold mt-0.5">
+                                    👤 Verified by: <strong className="text-gray-700">{st.staff}</strong>
+                                  </div>
+                                )}
+
+                                {st.details && !st.details.includes('Photo(s) Attached') && (
+                                  <div className="text-[10px] text-blue-900 bg-blue-50/80 px-2 py-1 rounded-lg mt-1 font-semibold border border-blue-100">
+                                    {st.details}
+                                  </div>
+                                )}
+
+                                {/* Inline Photo preview for this specific step */}
+                                {st.photos && st.photos.length > 0 && (
+                                  <div className="flex gap-2 mt-1.5">
+                                    {st.photos.map((p, pi) => (
+                                      <div
+                                        key={pi}
+                                        onClick={() => setZoomedMedia(p)}
+                                        className="w-12 h-12 rounded-xl overflow-hidden border border-blue-300 shadow-2xs cursor-pointer active:scale-95"
+                                      >
+                                        <img src={p.thumbUrl} alt={p.label} className="w-full h-full object-cover" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 📋 Ordered Items Blueprint */}
+                <div className="py-2.5 border-b border-dashed border-gray-200 mb-2">
                   <div className="text-[9px] text-gray-400 font-black uppercase mb-1.5 flex items-center justify-between">
                     <span>{t('order_billing_blueprint', lang)}</span>
                     <span className="text-gray-500 font-bold text-[9px]">{itemsList.length} Items</span>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {itemsList.map((it, i) => {
                       const isDiscount = it.toLowerCase().includes("discount") || it.toLowerCase().includes("reward");
                       return (
                         <div 
                           key={i} 
-                          className={`text-xs p-2 rounded-lg flex items-center justify-between ${
+                          className={`text-[11px] p-2 rounded-xl flex items-center justify-between ${
                             isDiscount ? 'bg-emerald-50 text-emerald-800 font-black border border-emerald-200' : 'bg-gray-50 text-gray-800 font-bold border border-gray-100'
                           }`}
                         >
@@ -497,10 +699,11 @@ export function OrdersHistoryView(props) {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
+                {/* 💰 Payment Mode & Total Amount */}
+                <div className="flex justify-between items-center pt-1">
                   <div>
                     <div className="text-[9px] text-gray-400 font-black uppercase">{t('payment_label', lang)}</div>
-                    <div className="text-xs font-black text-gray-600">{translatePaymentMode(ord.payment || ord.paymentMode, lang)}</div>
+                    <div className="text-xs font-black text-gray-700">{translatePaymentMode(ord.payment || ord.paymentMode, lang)}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-[9px] text-gray-400 font-black uppercase">{t('final_amount', lang)}</div>
@@ -509,6 +712,7 @@ export function OrdersHistoryView(props) {
                     </div>
                   </div>
                 </div>
+
               </div>
             );
           })}
@@ -517,14 +721,15 @@ export function OrdersHistoryView(props) {
 
       {/* 🔍 FULL-RESOLUTION MEDIA & CALL RECORDING VIEWER */}
       {zoomedMedia && (
-        <div className="fixed inset-0 bg-black bg-opacity-95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
-          <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800 bg-opacity-70 w-10 h-10 rounded-full flex items-center justify-center shadow-md z-50 hover:bg-gray-700">
+        <div className="fixed inset-0 bg-black/95 z-[100] flex flex-col justify-center items-center p-4 animate-fade-in" onClick={() => setZoomedMedia(null)}>
+          <button className="absolute top-4 right-5 text-white font-black text-xl bg-gray-800/80 w-10 h-10 rounded-full flex items-center justify-center shadow-lg z-50 hover:bg-gray-700">
             ✕
           </button>
           
           <div className="text-white font-black mb-3 uppercase tracking-wider text-center flex flex-col gap-0.5">
             <span className="text-base">{zoomedMedia.label}</span>
-            <span className="text-[9px] text-gray-400">{t('secure_viewer', lang)}</span>
+            {zoomedMedia.time && <span className="text-[10px] text-emerald-400 font-bold">⏰ {zoomedMedia.time}</span>}
+            {zoomedMedia.staff && <span className="text-[9px] text-gray-400">Verified by: {zoomedMedia.staff}</span>}
           </div>
 
           {zoomedMedia.isAudio ? (
@@ -544,26 +749,31 @@ export function OrdersHistoryView(props) {
                 {t('open_drive_link', lang)}
               </a>
             </div>
-          ) : zoomedMedia.fileId ? (
+          ) : zoomedMedia.highResUrl || zoomedMedia.fileId ? (
             <div className="w-full max-w-md flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
               <div className="w-full max-h-[70vh] bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex items-center justify-center border border-gray-800">
                 <img 
-                  src={`https://drive.google.com/thumbnail?id=${zoomedMedia.fileId}&sz=w1200`} 
+                  src={zoomedMedia.highResUrl || `https://lh3.googleusercontent.com/d/${zoomedMedia.fileId}`} 
                   alt={zoomedMedia.label} 
                   className="max-h-[68vh] max-w-full object-contain"
                   onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.outerHTML = `<iframe src="https://drive.google.com/file/d/${zoomedMedia.fileId}/preview" class="w-full h-[65vh] border-0"></iframe>`;
+                    if (zoomedMedia.fileId && !e.target.src.includes('thumbnail?id')) {
+                      e.target.src = `https://drive.google.com/thumbnail?id=${zoomedMedia.fileId}&sz=w1200`;
+                    } else if (zoomedMedia.fileId) {
+                      e.target.onerror = null;
+                      e.target.outerHTML = `<iframe src="https://drive.google.com/file/d/${zoomedMedia.fileId}/preview" class="w-full h-[65vh] border-0"></iframe>`;
+                    }
                   }}
                 />
               </div>
               <a 
-                href={zoomedMedia.url} 
+                href={zoomedMedia.url || (zoomedMedia.fileId ? `https://drive.google.com/file/d/${zoomedMedia.fileId}/view` : '#')} 
                 target="_blank" 
                 rel="noreferrer" 
-                className="w-full bg-blue-600 text-white font-black py-3 rounded-xl shadow-md active:scale-95 text-xs flex items-center justify-center gap-1.5"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-3 rounded-xl shadow-md active:scale-95 text-xs flex items-center justify-center gap-1.5"
               >
-                {t('open_drive_link', lang)}
+                <span>📥</span>
+                <span>{t('open_drive_link', lang)}</span>
               </a>
             </div>
           ) : (
