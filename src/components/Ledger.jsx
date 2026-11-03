@@ -380,10 +380,16 @@ export function OrdersHistoryView(props) {
       // Sort orders descending by date
       finalOrders.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-      // Auto-expand timeline of latest order by default
-      if (finalOrders.length > 0 && Object.keys(expandedTimelines).length === 0) {
-        setExpandedTimelines({ [finalOrders[0].orderId]: true });
-      }
+      // Auto-expand timeline for orders so dealers instantly see all stage times
+      setExpandedTimelines(prev => {
+        const next = { ...prev };
+        finalOrders.forEach(o => {
+          if (next[o.orderId] === undefined) {
+            next[o.orderId] = true;
+          }
+        });
+        return next;
+      });
 
       setOrders(finalOrders);
       setLoading(false);
