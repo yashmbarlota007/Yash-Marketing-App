@@ -71,6 +71,29 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+
+// 📲 PWA STANDALONE & DEVICE DETECTION HELPERS
+export const checkIsStandalone = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    window.location.search.includes('source=pwa') ||
+    sessionStorage.getItem('isPwaSession') === 'true' ||
+    (typeof document !== 'undefined' && document.referrer && document.referrer.includes('android-app://'))
+  );
+};
+
+export const isAndroidDevice = () => {
+  return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+};
+
+export const isIOSDevice = () => {
+  return typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+};
+
 function LoginScreen(props) {
   var onLogin = props.onLogin;
   var callAPI = props.callAPI;
@@ -141,6 +164,28 @@ function LoginScreen(props) {
           alt="Logo"
         />
         <h2 className="text-3xl font-black mb-1 text-gray-900">{t('app_title', lang)}</h2>
+        
+        {/* Quick Install Option on Login */}
+        {!checkIsStandalone() && (
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                const promptEvent = window.__deferredInstallPrompt;
+                if (promptEvent) {
+                  promptEvent.prompt();
+                } else {
+                  alert("Browser menu (3 dots) me jakar 'Install app' ya 'Add to Home screen' par click karein.");
+                }
+              }}
+              className="text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5 active:scale-95 transition-all shadow-sm"
+            >
+              <span>📲</span>
+              <span>Install Yash Marketing App</span>
+            </button>
+          </div>
+        )}
+
         <p className="text-blue-700 font-bold text-xs mb-8 tracking-widest uppercase bg-blue-50 py-1 px-3 rounded-full inline-block">
           {t('authorized_portal', lang)}
         </p>
@@ -236,32 +281,81 @@ function MainApp() {
   const [announcements, setAnnouncements] = useState([]);
   const [showNotice, setShowNotice] = useState(false);
   const [isNotificationGranted, setIsNotificationGranted] = useState(true);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(checkIsStandalone());
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(typeof window !== 'undefined' ? window.__deferredInstallPrompt : null);
+  const [installSuccessMessage, setInstallSuccessMessage] = useState(false);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showIOSBanner, setShowIOSBanner] = useState(true);
 
   useEffect(() => {
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-    if (isStandalone) return;
-    const handlePrompt = (e) => {
+    if (window.location.search.includes('source=pwa')) {
+      try { sessionStorage.setItem('isPwaSession', 'true'); } catch(e) {}
+    }
+    const updateStandalone = () => {
+      setIsStandalone(checkIsStandalone());
+    };
+    updateStandalone();
+    window.addEventListener('focus', updateStandalone);
+    document.addEventListener('visibilitychange', updateStandalone);
+
+    const onPromptReady = () => {
+      if (window.__deferredInstallPrompt) {
+        setDeferredInstallPrompt(window.__deferredInstallPrompt);
+        setShowInstallBanner(true);
+      }
+    };
+    const onBeforeInstall = (e) => {
       e.preventDefault();
+      window.__deferredInstallPrompt = e;
       setDeferredInstallPrompt(e);
       setShowInstallBanner(true);
     };
-    window.addEventListener("beforeinstallprompt", handlePrompt);
-    return () => window.removeEventListener("beforeinstallprompt", handlePrompt);
+    const onAppInstalled = () => {
+      setInstallSuccessMessage(true);
+      setShowInstallBanner(false);
+      setDeferredInstallPrompt(null);
+      window.__deferredInstallPrompt = null;
+      updateStandalone();
+    };
+
+    window.addEventListener('pwa-prompt-ready', onPromptReady);
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('appinstalled', onAppInstalled);
+
+    let mql;
+    try {
+      mql = window.matchMedia('(display-mode: standalone)');
+      if (mql && mql.addEventListener) mql.addEventListener('change', updateStandalone);
+    } catch(e) {}
+
+    return () => {
+      window.removeEventListener('focus', updateStandalone);
+      document.removeEventListener('visibilitychange', updateStandalone);
+      window.removeEventListener('pwa-prompt-ready', onPromptReady);
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('appinstalled', onAppInstalled);
+      if (mql && mql.removeEventListener) mql.removeEventListener('change', updateStandalone);
+    };
   }, []);
 
   const handleInstallApp = async () => {
-    if (!deferredInstallPrompt) {
+    const promptEvent = deferredInstallPrompt || window.__deferredInstallPrompt;
+    if (!promptEvent) {
       alert("Browser menu (3 dots) me jakar 'Install app' ya 'Add to Home screen' par click karein.");
       return;
     }
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShowInstallBanner(false);
+    try {
+      promptEvent.prompt();
+      const { outcome } = await promptEvent.userChoice;
+      if (outcome === 'accepted') {
+        setInstallSuccessMessage(true);
+        setShowInstallBanner(false);
+      }
+      setDeferredInstallPrompt(null);
+      window.__deferredInstallPrompt = null;
+    } catch (err) {
+      console.error('Install prompt error:', err);
     }
-    setDeferredInstallPrompt(null);
   };
 
   useEffect(() => {
@@ -487,6 +581,147 @@ function MainApp() {
     );
   }
 
+  // 📲 MANDATORY INSTALLATION GATE (FOR ANDROID DEALERS)
+  const isAndroid = isAndroidDevice();
+  const isIOS = isIOSDevice();
+
+  if (isAndroid && !isStandalone) {
+    return (
+      <ErrorBoundary componentName="MandatoryAppInstall" lang={lang}>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-slate-950 via-blue-950 to-slate-900 text-white p-5 text-center select-none font-sans">
+          <div className="bg-white text-gray-800 p-6 sm:p-8 rounded-3xl shadow-2xl w-full max-w-sm border-t-8 border-blue-600 animate-slide-up relative">
+            
+            {/* Top Language Switcher */}
+            <div className="flex justify-center mb-4">
+              <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+                {LANGUAGES.map((l) => (
+                  <button
+                    key={l.code}
+                    onClick={() => handleSetLang(l.code)}
+                    className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition-all ${
+                      lang === l.code ? 'bg-blue-900 text-white shadow' : 'text-gray-600'
+                    }`}
+                  >
+                    {l.flag} {l.native}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* App Icon / Logo Badge */}
+            <div className="relative inline-block mx-auto mb-3">
+              <div className="w-20 h-20 rounded-2xl p-1 bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-xl mx-auto flex items-center justify-center overflow-hidden">
+                <img src="/icon-192.png" alt="Yash Marketing" className="w-full h-full object-cover rounded-xl" />
+              </div>
+              <span className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border border-white shadow">
+                APP
+              </span>
+            </div>
+
+            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+              {lang === 'mr' ? 'ॲप इन्स्टॉल करणे आवश्यक आहे!' : lang === 'hi' ? 'ऐप इनस्टॉल करना जरूरी है!' : 'App Install Karna Compulsory Hai!'}
+            </h2>
+            <div className="text-[10px] font-bold text-blue-700 bg-blue-50 py-1 px-3 rounded-full inline-block mt-1">
+              📱 Yash Marketing Official Portal
+            </div>
+
+            <p className="text-xs font-semibold text-gray-600 mt-3 leading-relaxed">
+              {lang === 'mr' 
+                ? 'यश मार्केटिंग पोर्टल वापरण्यासाठी ॲप आपल्या मोबाईलमध्ये इन्स्टॉल करणे बंधनकारक आहे.'
+                : lang === 'hi'
+                ? 'यश मार्केटिंग पोर्टल इस्तेमाल करने के लिए ऐप को अपने फोन में इनस्टॉल करना अनिवार्य है।'
+                : 'Yash Marketing Portal ka use karne ke liye App ko phone me Install karna compulsory hai.'}
+            </p>
+
+            {/* Benefits Box */}
+            <div className="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🚀</span>
+                <span className="text-[10px] font-bold text-gray-700">
+                  {lang === 'mr' ? 'फोन ॲप ड्रॉवरमधून १-टॅप थेट ओपन' : lang === 'hi' ? 'फोन के ऐप ड्रॉवर से 1-टैप डायरेक्ट ओपन' : 'Phone App Drawer se 1-Tap Direct Open'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🔔</span>
+                <span className="text-[10px] font-bold text-gray-700">
+                  {lang === 'mr' ? 'नवीन ऑफर्स आणि पेमेंट अपडेट्स सूचना' : lang === 'hi' ? 'नए ऑफर्स और पेमेंट अपडेट्स के नोटिफिकेशन्स' : 'Daily Schemes & Payment Alert Notifications'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">📦</span>
+                <span className="text-[10px] font-bold text-gray-700">
+                  {lang === 'mr' ? 'टार्गेट प्रगती आणि जलद ऑर्डर बुकिंग' : lang === 'hi' ? 'टारगेट प्रोग्रेस और फास्ट ऑर्डर बुकिंग' : 'Target Progress & Faster Order Booking'}
+                </span>
+              </div>
+            </div>
+
+            {/* Success state if install was triggered */}
+            {installSuccessMessage && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-300 rounded-2xl text-center animate-slide-up">
+                <span className="text-2xl">🎉</span>
+                <h4 className="text-xs font-black text-green-900 mt-0.5">App Download / Install Shuru!</h4>
+                <p className="text-[10px] text-green-800 font-medium mt-1">
+                  Ab Chrome browser band karein aur apne Phone ke <strong>App Drawer / Home Screen</strong> se <strong>"Yash Marketing"</strong> app kholein.
+                </p>
+              </div>
+            )}
+
+            {/* 3-Step Manual Guide if prompt not fired */}
+            {!deferredInstallPrompt && !window.__deferredInstallPrompt && !installSuccessMessage && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded-2xl text-left">
+                <p className="text-[10px] font-bold text-amber-900">
+                  💡 <strong>Direct Install Karne Ka Tareeqa:</strong>
+                </p>
+                <ol className="text-[10px] text-amber-900 list-decimal ml-4 mt-1 space-y-0.5 font-medium">
+                  <li>Chrome browser me upar daayi taraf <strong>3 dots (⋮)</strong> dabayein.</li>
+                  <li>Menu me <strong>"Install app"</strong> ya <strong>"Add to Home screen"</strong> chunein.</li>
+                  <li>Install hote hi Phone ke <strong>App Drawer</strong> se open karein.</li>
+                </ol>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2 mt-5">
+              <button
+                type="button"
+                onClick={handleInstallApp}
+                className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 text-white font-black text-sm py-3.5 rounded-xl shadow-lg shadow-blue-500/30 active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span>📲</span>
+                <span>INSTALL YASH MARKETING APP</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const currentStandalone = checkIsStandalone();
+                  if (currentStandalone) {
+                    setIsStandalone(true);
+                  } else {
+                    alert("⚠️ Aap abhi Chrome Browser me hain!\n\nKripya pehle upar 'INSTALL' button dabakar app install karein, fir apne Phone ke App Drawer (Home Screen) me se 'Yash Marketing' app icon kholkar access karein.");
+                  }
+                }}
+                className="w-full bg-blue-50 text-blue-900 border border-blue-200 font-bold text-xs py-2.5 rounded-xl hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <span>🔄</span>
+                <span>MAINE INSTALL KAR LIYA / OPEN IN APP</span>
+              </button>
+
+              <button 
+                type="button"
+                onClick={handleLogout} 
+                className="w-full bg-gray-100 text-gray-500 font-bold text-xs py-2 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Logout Account
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
   if (!isNotificationGranted) {
     const isDenied = window.Notification && Notification.permission === "denied";
 
@@ -557,8 +792,24 @@ function MainApp() {
       {/* 🌐 PROMINENT TOP LANGUAGE BAR (ONLY 1 SINGLE CLEAN BAR ON SCREEN) */}
       <LanguageBar currentLang={lang} onSelectLang={handleSetLang} />
 
-      {/* 📲 NATIVE PWA ONE-TAP INSTALL BANNER */}
-      {showInstallBanner && !customerMode && (
+      {/* 🍎 IPHONE GUIDANCE BANNER (NON-BLOCKING) */}
+      {isIOS && !isStandalone && showIOSBanner && !customerMode && (
+        <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white px-3 py-2 flex items-center justify-between text-xs border-b border-blue-800 shadow-sm relative z-50 animate-slide-up">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🍎</span>
+            <div className="text-[11px] leading-tight">
+              <strong className="text-amber-300">iPhone Tip: </strong>
+              <span>Safari ke neeche <strong>⬆️ Share</strong> dabakar <strong>"Add to Home Screen"</strong> karein.</span>
+            </div>
+          </div>
+          <button onClick={() => setShowIOSBanner(false)} className="text-gray-400 hover:text-white font-bold text-xs p-1 ml-2">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* 📲 DESKTOP/FALLBACK ONE-TAP INSTALL BANNER */}
+      {showInstallBanner && !isAndroid && !customerMode && (
         <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-white px-3 py-2 flex items-center justify-between shadow-md relative z-50 border-b border-orange-400 animate-slide-up">
           <div className="flex items-center gap-2">
             <span className="text-xl">📲</span>
