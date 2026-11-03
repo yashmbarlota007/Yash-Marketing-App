@@ -17,7 +17,9 @@ function verifyDealer(phone) {
       var sheetPhoneClean = sheetPhoneRaw.toString().replace(/\D/g, '').slice(-10);
       if (sheetPhoneClean === targetPhoneClean) {
         var mTarget = Number(data[i][5]) || 0;
+        if (mTarget < 15000) mTarget = 15000;
         var qTarget = Number(data[i][6]) || 0;
+        if (qTarget < 45000) qTarget = mTarget * 3;
         var stats = getDealerTargetStats(targetPhoneClean);
         return { 
           success: true, 
@@ -193,14 +195,16 @@ function calculateAndSetupDealerTargets() {
         var monthlyAvg = totalSales6M / 6;
         // 20% Growth Target
         monthlyTarget = Math.round((monthlyAvg * 1.20) / 100) * 100;
-        if (monthlyTarget < 10000) monthlyTarget = 10000;
+        if (monthlyTarget < 15000) monthlyTarget = 15000;
       } else if (existingM > 0) {
-        monthlyTarget = existingM;
+        monthlyTarget = Math.max(15000, existingM);
       } else {
-        monthlyTarget = 15000; // Base target for zero-sales dealers
+        monthlyTarget = 15000; // Base target: minimum ?15,000 for any dealer
       }
 
-      quarterlyTarget = (existingQ > 0 && totalSales6M === 0) ? existingQ : (monthlyTarget * 3);
+      if (monthlyTarget < 15000) monthlyTarget = 15000;
+      quarterlyTarget = (existingQ >= 45000 && totalSales6M === 0) ? existingQ : (monthlyTarget * 3);
+      if (quarterlyTarget < 45000) quarterlyTarget = 45000;
 
       targetsValues.push([monthlyTarget, quarterlyTarget]);
 
@@ -379,7 +383,9 @@ function getDealerTargetStats(phone) {
       if (rawP && rawP.toString().replace(/\D/g, '').slice(-10) === targetPhoneClean) {
         targetShopName = dData[i][1] ? dData[i][1].toString().trim() : "";
         mTarget = Number(dData[i][5]) || 0;
+        if (mTarget < 15000) mTarget = 15000;
         qTarget = Number(dData[i][6]) || 0;
+        if (qTarget < 45000) qTarget = mTarget * 3;
         break;
       }
     }
