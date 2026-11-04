@@ -200,7 +200,7 @@ export function Catalog(props) {
           const roundedProducts = res.data.map(p => {
             const copy = Object.assign({}, p);
             if (copy.DealerPrice) {
-              copy.DealerPrice = roundToNine(copy.DealerPrice);
+              copy.DealerPrice = getNum(copy.DealerPrice);
             }
             return copy;
           });
