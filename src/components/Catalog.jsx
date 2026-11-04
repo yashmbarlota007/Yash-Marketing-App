@@ -1,3 +1,4 @@
+import { ORIGINAL_PRICES } from '../utils/productCatalog';
 import React, { useState, useEffect } from 'react';
 import { 
   API_URL, 
@@ -197,14 +198,17 @@ export function Catalog(props) {
       .then((r) => r.json())
       .then((res) => { 
         if (res && res.success && Array.isArray(res.data)) {
-          const roundedProducts = res.data.map(p => {
+          const originalProducts = res.data.map(p => {
             const copy = Object.assign({}, p);
-            if (copy.DealerPrice) {
+            const code = copy.ItemCode || copy.code || '';
+            if (ORIGINAL_PRICES[code] !== undefined) {
+              copy.DealerPrice = ORIGINAL_PRICES[code];
+            } else {
               copy.DealerPrice = getNum(copy.DealerPrice);
             }
             return copy;
           });
-          setProducts(roundedProducts);
+          setProducts(originalProducts);
         }
         setLoading(false); 
       })
