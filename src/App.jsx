@@ -835,7 +835,7 @@ function MainApp() {
   const totalItems = cartItems.reduce((a, b) => a + (getNum(b.qty) || 0), 0);
   
   const totalAmount = cartItems.reduce((a, b) => {
-    const itemPrice = roundToNine(getNum(getProp(b, "DealerPrice")));
+    const itemPrice = getNum(getProp(b, "DealerPrice"));
     return a + (itemPrice * (getNum(b.qty) || 0));
   }, 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
