@@ -154,7 +154,7 @@ export function Cart(props) {
   }
 
   const baseTotalAmount = cartItems.reduce((acc, item) => {
-    return acc + (roundToNine(getProp(item, "DealerPrice")) * getNum(item.qty));
+    return acc + (getNum(getProp(item, "DealerPrice")) * getNum(item.qty));
   }, 0);
   
   const totalAmount = baseTotalAmount - comboDiscountAmount;
