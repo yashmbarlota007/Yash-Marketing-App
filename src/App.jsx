@@ -1,4 +1,3 @@
-import { ORIGINAL_PRICES } from './utils/productCatalog';
 import React, { useState, useEffect, useRef } from 'react';
 import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError, roundToNine, calculateGenuineSales } from './utils/helpers';
 import { LANGUAGES, t, translateReward } from './utils/translations';
@@ -836,8 +835,7 @@ function MainApp() {
   const totalItems = cartItems.reduce((a, b) => a + (getNum(b.qty) || 0), 0);
   
   const totalAmount = cartItems.reduce((a, b) => {
-    const cCode = getProp(b, "ItemCode");
-    const itemPrice = ORIGINAL_PRICES[cCode] !== undefined ? ORIGINAL_PRICES[cCode] : getNum(getProp(b, "DealerPrice"));
+    const itemPrice = getNum(getProp(b, "DealerPrice") || b.DealerPrice || b.rate || b.price);
     return a + (itemPrice * (getNum(b.qty) || 0));
   }, 0) - (function(){
     let nQty = 0, pQty = 0, nPrice = 0, pPrice = 0;
