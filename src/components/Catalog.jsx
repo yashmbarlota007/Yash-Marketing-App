@@ -1,4 +1,3 @@
-import { ORIGINAL_PRICES } from '../utils/productCatalog';
 import React, { useState, useEffect } from 'react';
 import { 
   API_URL, 
@@ -189,33 +188,30 @@ export function Catalog(props) {
   // ==========================================
   useEffect(() => {
     // Fetch Products
-    if (products.length === 0) {
-      fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "getProducts" }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-      })
-      .then((r) => r.json())
-      .then((res) => { 
-        if (res && res.success && Array.isArray(res.data)) {
-          const originalProducts = res.data.map(p => {
-            const copy = Object.assign({}, p);
-            const code = copy.ItemCode || copy.code || '';
-            if (ORIGINAL_PRICES[code] !== undefined) {
-              copy.DealerPrice = ORIGINAL_PRICES[code];
-            } else {
-              copy.DealerPrice = getNum(copy.DealerPrice);
-            }
-            return copy;
-          });
-          setProducts(originalProducts);
-        }
-        setLoading(false); 
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-    }
+    // ?? Always fetch live fresh products directly from Google Sheet (cache-busted)
+    if (products.length === 0) setLoading(true);
+    fetch(API_URL + (API_URL.includes('?') ? '&' : '?') + 't=' + Date.now(), {
+      method: 'POST',
+      body: JSON.stringify({ action: "getProducts" }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    })
+    .then((r) => r.json())
+    .then((res) => { 
+      if (res && res.success && Array.isArray(res.data)) {
+        const liveProducts = res.data.map(p => {
+          const copy = Object.assign({}, p);
+          // Strictly take live price directly from Google Sheet column DealerPrice
+          const rawPrice = getProp(copy, "DealerPrice") || copy.DealerPrice || copy.rate || copy.price;
+          copy.DealerPrice = getNum(rawPrice);
+          return copy;
+        });
+        setProducts(liveProducts);
+      }
+      setLoading(false); 
+    })
+    .catch(() => {
+      setLoading(false);
+    });
 
     // Sync & Fetch Schemes
     if (!passedSchemes || passedSchemes.length === 0) {
