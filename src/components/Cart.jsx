@@ -1,4 +1,3 @@
-import { ORIGINAL_PRICES } from '../utils/productCatalog';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   API_URL, 
@@ -155,8 +154,7 @@ export function Cart(props) {
   }
 
   const baseTotalAmount = cartItems.reduce((acc, item) => {
-    const cCode = getProp(item, "ItemCode");
-    const price = ORIGINAL_PRICES[cCode] !== undefined ? ORIGINAL_PRICES[cCode] : getNum(getProp(item, "DealerPrice"));
+    const price = getNum(getProp(item, "DealerPrice") || item.DealerPrice || item.rate || item.price);
     return acc + (price * getNum(item.qty));
   }, 0);
   
