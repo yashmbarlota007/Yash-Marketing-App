@@ -16,21 +16,11 @@ export const getNum = (val) => {
 
 
 // 🎯 9 / 49 / 99 Wholesale Pricing Round Figure Formatter
+// ?? Respect exact baseline sheet price without forced 9/49/99 rounding
 export function roundToNine(price) {
   var num = getNum(price);
-  if (!num || isNaN(num) || num <= 0) return num;
-
-  if (num < 100) {
-    return Math.max(9, Math.round(num / 10) * 10 - 1);
-  } else if (num < 300) {
-    var mod50 = num % 50;
-    if (mod50 >= 40 || mod50 <= 10) {
-      return Math.round(num / 50) * 50 - 1;
-    }
-    return Math.round(num / 10) * 10 - 1;
-  } else {
-    return Math.round(num / 50) * 50 - 1;
-  }
+  if (!num || isNaN(num) || num <= 0) return 0;
+  return Math.round(num);
 }
 
 export function getProp(obj, propName) {
