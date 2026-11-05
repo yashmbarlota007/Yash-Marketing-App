@@ -252,10 +252,22 @@ export function Cart(props) {
       return alert("Maximum stock limit reached!");
     }
     
+    const prodName = String(getProp(product, "ProductName") || getProp(product, "Product Name") || itemCode);
+    const itemPrice = getNum(getProp(product, "DealerPrice") || product.DealerPrice || product.rate || product.price);
+
     if (newQty <= 0) {
-      delete updated[itemCode]; 
+      delete updated[itemCode];
+      if (globalProps && typeof globalProps.logSpyData === "function") {
+        globalProps.logSpyData("Removed from Cart", `${prodName} (${itemCode})`);
+      }
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
+      if (globalProps && typeof globalProps.logSpyData === "function") {
+        globalProps.logSpyData(
+          change > 0 ? "Cart Qty Increased" : "Cart Qty Decreased",
+          `${prodName} | Qty: ${newQty} | Rate: ?${itemPrice}`
+        );
+      }
     }
     setCart(updated);
   };
@@ -326,7 +338,8 @@ export function Cart(props) {
           ? "✅ ऑर्डर कन्फ़र्म हो गया!\n\nप्रिय " + user.shopName + ",\nयश मार्केटिंग चुनने के लिए धन्यवाद।\n\nअंतिम राशि: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nहम जल्द ही डिस्पैच करेंगे।"
           : "✅ ORDER CONFIRMED!\n\nDear " + user.shopName + ",\nThank you for choosing Yash Marketing.\n\nFinal Amount: ₹" + finalAmount.toLocaleString('en-IN') + "\n\nWe will dispatch it shortly.";
         alert(confirmMsg);
-        globalProps.logSpyData("Order Placed", "Val: ₹" + finalAmount);
+        const orderSummary = `Val: ?${finalAmount} | Mode: ${paymentMode} | Items: ${cartItems.length} (${cartItems.map(i => (getProp(i, "ProductName") || i.ProductName || "Item") + " x" + i.qty).join(", ")})`;
+        globalProps.logSpyData("Order Placed", orderSummary);
         setCart({}); 
         setView("catalog");
       } else {
