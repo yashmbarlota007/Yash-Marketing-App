@@ -252,20 +252,20 @@ export function Cart(props) {
       return alert("Maximum stock limit reached!");
     }
     
-    const prodName = String(getProp(product, "ProductName") || getProp(product, "Product Name") || itemCode);
+    const itemTitle = String(getProp(product, "ProductName") || getProp(product, "Product Name") || itemCode);
     const itemPrice = getNum(getProp(product, "DealerPrice") || product.DealerPrice || product.rate || product.price);
 
     if (newQty <= 0) {
       delete updated[itemCode];
       if (globalProps && typeof globalProps.logSpyData === "function") {
-        globalProps.logSpyData("Removed from Cart", `${prodName} (${itemCode})`);
+        globalProps.logSpyData("Removed from Cart", `${itemTitle} (${itemCode})`);
       }
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
       if (globalProps && typeof globalProps.logSpyData === "function") {
         globalProps.logSpyData(
           change > 0 ? "Cart Qty Increased" : "Cart Qty Decreased",
-          `${prodName} | Qty: ${newQty} | Rate: ?${itemPrice}`
+          `${itemTitle} | Qty: ${newQty} | Rate: ?${itemPrice}`
         );
       }
     }
