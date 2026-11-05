@@ -128,7 +128,12 @@ export function LedgerView(props) {
         )}
       </div>
       <button 
-        onClick={() => window.print()} 
+        onClick={() => {
+          if (props.globalProps && typeof props.globalProps.logSpyData === "function") {
+            props.globalProps.logSpyData("Downloaded Ledger PDF", "Statement PDF / Print Initiated");
+          }
+          window.print();
+        }} 
         className="w-full bg-blue-900 text-white font-black py-4 rounded-xl shadow-lg mt-6 active:scale-95 text-xs uppercase tracking-wider"
       >
         {t('download_ledger_pdf', lang)}
@@ -140,6 +145,7 @@ export function LedgerView(props) {
 export function OrdersHistoryView(props) {
   var user = props.user;
   var lang = props.lang || 'en';
+  var globalProps = props.globalProps || {};
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -409,10 +415,16 @@ export function OrdersHistoryView(props) {
   }, [user, lang]);
 
   const toggleTimeline = (orderId) => {
-    setExpandedTimelines(prev => ({
-      ...prev,
-      [orderId]: !prev[orderId]
-    }));
+    setExpandedTimelines(prev => {
+      const nextState = !prev[orderId];
+      if (nextState && globalProps && typeof globalProps.logSpyData === "function") {
+        globalProps.logSpyData("Tracked Order", `Order #${orderId}`);
+      }
+      return {
+        ...prev,
+        [orderId]: nextState
+      };
+    });
   };
 
   if (loading) {
@@ -543,7 +555,12 @@ export function OrdersHistoryView(props) {
                       {allPhotos.map((photo, pIdx) => (
                         <div 
                           key={pIdx} 
-                          onClick={() => setZoomedMedia(photo)} 
+                          onClick={() => {
+                          setZoomedMedia(photo);
+                          if (globalProps && typeof globalProps.logSpyData === "function" && photo) {
+                            globalProps.logSpyData("Viewed Order Document", `${photo.label || "Document"} (${ord.orderId})`);
+                          }
+                        }} 
                           className="min-w-[84px] w-[84px] flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
                         >
                           <div className="w-20 h-20 bg-gray-100 rounded-2xl border-2 border-blue-200/80 overflow-hidden flex items-center justify-center shadow-xs relative group">
