@@ -172,6 +172,8 @@ export function Catalog(props) {
     tier2: false 
   });
   const [activeVariants, setActiveVariants] = useState({});
+  const searchDebounceRef = useRef(null);
+  const cartDebounceRefs = useRef({});
   
   // Filter States
   const [brandFilter, setBrandFilter] = useState("");
@@ -311,7 +313,14 @@ export function Catalog(props) {
   // 4. EVENT HANDLERS
   // ==========================================
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (val.trim().length >= 2 && globalProps && typeof globalProps.logSpyData === "function") {
+      searchDebounceRef.current = setTimeout(() => {
+        globalProps.logSpyData("Searched Product", `Query: "${val.trim()}"`);
+      }, 1500);
+    }
   };
   
   const openCategory = (type) => { 
@@ -319,11 +328,20 @@ export function Catalog(props) {
     setSelectedType(type); 
     setBrandFilter("");
     setSortFilter("");
+    if (globalProps && typeof globalProps.logSpyData === "function" && type) {
+      globalProps.logSpyData("Category Viewed", `Category: ${type}`);
+    }
   };
   
   const openProductModal = (p) => { 
     window.history.pushState({ modal: 'product' }, ''); 
     setSelectedProduct(p); 
+    if (globalProps && typeof globalProps.logSpyData === "function" && p) {
+      const pName = String(getProp(p, "ProductName") || getProp(p, "Product Name") || "");
+      const pCode = String(getProp(p, "ItemCode") || "");
+      const pPrice = getNum(getProp(p, "DealerPrice") || p.DealerPrice || p.rate || p.price);
+      globalProps.logSpyData("Viewed Product", `${pName} (${pCode}) | ?${pPrice}`);
+    }
   };
 
   useEffect(() => {
@@ -367,10 +385,26 @@ export function Catalog(props) {
       return alert("Maximum stock limit reached!");
     }
     
+    const prodName = String(getProp(product, "ProductName") || getProp(product, "Product Name") || itemCode);
+    const itemPrice = getNum(getProp(product, "DealerPrice") || product.DealerPrice || product.rate || product.price);
+
     if (newQty <= 0) {
-      delete updated[itemCode]; 
+      delete updated[itemCode];
+      if (globalProps && typeof globalProps.logSpyData === "function") {
+        globalProps.logSpyData("Removed from Cart", `${prodName} (${itemCode})`);
+      }
     } else {
       updated[itemCode] = Object.assign({}, product, { qty: newQty });
+      if (globalProps && typeof globalProps.logSpyData === "function") {
+        if (cartDebounceRefs.current[itemCode]) clearTimeout(cartDebounceRefs.current[itemCode]);
+        cartDebounceRefs.current[itemCode] = setTimeout(() => {
+          globalProps.logSpyData(
+            "Added to Cart",
+            `${prodName} | Qty: ${newQty} | Rate: ?${itemPrice} | Subtotal: ?${newQty * itemPrice}`
+          );
+          delete cartDebounceRefs.current[itemCode];
+        }, 1000);
+      }
     }
     setCart(updated);
   };
@@ -699,7 +733,13 @@ export function Catalog(props) {
         <div className="bg-white px-4 py-3 border-b flex gap-3 overflow-x-auto no-scrollbar shadow-sm">
           <select 
             value={brandFilter} 
-            onChange={(e) => setBrandFilter(e.target.value)} 
+            onChange={(e) => {
+              const b = e.target.value;
+              setBrandFilter(b);
+              if (b && globalProps && typeof globalProps.logSpyData === "function") {
+                globalProps.logSpyData("Brand Filtered", `Brand: ${b}`);
+              }
+            }} 
             className="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none shrink-0"
           >
             <option value="">{t('all_brands', lang)}</option>
