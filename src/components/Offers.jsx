@@ -11,6 +11,7 @@ export default function OffersView(props) {
   var setCart = props.setCart;
   var setView = props.setView;
   var lang = props.lang || 'en';
+  var globalProps = props.globalProps || {};
 
   const [schemes, setSchemes] = useState([]);
   const [discounts, setDiscounts] = useState([]);
@@ -90,6 +91,9 @@ export default function OffersView(props) {
   };
 
   const handleViewItems = (scheme) => {
+    if (globalProps && typeof globalProps.logSpyData === "function") {
+      globalProps.logSpyData("Offer Scheme Clicked", `Scheme: ${scheme.message || scheme.target || "Special Scheme"}`);
+    }
     const targetStr = String(scheme.target || "").toLowerCase();
     const targets = targetStr.split(",").map((t) => t.trim()).filter(Boolean);
     const isCombo = isComboScheme(scheme);
@@ -133,6 +137,9 @@ export default function OffersView(props) {
   };
 
   const handleAddModalCombo = () => {
+    if (globalProps && typeof globalProps.logSpyData === "function") {
+      globalProps.logSpyData("Combo Added from Offers", `Combo: ${activeSchemeTitle || "Special Combo"}`);
+    }
     let updated = Object.assign({}, cart);
     groupedModalProducts.forEach((p) => {
       var activeItemCode = activeVariants[String(getProp(p, "ItemCode") || "")] || 
