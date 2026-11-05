@@ -134,6 +134,17 @@ function LoginScreen(props) {
         if (res.targetStats) {
           try { localStorage.setItem("yashDealerTargetStats", JSON.stringify(res.targetStats)); } catch(e) {}
         }
+        fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "logEvent",
+            phone: phone,
+            shopName: res.shopName || "Unknown",
+            event: "Dealer Login",
+            details: `Manual Login | ${typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches ? "PWA App" : "Web Browser"}`
+          }),
+          headers: { "Content-Type": "text/plain;charset=utf-8" }
+        }).catch(() => {});
         onLogin(dealerData);
       } else {
         alert((res && res.message) ? res.message : t('invalid_number', lang));
@@ -433,6 +444,11 @@ function MainApp() {
     if (newView !== view) {
       window.history.pushState({ page: newView }, '');
       setView(newView);
+      if (newView === "offers") logSpyData("Viewed Offers", "Opened Offers & Schemes Tab");
+      else if (newView === "ledger") logSpyData("Viewed Ledger", "Opened Ledger Statement Tab");
+      else if (newView === "orders") logSpyData("Viewed Orders", "Opened Order Tracking Tab");
+      else if (newView === "replacements") logSpyData("Viewed Replacements", "Opened Replacements Tab");
+      else if (newView === "cart") logSpyData("Viewed Cart", `Cart review (${totalItems} items, ?${totalAmount.toLocaleString("en-IN")})`);
     }
   };
 
@@ -480,7 +496,14 @@ function MainApp() {
     try {
       const savedUser = localStorage.getItem("yashDealerSession");
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setUser(parsed);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const sessionKey = `ym_app_open_${todayStr}_${parsed.phone}`;
+        if (!sessionStorage.getItem(sessionKey)) {
+          sessionStorage.setItem(sessionKey, "true");
+          logSpyData("App Opened", `${isStandalone ? "PWA App" : "Web Browser"} | Saved Cart: ${Object.keys(cart || {}).length} items`, parsed);
+        }
       }
     } catch (e) {
       console.error("Session restore failed:", e);
@@ -562,13 +585,29 @@ function MainApp() {
     }
   }, [user]);
 
-  const logSpyData = (eventName, detailsStr) => {
-    var details = detailsStr || "";
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: "logEvent", phone: user ? user.phone : "Unknown", shopName: user ? user.shopName : "Unknown", event: eventName, details: details }),
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    }).catch(e => console.log("Silent Log Failed"));
+  const logSpyData = (eventName, detailsStr, overrideUser) => {
+    try {
+      const activeUser = overrideUser || user || (() => {
+        try {
+          const s = localStorage.getItem("yashDealerSession");
+          return s ? JSON.parse(s) : null;
+        } catch(e) { return null; }
+      })();
+      const phone = activeUser && activeUser.phone ? String(activeUser.phone).trim() : "Unknown";
+      const shopName = activeUser && activeUser.shopName ? String(activeUser.shopName).trim() : "Unknown";
+      const details = detailsStr || "";
+      fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({
+          action: "logEvent",
+          phone: phone,
+          shopName: shopName,
+          event: eventName,
+          details: details
+        }),
+        headers: { "Content-Type": "text/plain;charset=utf-8" }
+      }).catch(e => console.log("Silent Log Failed"));
+    } catch(e) {}
   };
 
   const globalProps = { logSpyData, customerMode };
@@ -624,6 +663,7 @@ function MainApp() {
   };
 
   const handleLogout = () => {
+    logSpyData("Dealer Logout", "User logged out manually");
     if (window.OneSignalDeferred) {
       window.OneSignalDeferred.push(async (OneSignal) => {
         try { if (typeof OneSignal.logout === 'function') await OneSignal.logout(); } catch(e) {}
@@ -930,11 +970,11 @@ function MainApp() {
           </ErrorBoundary>
         ) : view === "offers" ? (
           <ErrorBoundary componentName="Offers" lang={lang} onReset={() => handleSetView("catalog")}>
-            <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} lang={lang} />
+            <OffersView user={user} products={products} cart={cart} setCart={setCart} setView={handleSetView} schemes={schemes} globalProps={globalProps} lang={lang} />
           </ErrorBoundary>
         ) : view === "ledger" ? (
           <ErrorBoundary componentName="Ledger" lang={lang} onReset={() => handleSetView("catalog")}>
-            <LedgerView user={user} callAPI={callAPI} lang={lang} />
+            <LedgerView user={user} callAPI={callAPI} globalProps={globalProps} lang={lang} />
           </ErrorBoundary>
         ) : view === "replacements" ? (
           <ErrorBoundary componentName="Replacements" lang={lang} onReset={() => handleSetView("catalog")}>
@@ -942,7 +982,7 @@ function MainApp() {
           </ErrorBoundary>
         ) : (
           <ErrorBoundary componentName="OrdersHistory" lang={lang} onReset={() => handleSetView("catalog")}>
-            <OrdersHistoryView user={user} callAPI={callAPI} lang={lang} />
+            <OrdersHistoryView user={user} callAPI={callAPI} globalProps={globalProps} lang={lang} />
           </ErrorBoundary>
         )}
       </div>
@@ -964,7 +1004,11 @@ function MainApp() {
         </div>
       )}
 
-      <ContactFABs view={view} />
+      <ContactFABs 
+        view={view} 
+        onWhatsAppClick={() => logSpyData("Contact Support (WhatsApp)", "Clicked WhatsApp Floating Button")} 
+        onCallClick={() => logSpyData("Contact Support (Call)", "Clicked Phone Call Floating Button")} 
+      />
       <BottomNav view={view} setView={handleSetView} totalItems={totalItems} customerMode={customerMode} lang={lang} />
 
       {view === "catalog" && totalItems > 0 && !customerMode && (
