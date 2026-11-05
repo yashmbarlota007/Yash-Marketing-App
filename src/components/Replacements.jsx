@@ -230,6 +230,9 @@ export default function ReplacementsView(props) {
     apiCaller(payload).then(res => {
       setFormLoading(false);
       if (res && res.success) {
+        if (props.globalProps && typeof props.globalProps.logSpyData === "function") {
+          props.globalProps.logSpyData("Help Ticket Raised", `Type: ${ticketType} | Items: ${itemsList.length || 1}`);
+        }
         alert(lang === 'mr' ? "✅ मदत तिकीट यशस्वीरित्या नोंदवले गेले!" : lang === 'hi' ? "✅ सहायता टिकट सफलतापूर्वक दर्ज किया गया!" : "✅ Help Ticket Submitted Successfully!");
         setBrand(""); 
         setProductSearch(""); 
