@@ -324,6 +324,7 @@ function MainApp() {
           stats.quarterlyAchieved = genuine.quarterlyAchieved;
           stats.monthlyBills = genuine.monthlyBills || [];
           stats.quarterlyBills = genuine.quarterlyBills || [];
+          stats.quarterMonths = genuine.quarterMonths || [];
 
           const rawM = Number(stats.monthlyTarget) || 0;
           const mTarget = rawM > 0 ? Math.max(15000, rawM) : 15000;
