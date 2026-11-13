@@ -1,3 +1,159 @@
+export function calculateGenuineSales(ledgerData, appOrders = []) {
+  var now = new Date();
+  var curYear = now.getFullYear();
+  var curMonth = now.getMonth(); // 0-11
+  var startOfMonth = new Date(curYear, curMonth, 1, 0, 0, 0);
+
+  // Financial Year Quarter (Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar)
+  var qStartMonth;
+  if (curMonth >= 3 && curMonth <= 5) qStartMonth = 3;
+  else if (curMonth >= 6 && curMonth <= 8) qStartMonth = 6;
+  else if (curMonth >= 9 && curMonth <= 11) qStartMonth = 9;
+  else qStartMonth = 0;
+
+  var startOfQuarter = new Date(curYear, qStartMonth, 1, 0, 0, 0);
+
+  var monthSales = 0;
+  var quarterSales = 0;
+  var monthlyBills = [];
+  var quarterlyBills = [];
+
+  if (Array.isArray(ledgerData)) {
+    ledgerData.forEach(function(e) {
+      var txDate = null;
+      if (e.date) {
+        if (e.date instanceof Date) {
+          txDate = e.date;
+        } else if (typeof e.date === 'string' && e.date.includes('-')) {
+          var p = e.date.split('-');
+          if (p.length === 3) {
+            if (p[0].length === 4) txDate = new Date(e.date);
+            else txDate = new Date(p[2] + '-' + p[1] + '-' + p[0]);
+          }
+        }
+      }
+
+      if (!txDate || isNaN(txDate.getTime())) return;
+
+      var particulars = (e.particulars || '').toString().toLowerCase();
+      var vchType = (e.vchType || '').toString().toLowerCase();
+      var debit = parseFloat(String(e.debit || 0).replace(/,/g, '')) || 0;
+      var credit = parseFloat(String(e.credit || 0).replace(/,/g, '')) || 0;
+
+      // 🔍 STRICT GENUINE SALES FILTER:
+      // Genuine sales have voucher types or particulars like *Sale*, *Corporate*, *Velocity Corporate*
+      // Exclude: Payments (Cheque Bounces), Bank entries, Bouncing Charges, Penalties, Journals
+      var isSale = vchType.includes('sale') || vchType.includes('corp') || particulars.includes('sale');
+      var isNonSaleDebit = particulars.includes('bounc') || particulars.includes('bank') || particulars.includes('penalty') ||
+                           particulars.includes('charge') || vchType === 'payment' || vchType === 'receipt' || vchType === 'journal';
+
+      if (debit > 0 && isSale && !isNonSaleDebit) {
+        var billEntry = {
+          date: e.date,
+          vchNo: e.vchNo || 'N/A',
+          particulars: e.particulars || 'Sale',
+          vchType: e.vchType || 'Sale',
+          amount: Math.round(debit),
+          isReturn: false,
+          timestamp: txDate.getTime()
+        };
+        if (txDate >= startOfMonth) {
+          monthSales += debit;
+          monthlyBills.push(billEntry);
+        }
+        if (txDate >= startOfQuarter) {
+          quarterSales += debit;
+          quarterlyBills.push(billEntry);
+        }
+      }
+
+      // Deduct Sales Returns (Credit Notes) if any
+      if (credit > 0 && (vchType.includes('credit note') || particulars.includes('return'))) {
+        var returnEntry = {
+          date: e.date,
+          vchNo: e.vchNo || 'CN',
+          particulars: e.particulars || 'Return',
+          vchType: e.vchType || 'Credit Note',
+          amount: -Math.round(credit),
+          isReturn: true,
+          timestamp: txDate.getTime()
+        };
+        if (txDate >= startOfMonth) {
+          monthSales = Math.max(0, monthSales - credit);
+          monthlyBills.push(returnEntry);
+        }
+        if (txDate >= startOfQuarter) {
+          quarterSales = Math.max(0, quarterSales - credit);
+          quarterlyBills.push(returnEntry);
+        }
+      }
+    });
+  }
+
+  // Also include recent app orders if not yet reflected in physical ledger
+  if (Array.isArray(appOrders)) {
+    var appMonth = 0;
+    var appQuarter = 0;
+    var appMonthBills = [];
+    var appQuarterBills = [];
+    appOrders.forEach(function(o) {
+      var st = (o.status || '').toLowerCase();
+      if (st === 'cancelled' || st === 'rejected') return;
+      var oAmt = parseFloat(String(o.totalValue || o.finalAmount || o.amount || 0).replace(/,/g, '')) || 0;
+      if (oAmt <= 0) return;
+
+      var ordDate = null;
+      if (o.date) {
+        if (o.date instanceof Date) ordDate = o.date;
+        else if (typeof o.date === 'string' && o.date.includes('-')) {
+          var sp = o.date.split('-');
+          if (sp.length === 3) {
+            if (sp[0].length === 4) ordDate = new Date(o.date);
+            else ordDate = new Date(sp[2] + '-' + sp[1] + '-' + sp[0]);
+          }
+        }
+      }
+      if (ordDate && !isNaN(ordDate.getTime())) {
+        var appOrderEntry = {
+          date: typeof o.date === 'string' ? o.date : ordDate.toLocaleDateString('en-GB'),
+          vchNo: o.orderId || o.id || 'APP-ORD',
+          particulars: 'App Order',
+          vchType: 'App Order',
+          amount: Math.round(oAmt),
+          isReturn: false,
+          timestamp: ordDate.getTime()
+        };
+        if (ordDate >= startOfMonth) {
+          appMonth += oAmt;
+          appMonthBills.push(appOrderEntry);
+        }
+        if (ordDate >= startOfQuarter) {
+          appQuarter += oAmt;
+          appQuarterBills.push(appOrderEntry);
+        }
+      }
+    });
+    if (appMonth > monthSales) {
+      monthSales = appMonth;
+      monthlyBills = appMonthBills;
+    }
+    if (appQuarter > quarterSales) {
+      quarterSales = appQuarter;
+      quarterlyBills = appQuarterBills;
+    }
+  }
+
+  monthlyBills.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+  quarterlyBills.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
+
+  return {
+    monthlyAchieved: Math.round(monthSales),
+    quarterlyAchieved: Math.round(quarterSales),
+    monthlyBills: monthlyBills,
+    quarterlyBills: quarterlyBills
+  };
+}
+
 export const cacheBypass = "?v=" + new Date().getTime();
 
 export const API_URL = "https://script.google.com/macros/s/AKfycbw_HtJl9dqW4J4OnjMZkDTM98nKmuvcwfnh7vnoBKWJGdlB2afWqKRi2nn19AgVkm1t8A/exec";
