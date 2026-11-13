@@ -1,3 +1,5 @@
+export const cacheBypass = "?v=" + new Date().getTime();
+
 export const API_URL = "https://script.google.com/macros/s/AKfycbw_HtJl9dqW4J4OnjMZkDTM98nKmuvcwfnh7vnoBKWJGdlB2afWqKRi2nn19AgVkm1t8A/exec";
 
 export const LOGO_URL = "https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_VUpH4G6yRPwhc03t&sz=w500";
