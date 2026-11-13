@@ -322,6 +322,8 @@ function MainApp() {
           const genuine = calculateGenuineSales(ledgerRes.data);
           stats.monthlyAchieved = genuine.monthlyAchieved;
           stats.quarterlyAchieved = genuine.quarterlyAchieved;
+          stats.monthlyBills = genuine.monthlyBills || [];
+          stats.quarterlyBills = genuine.quarterlyBills || [];
 
           const rawM = Number(stats.monthlyTarget) || 0;
           const mTarget = rawM > 0 ? Math.max(15000, rawM) : 15000;
