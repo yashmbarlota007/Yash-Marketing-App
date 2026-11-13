@@ -332,6 +332,7 @@ export function Catalog(props) {
   var setCart = props.setCart;
   var products = props.products;
   var setProducts = props.setProducts;
+  var setView = props.setView;
   var globalProps = props.globalProps;
   var passedSchemes = props.schemes || [];
   var lang = props.lang || 'en';
@@ -821,7 +822,7 @@ export function Catalog(props) {
     mainContent = (
       <div className="p-4 pb-[140px]">
         {/* 🎯 DEALER TARGET VS ACHIEVEMENT DASHBOARD */}
-        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps.customerMode} setView={setView} globalProps={globalProps} />
+        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps ? globalProps.customerMode : false} setView={setView} globalProps={globalProps} />
         <h2 className="font-black text-gray-800 text-xl mb-4">{t('select_category', lang)}</h2>
         {types.length === 0 && !loading && (
           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
