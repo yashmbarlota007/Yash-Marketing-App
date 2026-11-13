@@ -433,6 +433,23 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
 
   var startOfQuarter = new Date(curYear, qStartMonth, 1, 0, 0, 0);
 
+  var monthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var monthNamesHi = ['जनवरी', 'फ़रवरी', 'मार्च', 'अप्रैल', 'मई', 'जून', 'जुलाई', 'अगस्त', 'सितंबर', 'अक्टूबर', 'नवंबर', 'दिसंबर'];
+  var monthNamesMr = ['जानेवारी', 'फेब्रुवारी', 'मार्च', 'एप्रिल', 'मे', 'जून', 'जुलै', 'ऑगस्ट', 'सप्टेंबर', 'ऑक्टोबर', 'नोव्हेंबर', 'डिसेंबर'];
+
+  var quarterMonths = [0, 1, 2].map(function(i) {
+    var mIdx = qStartMonth + i;
+    return {
+      monthIndex: mIdx,
+      nameEn: monthNamesEn[mIdx],
+      nameHi: monthNamesHi[mIdx],
+      nameMr: monthNamesMr[mIdx],
+      total: 0,
+      bills: [],
+      isCurrent: curMonth === mIdx
+    };
+  });
+
   var monthSales = 0;
   var quarterSales = 0;
   var monthlyBills = [];
@@ -484,6 +501,12 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
         if (txDate >= startOfQuarter) {
           quarterSales += debit;
           quarterlyBills.push(billEntry);
+
+          var mOffset = txDate.getMonth() - qStartMonth;
+          if (mOffset >= 0 && mOffset < 3) {
+            quarterMonths[mOffset].total += debit;
+            quarterMonths[mOffset].bills.push(billEntry);
+          }
         }
       }
 
@@ -505,6 +528,12 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
         if (txDate >= startOfQuarter) {
           quarterSales = Math.max(0, quarterSales - credit);
           quarterlyBills.push(returnEntry);
+
+          var mOffsetCN = txDate.getMonth() - qStartMonth;
+          if (mOffsetCN >= 0 && mOffsetCN < 3) {
+            quarterMonths[mOffsetCN].total = Math.max(0, quarterMonths[mOffsetCN].total - credit);
+            quarterMonths[mOffsetCN].bills.push(returnEntry);
+          }
         }
       }
     });
@@ -550,6 +579,12 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
         if (ordDate >= startOfQuarter) {
           appQuarter += oAmt;
           appQuarterBills.push(appOrderEntry);
+
+          var appOffset = ordDate.getMonth() - qStartMonth;
+          if (appOffset >= 0 && appOffset < 3) {
+            quarterMonths[appOffset].total += oAmt;
+            quarterMonths[appOffset].bills.push(appOrderEntry);
+          }
         }
       }
     });
@@ -566,10 +601,24 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
   monthlyBills.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
   quarterlyBills.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); });
 
+  var finalQuarterMonths = quarterMonths.map(function(qm) {
+    return {
+      monthIndex: qm.monthIndex,
+      nameEn: qm.nameEn,
+      nameHi: qm.nameHi,
+      nameMr: qm.nameMr,
+      total: Math.round(qm.total),
+      billCount: qm.bills.length,
+      bills: qm.bills.sort(function(a, b) { return (b.timestamp || 0) - (a.timestamp || 0); }),
+      isCurrent: qm.isCurrent
+    };
+  });
+
   return {
     monthlyAchieved: Math.round(monthSales),
     quarterlyAchieved: Math.round(quarterSales),
     monthlyBills: monthlyBills,
-    quarterlyBills: quarterlyBills
+    quarterlyBills: quarterlyBills,
+    quarterMonths: finalQuarterMonths
   };
 }
