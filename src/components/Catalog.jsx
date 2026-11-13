@@ -20,6 +20,11 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
   const [activeModal, setActiveModal] = useState(null); // 'monthly' | 'quarterly' | null
   const [localBills, setLocalBills] = useState(null);
   const [loadingBills, setLoadingBills] = useState(false);
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState(null);
+
+  useEffect(() => {
+    setSelectedMonthFilter(null);
+  }, [activeModal]);
 
   // If targetStats does not yet contain monthlyBills, load on demand when modal opens
   useEffect(() => {
@@ -31,7 +36,8 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
             const genuine = calculateGenuineSales(res.data);
             setLocalBills({
               monthlyBills: genuine.monthlyBills,
-              quarterlyBills: genuine.quarterlyBills
+              quarterlyBills: genuine.quarterlyBills,
+              quarterMonths: genuine.quarterMonths
             });
           }
         })
@@ -65,7 +71,15 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
   const quarterlyBills = (targetStats && Array.isArray(targetStats.quarterlyBills) && targetStats.quarterlyBills.length > 0)
     ? targetStats.quarterlyBills
     : (localBills && localBills.quarterlyBills) || [];
+  const quarterMonths = (targetStats && Array.isArray(targetStats.quarterMonths) && targetStats.quarterMonths.length > 0)
+    ? targetStats.quarterMonths
+    : (localBills && localBills.quarterMonths) || [];
+
   const currentBills = activeModal === 'monthly' ? monthlyBills : quarterlyBills;
+  const activeSelectedMonth = (activeModal === 'quarterly' && selectedMonthFilter !== null)
+    ? quarterMonths.find(m => m.monthIndex === selectedMonthFilter)
+    : null;
+  const displayedBills = activeSelectedMonth ? (activeSelectedMonth.bills || []) : currentBills;
 
   return (
     <div className="mb-4 bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-950 text-white rounded-3xl p-4 shadow-xl border border-blue-700/50 relative overflow-hidden">
@@ -309,6 +323,69 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
               </div>
             </div>
 
+            {/* 🗓️ MONTH-WISE SALES BREAKDOWN (FOR QUARTERLY TARGET) */}
+            {activeModal === 'quarterly' && (
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3 mb-3">
+                <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-white/10 text-xs font-bold">
+                  <span className="text-blue-200 flex items-center gap-1.5">
+                    <span>🗓️</span>
+                    <span>
+                      {lang === 'mr' ? 'महिन्यानुसार खरेदी तपशील' : lang === 'hi' ? 'माह-वार खरीद विवरण' : 'Month-wise Sales Breakdown'}
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-cyan-300 font-black">
+                    3 {lang === 'mr' ? 'महिने' : lang === 'hi' ? 'महीने' : 'Months'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {quarterMonths.map((qm, qIdx) => {
+                    const monthName = lang === 'mr' ? qm.nameMr : lang === 'hi' ? qm.nameHi : qm.nameEn;
+                    const isSelected = selectedMonthFilter === qm.monthIndex;
+                    return (
+                      <div 
+                        key={qIdx}
+                        onClick={() => setSelectedMonthFilter(prev => prev === qm.monthIndex ? null : qm.monthIndex)}
+                        className={`p-2.5 rounded-xl border transition-all cursor-pointer text-center relative ${
+                          isSelected 
+                            ? 'bg-blue-600/40 border-blue-400 ring-2 ring-blue-400/50 shadow-md scale-[1.02]' 
+                            : qm.isCurrent 
+                            ? 'bg-blue-900/40 border-blue-500/60 hover:bg-blue-900/60' 
+                            : 'bg-white/5 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        {qm.isCurrent && (
+                          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-amber-400 text-gray-950 text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shadow">
+                            {lang === 'mr' ? 'चालू' : lang === 'hi' ? 'चालू' : 'Current'}
+                          </span>
+                        )}
+                        <div className="text-[11px] font-black text-blue-100 truncate mt-0.5">
+                          {monthName}
+                        </div>
+                        <div className={`text-xs font-black mt-1 ${qm.total > 0 ? 'text-green-300' : 'text-gray-400'}`}>
+                          ₹{qm.total.toLocaleString('en-IN')}
+                        </div>
+                        <div className="text-[9px] text-blue-200/70 font-semibold mt-0.5">
+                          {qm.billCount} {qm.billCount === 1 ? 'bill' : 'bills'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedMonthFilter !== null && (
+                  <div className="mt-2 text-center">
+                    <button 
+                      onClick={() => setSelectedMonthFilter(null)}
+                      className="text-[10px] text-blue-300 hover:text-white underline font-bold"
+                    >
+                      {lang === 'mr' ? 'सर्व ३ महिन्यांची बिले पहा' : lang === 'hi' ? 'सभी ३ महीनों के बिल देखें' : 'Show All 3 Months Invoices'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 📑 CONTRIBUTING INVOICES / BILLS BREAKDOWN */}
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3 mb-3">
               <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-white/10 text-xs">
@@ -317,12 +394,14 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
                   <span>
                     {activeModal === 'monthly'
                       ? (lang === 'mr' ? 'या महिन्यातील बिले' : lang === 'hi' ? 'इस महीने के बिल' : 'Invoices This Month')
+                      : activeSelectedMonth
+                      ? `${lang === 'mr' ? activeSelectedMonth.nameMr : lang === 'hi' ? activeSelectedMonth.nameHi : activeSelectedMonth.nameEn} ${lang === 'mr' ? 'महिन्यातील बिले' : lang === 'hi' ? 'माह के बिल' : 'Invoices'}`
                       : (lang === 'mr' ? 'या तिमाहीतील बिले' : lang === 'hi' ? 'इस तिमाही के बिल' : 'Invoices This Quarter')
                     }
                   </span>
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50">
-                  {currentBills.length} {currentBills.length === 1 
+                  {displayedBills.length} {displayedBills.length === 1 
                     ? (lang === 'mr' ? 'बिल' : lang === 'hi' ? 'बिल' : 'Bill') 
                     : (lang === 'mr' ? 'बिले' : lang === 'hi' ? 'बिल' : 'Bills')}
                 </span>
@@ -333,7 +412,7 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
                   <span>⏳</span>
                   <span>{lang === 'mr' ? 'बिलांची माहिती लोड होत आहे...' : lang === 'hi' ? 'बिल विवरण लोड हो रहा है...' : 'Loading invoice details...'}</span>
                 </div>
-              ) : currentBills.length === 0 ? (
+              ) : displayedBills.length === 0 ? (
                 <div className="text-center py-4 text-xs text-blue-300/70 font-medium">
                   {lang === 'mr'
                     ? 'या कालावधीत अद्याप कोणतेही बिल नोंदवलेले नाही.'
@@ -343,7 +422,7 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
                 </div>
               ) : (
                 <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
-                  {currentBills.map((bill, bIdx) => (
+                  {displayedBills.map((bill, bIdx) => (
                     <div key={bIdx} className="bg-white/5 hover:bg-white/10 rounded-xl p-2.5 border border-white/5 flex items-center justify-between text-xs transition-colors">
                       <div className="flex flex-col min-w-0 pr-2">
                         <div className="flex items-center gap-1.5">
