@@ -8,15 +8,37 @@ import {
   calculateSchemeProgress,
   getProductSchemes,
   triggerCelebration,
-  roundToNine
+  roundToNine,
+  calculateGenuineSales
 } from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
 import { t, translateOfferText, translateReward, translateCategory, translateProductName, translateBrand } from '../utils/translations';
 
 
 // 🎯 TARGET VS ACHIEVEMENT COMPONENT (MONTHLY & QUARTERLY 20% GROWTH DASHBOARD)
-export function TargetCard({ targetStats, lang, customerMode, setView, globalProps }) {
+export function TargetCard({ targetStats, lang, customerMode, setView, globalProps, user, callAPI }) {
   const [activeModal, setActiveModal] = useState(null); // 'monthly' | 'quarterly' | null
+  const [localBills, setLocalBills] = useState(null);
+  const [loadingBills, setLoadingBills] = useState(false);
+
+  // If targetStats does not yet contain monthlyBills, load on demand when modal opens
+  useEffect(() => {
+    if (activeModal && user && user.phone && typeof callAPI === 'function' && (!targetStats?.monthlyBills || targetStats.monthlyBills.length === 0)) {
+      setLoadingBills(true);
+      callAPI({ action: "getLedger", phone: user.phone })
+        .then(res => {
+          if (res && res.success && Array.isArray(res.data)) {
+            const genuine = calculateGenuineSales(res.data);
+            setLocalBills({
+              monthlyBills: genuine.monthlyBills,
+              quarterlyBills: genuine.quarterlyBills
+            });
+          }
+        })
+        .catch(() => {})
+        .finally(() => setLoadingBills(false));
+    }
+  }, [activeModal, user?.phone]);
 
   if (customerMode) return null;
   if (!targetStats) return null;
@@ -36,6 +58,14 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
   const mUnlocked = mTarget > 0 && mAchieved >= mTarget;
   const qUnlocked = qTarget > 0 && qAchieved >= qTarget;
   const totalBonusPercent = (mUnlocked ? 2 : 0) + (qUnlocked ? 2 : 0);
+
+  const monthlyBills = (targetStats && Array.isArray(targetStats.monthlyBills) && targetStats.monthlyBills.length > 0)
+    ? targetStats.monthlyBills
+    : (localBills && localBills.monthlyBills) || [];
+  const quarterlyBills = (targetStats && Array.isArray(targetStats.quarterlyBills) && targetStats.quarterlyBills.length > 0)
+    ? targetStats.quarterlyBills
+    : (localBills && localBills.quarterlyBills) || [];
+  const currentBills = activeModal === 'monthly' ? monthlyBills : quarterlyBills;
 
   return (
     <div className="mb-4 bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-950 text-white rounded-3xl p-4 shadow-xl border border-blue-700/50 relative overflow-hidden">
@@ -171,7 +201,7 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
           onClick={() => setActiveModal(null)}
         >
           <div 
-            className="bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900 text-white rounded-3xl p-5 max-w-sm w-full shadow-2xl border-2 border-blue-500/50 relative overflow-hidden text-left"
+            className="bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900 text-white rounded-3xl p-5 max-w-sm w-full max-h-[90vh] shadow-2xl border-2 border-blue-500/50 relative overflow-hidden text-left flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Decorative Glow */}
@@ -279,6 +309,69 @@ export function TargetCard({ targetStats, lang, customerMode, setView, globalPro
               </div>
             </div>
 
+            {/* 📑 CONTRIBUTING INVOICES / BILLS BREAKDOWN */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 mb-3">
+              <div className="flex justify-between items-center mb-2 pb-1.5 border-b border-white/10 text-xs">
+                <span className="font-bold text-blue-200 flex items-center gap-1.5">
+                  <span>📑</span>
+                  <span>
+                    {activeModal === 'monthly'
+                      ? (lang === 'mr' ? 'या महिन्यातील बिले' : lang === 'hi' ? 'इस महीने के बिल' : 'Invoices This Month')
+                      : (lang === 'mr' ? 'या तिमाहीतील बिले' : lang === 'hi' ? 'इस तिमाही के बिल' : 'Invoices This Quarter')
+                    }
+                  </span>
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50">
+                  {currentBills.length} {currentBills.length === 1 
+                    ? (lang === 'mr' ? 'बिल' : lang === 'hi' ? 'बिल' : 'Bill') 
+                    : (lang === 'mr' ? 'बिले' : lang === 'hi' ? 'बिल' : 'Bills')}
+                </span>
+              </div>
+
+              {loadingBills ? (
+                <div className="text-center py-4 text-xs text-blue-200 animate-pulse flex items-center justify-center gap-2">
+                  <span>⏳</span>
+                  <span>{lang === 'mr' ? 'बिलांची माहिती लोड होत आहे...' : lang === 'hi' ? 'बिल विवरण लोड हो रहा है...' : 'Loading invoice details...'}</span>
+                </div>
+              ) : currentBills.length === 0 ? (
+                <div className="text-center py-4 text-xs text-blue-300/70 font-medium">
+                  {lang === 'mr'
+                    ? 'या कालावधीत अद्याप कोणतेही बिल नोंदवलेले नाही.'
+                    : lang === 'hi'
+                    ? 'इस अवधि में अभी तक कोई बिल दर्ज नहीं हुआ है।'
+                    : 'No invoices recorded for this period yet.'}
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {currentBills.map((bill, bIdx) => (
+                    <div key={bIdx} className="bg-white/5 hover:bg-white/10 rounded-xl p-2.5 border border-white/5 flex items-center justify-between text-xs transition-colors">
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-amber-300 text-[11px] truncate">
+                            {bill.vchNo && bill.vchNo !== 'N/A' ? `#${bill.vchNo}` : 'Invoice'}
+                          </span>
+                          <span className="text-[10px] text-blue-200/80 whitespace-nowrap">
+                            📅 {bill.date}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-gray-300 truncate mt-0.5">
+                          {bill.vchType || bill.particulars || 'Sale'}
+                        </span>
+                      </div>
+                      <div className="text-right whitespace-nowrap">
+                        <div className={`font-black text-xs ${bill.isReturn ? 'text-rose-400' : 'text-emerald-300'}`}>
+                          {bill.isReturn ? '-' : '+'}₹{Math.abs(bill.amount).toLocaleString('en-IN')}
+                        </div>
+                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${bill.isReturn ? 'bg-rose-950/60 text-rose-300 border border-rose-800/50' : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/50'}`}>
+                          {bill.isReturn ? 'Credit Note' : 'Sale Bill'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Reward Info Box */}
             <div className="bg-indigo-900/40 border border-indigo-500/30 rounded-2xl p-3 mb-4 text-center">
               <div className="text-xs font-black text-amber-300 flex items-center justify-center gap-1">
@@ -333,6 +426,7 @@ export function Catalog(props) {
   var products = props.products;
   var setProducts = props.setProducts;
   var setView = props.setView;
+  var callAPI = props.callAPI;
   var globalProps = props.globalProps;
   var passedSchemes = props.schemes || [];
   var lang = props.lang || 'en';
@@ -822,7 +916,7 @@ export function Catalog(props) {
     mainContent = (
       <div className="p-4 pb-[140px]">
         {/* 🎯 DEALER TARGET VS ACHIEVEMENT DASHBOARD */}
-        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps ? globalProps.customerMode : false} setView={setView} globalProps={globalProps} />
+        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps ? globalProps.customerMode : false} setView={setView} globalProps={globalProps} user={user} callAPI={callAPI} />
         <h2 className="font-black text-gray-800 text-xl mb-4">{t('select_category', lang)}</h2>
         {types.length === 0 && !loading && (
           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
