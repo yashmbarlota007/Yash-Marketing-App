@@ -15,14 +15,16 @@ import { t, translateOfferText, translateReward, translateCategory, translatePro
 
 
 // 🎯 TARGET VS ACHIEVEMENT COMPONENT (MONTHLY & QUARTERLY 20% GROWTH DASHBOARD)
-export function TargetCard({ targetStats, lang, customerMode }) {
+export function TargetCard({ targetStats, lang, customerMode, setView, globalProps }) {
+  const [activeModal, setActiveModal] = useState(null); // 'monthly' | 'quarterly' | null
+
   if (customerMode) return null;
   if (!targetStats) return null;
   const rawM = Number(targetStats.monthlyTarget) || 0;
-  // Minimum monthly target for any dealer is ?15,000
+  // Minimum monthly target for any dealer is ₹15,000
   const mTarget = rawM > 0 ? Math.max(15000, rawM) : 15000;
   const rawQ = Number(targetStats.quarterlyTarget) || 0;
-  // Minimum quarterly target is ?45,000 (3x monthly target)
+  // Minimum quarterly target is ₹45,000 (3x monthly target)
   const qTarget = rawQ > 0 ? Math.max(45000, rawQ) : (mTarget * 3);
 
   const mAchieved = Number(targetStats.monthlyAchieved) || 0;
@@ -61,12 +63,23 @@ export function TargetCard({ targetStats, lang, customerMode }) {
 
       {/* Targets Grid */}
       <div className="grid grid-cols-1 gap-2.5">
-        {/* Monthly Target Box */}
+        {/* Monthly Target Box (Clickable for full breakdown) */}
         {mTarget > 0 && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+          <div 
+            onClick={() => {
+              setActiveModal('monthly');
+              if (globalProps && typeof globalProps.logSpyData === 'function') {
+                globalProps.logSpyData("Viewed Target Breakdown", `Monthly Target Clicked (${mPercent}%)`);
+              }
+            }}
+            className="bg-white/10 hover:bg-white/15 active:scale-[0.98] cursor-pointer transition-all backdrop-blur-md rounded-2xl p-3 border border-white/15 shadow-sm group select-none"
+          >
             <div className="flex justify-between items-center text-xs mb-1 font-bold">
-              <span className="flex items-center gap-1 text-blue-100">
+              <span className="flex items-center gap-1.5 text-blue-100">
                 <span>📅</span> {t('monthly_target', lang)}: ₹{mTarget.toLocaleString('en-IN')}
+                <span className="text-[9px] bg-white/15 px-1.5 py-0.5 rounded-full text-blue-200 group-hover:bg-white/25 transition-colors">
+                  🔍 {lang === 'mr' ? 'तपशील' : lang === 'hi' ? 'विवरण' : 'Details'}
+                </span>
               </span>
               <span className={`text-[11px] font-black ${mUnlocked ? 'text-green-300' : 'text-amber-300'}`}>
                 {mUnlocked ? `✅ 100%+ ${t('target_unlocked_badge', lang)}` : `${mPercent}%`}
@@ -96,12 +109,23 @@ export function TargetCard({ targetStats, lang, customerMode }) {
           </div>
         )}
 
-        {/* Quarterly Target Box */}
+        {/* Quarterly Target Box (Clickable for full breakdown) */}
         {qTarget > 0 && (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 border border-white/10">
+          <div 
+            onClick={() => {
+              setActiveModal('quarterly');
+              if (globalProps && typeof globalProps.logSpyData === 'function') {
+                globalProps.logSpyData("Viewed Target Breakdown", `Quarterly Target Clicked (${qPercent}%)`);
+              }
+            }}
+            className="bg-white/10 hover:bg-white/15 active:scale-[0.98] cursor-pointer transition-all backdrop-blur-md rounded-2xl p-3 border border-white/15 shadow-sm group select-none"
+          >
             <div className="flex justify-between items-center text-xs mb-1 font-bold">
-              <span className="flex items-center gap-1 text-blue-100">
+              <span className="flex items-center gap-1.5 text-blue-100">
                 <span>🏆</span> {t('quarterly_target', lang)}: ₹{qTarget.toLocaleString('en-IN')}
+                <span className="text-[9px] bg-white/15 px-1.5 py-0.5 rounded-full text-cyan-200 group-hover:bg-white/25 transition-colors">
+                  🔍 {lang === 'mr' ? 'तपशील' : lang === 'hi' ? 'विवरण' : 'Details'}
+                </span>
               </span>
               <span className={`text-[11px] font-black ${qUnlocked ? 'text-green-300' : 'text-amber-300'}`}>
                 {qUnlocked ? `✅ 100%+ ${t('target_unlocked_badge', lang)}` : `${qPercent}%`}
@@ -137,6 +161,162 @@ export function TargetCard({ targetStats, lang, customerMode }) {
         <div className="mt-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/40 rounded-xl p-2.5 text-center text-[11px] font-bold text-green-200 flex items-center justify-center gap-1.5">
           <span>🎁</span>
           <span>{totalBonusPercent === 4 ? t('target_bonus_4', lang) : t('target_bonus_2', lang)}</span>
+        </div>
+      )}
+
+      {/* 📊 INTERACTIVE TARGET DETAILS & BREAKDOWN MODAL */}
+      {activeModal && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          onClick={() => setActiveModal(null)}
+        >
+          <div 
+            className="bg-gradient-to-b from-slate-900 via-blue-950 to-slate-900 text-white rounded-3xl p-5 max-w-sm w-full shadow-2xl border-2 border-blue-500/50 relative overflow-hidden text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Decorative Glow */}
+            <div className="absolute -top-16 -right-16 w-36 h-36 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            {/* Close Button */}
+            <button 
+              onClick={() => setActiveModal(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition-colors"
+            >
+              ✕
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center gap-2.5 mb-3 pr-8">
+              <span className="text-3xl">
+                {activeModal === 'monthly' ? '📅' : '🏆'}
+              </span>
+              <div>
+                <h3 className="font-black text-base leading-tight">
+                  {activeModal === 'monthly'
+                    ? (lang === 'mr' ? 'मासिक उद्दिष्ट तपशील' : lang === 'hi' ? 'मासिक टारगेट विवरण' : 'Monthly Target Breakdown')
+                    : (lang === 'mr' ? 'तिमाही उद्दिष्ट तपशील' : lang === 'hi' ? 'तिमाही टारगेट विवरण' : 'Quarterly Target Breakdown')
+                  }
+                </h3>
+                <p className="text-[10px] text-blue-300 font-medium">
+                  {activeModal === 'monthly'
+                    ? (lang === 'mr' ? 'चालू महिना खरेदी व उद्दिष्ट' : lang === 'hi' ? 'चालू माह खरीद और टारगेट' : 'Current Month Sales & Target')
+                    : (lang === 'mr' ? 'चालू तिमाही खरेदी व उद्दिष्ट' : lang === 'hi' ? 'चालू तिमाही खरीद और टारगेट' : 'Current Quarter Sales & Target')
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Status Pill */}
+            <div className="mb-4">
+              {(activeModal === 'monthly' ? mUnlocked : qUnlocked) ? (
+                <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white p-3 rounded-2xl flex items-center gap-2.5 shadow-md">
+                  <span className="text-2xl">🎉</span>
+                  <div>
+                    <div className="text-xs font-black">
+                      {lang === 'mr' ? 'उद्दिष्ट १००%+ पूर्ण झाले!' : lang === 'hi' ? 'टारगेट १००%+ पूरा हो गया!' : '100%+ Target Achieved!'}
+                    </div>
+                    <div className="text-[10px] text-emerald-100 font-semibold">
+                      {lang === 'mr' ? '+२% अतिरिक्त होलसेल सूट सक्रिय झाली आहे.' : lang === 'hi' ? '+२% अतिरिक्त होलसेल छूट सक्रिय हो गई है।' : '+2% Extra Wholesale Discount is ACTIVE.'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-blue-900/60 border border-blue-500/30 p-3 rounded-2xl flex items-center gap-2.5">
+                  <span className="text-2xl">⏳</span>
+                  <div>
+                    <div className="text-xs font-black text-yellow-300">
+                      {lang === 'mr' ? 'उद्दिष्ट प्रगतीपथावर आहे' : lang === 'hi' ? 'टारगेट प्रगति पर है' : 'Target in Progress'} ({activeModal === 'monthly' ? mPercent : qPercent}%)
+                    </div>
+                    <div className="text-[10px] text-blue-200">
+                      {lang === 'mr'
+                        ? `आणखी ₹${(activeModal === 'monthly' ? Math.max(0, mTarget - mAchieved) : Math.max(0, qTarget - qAchieved)).toLocaleString('en-IN')} ची खरेदी करून +२% अतिरिक्त सूट मिळवा.`
+                        : lang === 'hi'
+                        ? `₹${(activeModal === 'monthly' ? Math.max(0, mTarget - mAchieved) : Math.max(0, qTarget - qAchieved)).toLocaleString('en-IN')} की और खरीद करके +२% अतिरिक्त छूट पाएं।`
+                        : `Purchase ₹${(activeModal === 'monthly' ? Math.max(0, mTarget - mAchieved) : Math.max(0, qTarget - qAchieved)).toLocaleString('en-IN')} more to unlock +2% Extra Discount.`
+                      }
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Metrics Cards Grid */}
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                <div className="text-[9px] font-bold text-blue-300 uppercase tracking-wider">
+                  {lang === 'mr' ? 'एकूण उद्दिष्ट' : lang === 'hi' ? 'कुल टारगेट' : 'Target Value'}
+                </div>
+                <div className="text-base font-black text-white mt-1">
+                  ₹{(activeModal === 'monthly' ? mTarget : qTarget).toLocaleString('en-IN')}
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                <div className="text-[9px] font-bold text-green-300 uppercase tracking-wider">
+                  {lang === 'mr' ? 'साध्य खरेदी' : lang === 'hi' ? 'प्राप्त खरीद' : 'Sales Achieved'}
+                </div>
+                <div className="text-base font-black text-green-400 mt-1">
+                  ₹{(activeModal === 'monthly' ? mAchieved : qAchieved).toLocaleString('en-IN')}
+                </div>
+              </div>
+
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center col-span-2">
+                <div className="flex justify-between items-center text-[10px] font-bold mb-1">
+                  <span className="text-blue-300 uppercase tracking-wider">
+                    {lang === 'mr' ? 'उर्वरित रक्कम' : lang === 'hi' ? 'बकाया राशि' : 'Remaining to Target'}
+                  </span>
+                  <span className="font-black text-amber-300">
+                    ₹{(activeModal === 'monthly' ? Math.max(0, mTarget - mAchieved) : Math.max(0, qTarget - qAchieved)).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                {/* Detailed Progress Bar */}
+                <div className="w-full bg-blue-950 h-3 rounded-full overflow-hidden border border-blue-800/60 p-0.5">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-700 ${(activeModal === 'monthly' ? mUnlocked : qUnlocked) ? 'bg-gradient-to-r from-emerald-400 to-green-500' : 'bg-gradient-to-r from-amber-400 to-orange-500'}`}
+                    style={{ width: `${Math.min(100, (activeModal === 'monthly' ? mPercent : qPercent))}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reward Info Box */}
+            <div className="bg-indigo-900/40 border border-indigo-500/30 rounded-2xl p-3 mb-4 text-center">
+              <div className="text-xs font-black text-amber-300 flex items-center justify-center gap-1">
+                <span>✨</span>
+                <span>{lang === 'mr' ? '+२% अतिरिक्त होलसेल सूट' : lang === 'hi' ? '+२% अतिरिक्त होलसेल छूट' : '+2% Extra Wholesale Discount'}</span>
+              </div>
+              <p className="text-[10px] text-blue-200 mt-1 leading-relaxed">
+                {lang === 'mr' 
+                  ? 'उद्दिष्ट पूर्ण झाल्यावर प्रत्येक ऑर्डरवर आपोआप २% अतिरिक्त सूट लागू होते.'
+                  : lang === 'hi'
+                  ? 'टारगेट पूरा होते ही हर ऑर्डर पर अपने आप २% अतिरिक्त छूट लागू हो जाती है।'
+                  : 'Once the target is achieved, an extra 2% discount is automatically applied to all orders.'
+                }
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2">
+              {typeof setView === 'function' && (
+                <button 
+                  onClick={() => {
+                    setActiveModal(null);
+                    setView('ledger');
+                  }}
+                  className="w-full bg-blue-700 hover:bg-blue-600 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all"
+                >
+                  <span>📖</span>
+                  <span>{lang === 'mr' ? 'खातेवहीत बिले पहा (Ledger)' : lang === 'hi' ? 'खाताबही में बिल देखें (Ledger)' : 'View Invoices in Ledger'}</span>
+                </button>
+              )}
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="w-full bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold py-2.5 rounded-xl text-xs transition-colors"
+              >
+                {lang === 'mr' ? 'बंद करा / कॅटलॉग पहा' : lang === 'hi' ? 'बंद करें / कैटलॉग देखें' : 'Close / Browse Catalog'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -641,7 +821,7 @@ export function Catalog(props) {
     mainContent = (
       <div className="p-4 pb-[140px]">
         {/* 🎯 DEALER TARGET VS ACHIEVEMENT DASHBOARD */}
-        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps.customerMode} />
+        <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps.customerMode} setView={setView} globalProps={globalProps} />
         <h2 className="font-black text-gray-800 text-xl mb-4">{t('select_category', lang)}</h2>
         {types.length === 0 && !loading && (
           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
