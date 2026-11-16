@@ -97,10 +97,10 @@ function getDealerOrders(phone) {
       if (stockPhotoCol === -1) stockPhotoCol = headers.length > 12 ? 12 : 10;
       if (invoicePhotoCol === -1) invoicePhotoCol = headers.length > 13 ? 13 : 11;
       if (boxPhotoCol === -1) boxPhotoCol = headers.length > 14 ? 14 : 12;
-      if (podCol === -1) podCol = headers.length > 17 ? 17 : 14;
+      if (screenshotCol === -1) screenshotCol = headers.length > 17 ? 17 : -1;
+      if (podCol === -1 || podCol === screenshotCol) podCol = headers.length > 16 ? 16 : 14;
       if (callRecordingCol === -1) callRecordingCol = headers.length > 18 ? 18 : 9;
       if (ratingCol === -1) ratingCol = headers.length > 19 ? 19 : 16;
-      if (screenshotCol === -1) screenshotCol = headers.length > 17 ? 17 : -1;
 
       for (var i = data.length - 1; i >= 1; i--) {
         var row = data[i];
@@ -185,9 +185,10 @@ function getDealerOrders(phone) {
               StockPhoto: stockPhotoUrl,
               InvoicePhoto: invoicePhotoUrl,
               BoxPhoto: boxPhotoUrl,
-              POD: podUrl,
+              POD: (podUrl && podUrl !== screenshotUrl) ? podUrl : "",
               CallRecording: callRecordingUrl,
               PaymentScreenshot: screenshotUrl,
+              screenshotUrl: screenshotUrl,
               OrderRating: ratingVal,
               attachments: attachments
             };
@@ -272,15 +273,37 @@ function saveOrder(order) {
   var screenshotBlob = null; 
   if (order.screenshot) {
     try {
-      var decoded = Utilities.base64Decode(order.screenshot.base64);
-      screenshotBlob = Utilities.newBlob(decoded, order.screenshot.mimeType, order.screenshot.filename); 
-      var folderIter = DriveApp.getFoldersByName("PaymentScreenshots");
-      var folder = folderIter.hasNext() ? folderIter.next() : DriveApp.createFolder("PaymentScreenshots");
-      var file = folder.createFile(screenshotBlob);
+      var rawBase64 = order.screenshot.base64 || "";
+      if (rawBase64 && rawBase64.indexOf("base64,") !== -1) {
+        rawBase64 = rawBase64.split("base64,")[1];
+      }
+      var decoded = Utilities.base64Decode(rawBase64);
+      screenshotBlob = Utilities.newBlob(decoded, order.screenshot.mimeType || "image/jpeg", order.screenshot.filename || "upi_screenshot.jpg"); 
+      
+      var targetFolder = null;
+      try {
+        if (typeof DRIVE_FOLDER_ID !== 'undefined' && DRIVE_FOLDER_ID) {
+          targetFolder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+        }
+      } catch(fErr1) {
+        Logger.log("Folder by ID notice: " + fErr1.toString());
+      }
+      
+      if (!targetFolder) {
+        try {
+          var folderIter = DriveApp.getFoldersByName("PaymentScreenshots");
+          targetFolder = folderIter.hasNext() ? folderIter.next() : DriveApp.createFolder("PaymentScreenshots");
+        } catch(fErr2) {
+          Logger.log("Folder by Name notice: " + fErr2.toString());
+        }
+      }
+      
+      var file = targetFolder ? targetFolder.createFile(screenshotBlob) : DriveApp.createFile(screenshotBlob);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       screenshotUrl = file.getUrl();
     } catch(e) { 
       screenshotUrl = "UPLOAD ERROR: " + e.message; 
+      Logger.log("Screenshot upload error: " + e.toString());
     }
   }
 
