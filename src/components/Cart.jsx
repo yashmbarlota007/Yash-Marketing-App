@@ -9,7 +9,8 @@ import {
   compressImageFile,
   PHONEPE_QR_URL, 
   OFFICE_NUMBER,
-  roundToNine
+  roundToNine,
+  DEFAULT_DISCOUNTS
 } from '../utils/helpers';
 import { t, translateOfferText, translateReward, translateProductName } from '../utils/translations';
 
@@ -33,10 +34,7 @@ export function Cart(props) {
   const [schemes, setSchemes] = useState([]); 
   const [paymentMode, setPaymentMode] = useState("");
   const [screenshotData, setScreenshotData] = useState(null);
-  const [discounts, setDiscounts] = useState([
-    { minAmount: 10000, percent: 1 }, 
-    { minAmount: 20000, percent: 1.5 }
-  ]);
+  const [discounts, setDiscounts] = useState(DEFAULT_DISCOUNTS);
   const [orderRemarks, setOrderRemarks] = useState("");
 
   useEffect(() => {
