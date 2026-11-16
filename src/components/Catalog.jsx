@@ -9,7 +9,8 @@ import {
   getProductSchemes,
   triggerCelebration,
   roundToNine,
-  calculateGenuineSales
+  calculateGenuineSales,
+  DEFAULT_DISCOUNTS
 } from '../utils/helpers';
 import { ProgressBar } from './SharedUI';
 import { t, translateOfferText, translateReward, translateCategory, translateProductName, translateBrand } from '../utils/translations';
@@ -517,14 +518,8 @@ export function Catalog(props) {
   const [selectedType, setSelectedType] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [discounts, setDiscounts] = useState([
-    { minAmount: 10000, percent: 1 }, 
-    { minAmount: 20000, percent: 1.5 }
-  ]);
-  const [celebratedTiers, setCelebratedTiers] = useState({ 
-    tier1: false, 
-    tier2: false 
-  });
+  const [discounts, setDiscounts] = useState(DEFAULT_DISCOUNTS);
+  const [celebratedTierPercent, setCelebratedTierPercent] = useState(0);
   const [activeVariants, setActiveVariants] = useState({});
   const searchDebounceRef = useRef(null);
   const cartDebounceRefs = useRef({});
@@ -593,7 +588,7 @@ export function Catalog(props) {
     })
     .then((r) => r.json())
     .then((res) => { 
-      if (res && res.success && res.data.length > 0) {
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
         setDiscounts(res.data); 
       }
     })
@@ -636,32 +631,25 @@ export function Catalog(props) {
       .filter((d) => !isNaN(d.minAmount) && !isNaN(d.percent))
       .sort((a, b) => a.minAmount - b.minAmount);
       
-    var tier1Min = (sortedDiscounts[0] && sortedDiscounts[0].minAmount) ? sortedDiscounts[0].minAmount : 10000;
-    var tier2Min = (sortedDiscounts[1] && sortedDiscounts[1].minAmount) ? sortedDiscounts[1].minAmount : 20000;
-
-    if (totalAmount >= tier2Min) {
-      if (!celebratedTiers.tier2) { 
-        if (window.confetti) {
-          window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } }); 
-        }
-        setCelebratedTiers((prev) => ({...prev, tier2: true })); 
-      }
-    } else if (totalAmount >= tier1Min) {
-      if (!celebratedTiers.tier1) { 
-        if (window.confetti) {
-          window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-        }
-        setCelebratedTiers((prev) => ({...prev, tier1: true })); 
-      }
-      if (celebratedTiers.tier2) {
-        setCelebratedTiers((prev) => ({...prev, tier2: false }));
-      }
-    } else { 
-      if (celebratedTiers.tier1 || celebratedTiers.tier2) {
-        setCelebratedTiers({ tier1: false, tier2: false }); 
+    var activeTier = null;
+    for (var i = 0; i < sortedDiscounts.length; i++) {
+      if (totalAmount >= sortedDiscounts[i].minAmount) {
+        activeTier = sortedDiscounts[i];
+      } else {
+        break;
       }
     }
-  }, [totalAmount, discounts, celebratedTiers]);
+
+    var currentUnlockedPercent = activeTier ? activeTier.percent : 0;
+    if (currentUnlockedPercent > celebratedTierPercent) {
+      if (window.confetti) {
+        window.confetti({ particleCount: 75 + Math.round(currentUnlockedPercent * 30), spread: 75, origin: { y: 0.6 } });
+      }
+      setCelebratedTierPercent(currentUnlockedPercent);
+    } else if (currentUnlockedPercent < celebratedTierPercent) {
+      setCelebratedTierPercent(currentUnlockedPercent);
+    }
+  }, [totalAmount, discounts, celebratedTierPercent]);
 
   // ==========================================
   // 4. EVENT HANDLERS
