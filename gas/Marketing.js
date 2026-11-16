@@ -27,8 +27,16 @@ function getDiscounts() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Discounts") || ss.getSheetByName("discounts");
+    var defaultDiscounts = [
+      { minAmount: 10000, percent: 0.5 },
+      { minAmount: 20000, percent: 1.0 },
+      { minAmount: 30000, percent: 1.5 },
+      { minAmount: 40000, percent: 2.0 },
+      { minAmount: 50000, percent: 2.5 }
+    ];
+
     if (!sheet) {
-      return { success: true, data: [{ minAmount: 10000, percent: 0.5 }, { minAmount: 20000, percent: 1 }] };
+      return { success: true, data: defaultDiscounts };
     }
     
     var rawData = sheet.getDataRange().getValues();
@@ -36,7 +44,7 @@ function getDiscounts() {
     var list = [];
     
     for (var i = 1; i < rawData.length; i++) {
-      if (rawData[i][0] !== "") {
+      if (rawData[i][0] !== "" && !isNaN(Number(rawData[i][0]))) {
         var displayPercentStr = displayData[i][1] ? displayData[i][1].toString().replace("%", "").trim() : "0";
         var percentNum = Number(displayPercentStr);
         if (isNaN(percentNum)) {
@@ -48,6 +56,21 @@ function getDiscounts() {
         list.push({ minAmount: Number(rawData[i][0]), percent: percentNum });
       }
     }
+
+    if (list.length === 0) {
+      list = defaultDiscounts;
+      try {
+        if (sheet.getLastRow() <= 1) {
+          if (sheet.getLastRow() === 0) {
+            sheet.appendRow(["Min Order Amount", "Discount %"]);
+          }
+          list.forEach(function(item) {
+            sheet.appendRow([item.minAmount, item.percent + "%"]);
+          });
+        }
+      } catch(e) {}
+    }
+
     return { success: true, data: list };
   } catch(e) {
     return { success: false, message: e.toString() };
