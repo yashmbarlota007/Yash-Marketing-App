@@ -6,7 +6,16 @@ export const LOGO_URL = "https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_
 
 export const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
 
-export const OFFICE_NUMBER = "918378811922"; 
+export const OFFICE_NUMBER = "918378811922";
+
+// 🎯 BULK DISCOUNT SLABS (DEFAULT WHOLESALE TIERS)
+export const DEFAULT_DISCOUNTS = [
+  { minAmount: 10000, percent: 0.5 },
+  { minAmount: 20000, percent: 1.0 },
+  { minAmount: 30000, percent: 1.5 },
+  { minAmount: 40000, percent: 2.0 },
+  { minAmount: 50000, percent: 2.5 }
+]; 
 
 export const getNum = (val) => {
   if (val === undefined || val === null || val === "") return 0;
