@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { t, translateOfferText, translateReward, translateProductName } from '../utils/translations';
-import { API_URL, getNum, getProp, getSmartImage, groupProductsByVariant, calculateSchemeProgress } from '../utils/helpers';
+import { API_URL, getNum, getProp, getSmartImage, groupProductsByVariant, calculateSchemeProgress, DEFAULT_DISCOUNTS } from '../utils/helpers';
 
 export default function OffersView(props) {
   // ==========================================
@@ -14,7 +14,7 @@ export default function OffersView(props) {
   var globalProps = props.globalProps || {};
 
   const [schemes, setSchemes] = useState([]);
-  const [discounts, setDiscounts] = useState([]);
+  const [discounts, setDiscounts] = useState(DEFAULT_DISCOUNTS);
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [activeSchemeProducts, setActiveSchemeProducts] = useState([]);
   const [activeSchemeTitle, setActiveSchemeTitle] = useState("");
@@ -41,7 +41,7 @@ export default function OffersView(props) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
     .then((r) => r.json())
-    .then((res) => { if (res && res.success) setDiscounts(res.data); })
+    .then((res) => { if (res && res.success && Array.isArray(res.data) && res.data.length > 0) setDiscounts(res.data); })
     .catch(() => {});
   }, []);
 
