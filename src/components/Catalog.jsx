@@ -805,12 +805,28 @@ export function Catalog(props) {
               key={`${activeItemCode}-${idx}`} 
               className="bg-white rounded-2xl p-3 shadow-sm flex flex-col justify-between border border-gray-50 relative overflow-hidden"
             >
-              {/* 🎁 VIBRANT EMERALD & GOLD SPECIAL OFFER BADGE */}
-              {hasOffer && (
-                <span className="absolute top-2 left-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white text-[8px] font-black px-2.5 py-0.5 rounded-full shadow-lg uppercase tracking-wider z-20 flex items-center gap-1 border border-yellow-300">
-                  <span>🎁</span> {t('offer_badge', lang)}
-                </span>
-              )}
+              {/* 🎁 VIBRANT EMERALD & GOLD BUY X GET Y FREE / OFFER BADGE */}
+              {hasOffer && (() => {
+                let badgeText = t('offer_badge', lang);
+                if (itemSchemes && itemSchemes.length > 0) {
+                  const sch = itemSchemes[0];
+                  const msg = String(sch.message || '').trim();
+                  const buyMatch = msg.match(/buy\s*(\d+)\s*(?:pcs)?\s*get\s*([a-zA-Z0-9\s]*?)(\d+)\s*(?:pcs)?\s*free/i);
+                  if (buyMatch) {
+                    badgeText = `BUY ${buyMatch[1]} GET ${buyMatch[3]} FREE`;
+                  } else if (sch.minQty && sch.reward && String(sch.reward).toLowerCase().includes("pcs")) {
+                    const rNum = String(sch.reward).match(/\d+/);
+                    if (rNum) {
+                      badgeText = `BUY ${sch.minQty} GET ${rNum[0]} FREE`;
+                    }
+                  }
+                }
+                return (
+                  <span className="absolute top-2 left-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white text-[8px] font-black px-2.5 py-0.5 rounded-full shadow-lg uppercase tracking-wider z-20 flex items-center gap-1 border border-yellow-300">
+                    <span>🎁</span> {badgeText}
+                  </span>
+                );
+              })()}
               {isNewItem && (
                 <span className="absolute top-2 right-2 bg-pink-600 text-white text-[8px] font-black px-2 py-0.5 rounded-md shadow-md uppercase tracking-wider z-10">
                   ✨ {t('new_badge', lang)}
