@@ -221,22 +221,24 @@ export default function OffersView(props) {
         </div>
       </div>
 
-      <div>
-        <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 {lang === "mr" ? "मोठ्या खरेदीवर विशेष सूट" : lang === "hi" ? "बड़ी खरीदारी पर विशेष छूट" : "Volume Discount Slabs"}</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {discounts.map((d, i) => (
-            <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-              <div className="text-[9px] text-gray-400 font-black uppercase">{lang === "mr" ? "किमान ऑर्डर रक्कम" : lang === "hi" ? "न्यूनतम ऑर्डर राशि" : "Min Order Value"}</div>
-              <div className="font-black text-blue-950 text-base mt-0.5">
-                ₹{Number(d.minAmount).toLocaleString('en-IN')}
+      {discounts && discounts.length > 0 && (
+        <div>
+          <h3 className="font-black text-gray-800 text-sm mb-3 uppercase tracking-wider">📊 {lang === "mr" ? "मोठ्या खरेदीवर विशेष सूट" : lang === "hi" ? "बड़ी खरीदारी पर विशेष छूट" : "Volume Discount Slabs"}</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {discounts.map((d, i) => (
+              <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                <div className="text-[9px] text-gray-400 font-black uppercase">{lang === "mr" ? "किमान ऑर्डर रक्कम" : lang === "hi" ? "न्यूनतम ऑर्डर राशि" : "Min Order Value"}</div>
+                <div className="font-black text-blue-950 text-base mt-0.5">
+                  ₹{Number(d.minAmount).toLocaleString('en-IN')}
+                </div>
+                <div className="mt-2 bg-green-50 text-green-700 text-xs font-black py-1 px-2 rounded-lg border border-green-100 inline-block">
+                  🎉 {d.percent}% {lang === "mr" ? "अतिरिक्त सूट" : lang === "hi" ? "अतिरिक्त छूट" : "EXTRA OFF"}
+                </div>
               </div>
-              <div className="mt-2 bg-green-50 text-green-700 text-xs font-black py-1 px-2 rounded-lg border border-green-100 inline-block">
-                🎉 {d.percent}% {lang === "mr" ? "अतिरिक्त सूट" : lang === "hi" ? "अतिरिक्त छूट" : "EXTRA OFF"}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {showProductsModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-end animate-fade-in">
