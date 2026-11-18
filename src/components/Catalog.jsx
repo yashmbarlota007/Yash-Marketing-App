@@ -1132,7 +1132,9 @@ export function Catalog(props) {
       <div className="sticky z-30 bg-white shadow-md border-b" style={{ top: '58px' }}>
         {cartItems.length > 0 && !globalProps.customerMode && (
           <React.Fragment>
-            <ProgressBar totalAmount={totalAmount} discounts={discounts} lang={lang} />
+            {discounts && discounts.length > 0 && (
+          <ProgressBar totalAmount={totalAmount} discounts={discounts} lang={lang} />
+        )}
             {/* 🟢 THE ENTIRE SCHEMES TRACKER GRID HAS BEEN REMOVED FROM HERE AS PER YOUR INSTRUCTION */}
           </React.Fragment>
         )}
