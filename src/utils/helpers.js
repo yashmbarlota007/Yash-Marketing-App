@@ -178,8 +178,13 @@ export function getProductSchemes(product, schemes) {
   const type = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase().trim();
   const category = String(getProp(product, "Category") || "").toLowerCase().trim();
 
-  // Hikvision has no active offer (exclude Hikvision products)
+  // 1. Hikvision products have no offer
   if (brand.includes("hikvision") || name.startsWith("hv ") || name.includes("hikvision")) {
+    return [];
+  }
+
+  // 2. Boat Zen ANC has no offer
+  if (name.includes("zen anc") || name.includes("zen")) {
     return [];
   }
 
@@ -191,50 +196,75 @@ export function getProductSchemes(product, schemes) {
     });
   }
 
-  const cleanWords = (str) => {
-    return String(str || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, ' ')
-      .split(/\s+/)
-      .filter(w => w.length > 1 && !['the', 'and', 'for', 'with', 'pcs', 'buy', 'get', 'free'].includes(w));
-  };
+  function norm(str) {
+    return String(str || "").toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+  }
 
   return schemes.filter(scheme => {
-    const targetStr = String(scheme.target || "").toLowerCase().trim();
-    if (!targetStr) return false;
+    const targetStr = String(scheme.target || "").trim();
+    if (!targetStr || targetStr.toLowerCase().includes("hikvision")) return false;
 
-    const targets = targetStr.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+    const targets = targetStr.split(",").map(t => norm(t)).filter(Boolean);
 
     return targets.some(target => {
-      // 1. Exact Brand Scheme check (e.g. target is "Hikvision")
-      if (target === brand) {
-        const msg = String(scheme.message || "").toLowerCase();
-        // If message specifies a sub-category like "mmc & pd"
-        if (msg.includes("mmc & pd") || msg.includes("mmc") || msg.includes("memory card")) {
-          return type.includes("mmc") || type.includes("pd") || category.includes("mmc") || category.includes("memory card");
-        }
-        return true;
+      // Target brand detection
+      let targetBrand = "";
+      if (target.includes("boat")) targetBrand = "boat";
+      else if (target.includes("velocity")) targetBrand = "velocity";
+      else if (target.includes("sandisk")) targetBrand = "sandisk";
+
+      if (targetBrand && brand && !brand.includes(targetBrand) && !name.includes(targetBrand)) {
+        return false;
       }
 
-      // 2. Specific product match
-      return allNames.some(pName => {
+      // Target category/line detection
+      if (target.includes("cable") && !type.includes("cable") && !category.includes("cable") && !name.includes("cable")) {
+        return false;
+      }
+      if (target.includes("rockerz") && !name.includes("rockerz")) {
+        return false;
+      }
+      if (target.includes("neckband") && !type.includes("neckband") && !category.includes("neckband") && !name.includes("neckband")) {
+        return false;
+      }
+      if (target.includes("watch") && !type.includes("watch") && !category.includes("watch") && !name.includes("watch")) {
+        return false;
+      }
+
+      return allNames.some(rawPName => {
+        const pName = norm(rawPName);
+
         if (pName === target) return true;
-        if (pName.includes(target) || target.includes(pName)) return true;
 
-        // Extract meaningful key words (exclude brand name)
-        const targetWords = cleanWords(target).filter(w => w !== brand);
-        const nameWords = cleanWords(pName).filter(w => w !== brand);
+        // Rockerz specific models: Summit, 261 Pro, Strive, Bold
+        if (target.includes("rockerz")) {
+          if (target.includes("summit")) return pName.includes("summit") && pName.includes("rockerz");
+          if (target.includes("261")) return pName.includes("261") && pName.includes("rockerz");
+          if (target.includes("strive")) return pName.includes("strive") && pName.includes("rockerz");
+          if (target.includes("bold")) return pName.includes("rockerz bold") && !pName.includes("421") && !pName.includes("trendz");
+          return false;
+        }
 
-        if (targetWords.length === 0) return false;
+        // Astra models: Astra 3, Astra 4, Astra Neo
+        if (target.includes("astra")) {
+          if (target.includes("astra 3")) return pName.includes("astra 3") || (pName.includes("astra") && pName.includes("3"));
+          if (target.includes("astra 4")) return pName.includes("astra 4") || (pName.includes("astra") && pName.includes("4"));
+          if (target.includes("astra neo")) return pName.includes("astra neo") || (pName.includes("astra") && pName.includes("neo"));
+          return false;
+        }
 
-        const matchedWords = targetWords.filter(tw => nameWords.includes(tw));
-        const matchRatio = matchedWords.length / targetWords.length;
+        // Boat cables: A325, Type C to C 65W
+        if (target.includes("a325")) return pName.includes("a325") && pName.includes("cable");
+        if (target.includes("65w") || target.includes("c to c")) {
+          return (pName.includes("65w") || pName.includes("c to c")) && pName.includes("cable");
+        }
 
-        if (matchRatio >= 0.7) return true;
-
-        const modelCodes = targetWords.filter(w => /\d/.test(w) || w.length >= 4);
-        if (modelCodes.length > 0 && modelCodes.every(mc => nameWords.includes(mc))) {
-          return true;
+        // Velocity products
+        if (target.includes("velocity")) {
+          if (!brand.includes("velocity") && !name.includes("velocity")) return false;
+          if (target.includes("neckband wave")) return pName.includes("neckband") && pName.includes("wave");
+          if (target.includes("neckband boss")) return pName.includes("neckband") && pName.includes("boss");
+          if (target.includes("airpods") || target.includes("pods")) return pName.includes("velocity") && (pName.includes("tws") || pName.includes("pods"));
         }
 
         return false;
