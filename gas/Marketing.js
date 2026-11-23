@@ -41,6 +41,10 @@ function getSchemes() {
     var list = [];
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === "ACTIVE") { 
+        var target = data[i][2] ? data[i][2].toString().trim() : "";
+        if (target.toLowerCase().indexOf("hikvision") > -1) {
+          continue; // Hikvision has no active offer per user
+        }
         list.push({
           type: data[i][1], 
           target: data[i][2], 
