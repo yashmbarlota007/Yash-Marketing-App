@@ -178,6 +178,11 @@ export function getProductSchemes(product, schemes) {
   const type = String(getProp(product, "Type") || getProp(product, "Category") || "").toLowerCase().trim();
   const category = String(getProp(product, "Category") || "").toLowerCase().trim();
 
+  // Hikvision has no active offer (exclude Hikvision products)
+  if (brand.includes("hikvision") || name.startsWith("hv ") || name.includes("hikvision")) {
+    return [];
+  }
+
   const allNames = [name];
   if (product.variants && Array.isArray(product.variants)) {
     product.variants.forEach(v => {
