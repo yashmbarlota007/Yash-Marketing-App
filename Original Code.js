@@ -121,7 +121,23 @@ function doPost(e) {
       try {
         var logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Activity Logs");
         if(logSheet) {
-          logSheet.appendRow([new Date(), payload.phone, payload.shopName, payload.event, payload.details]);
+          var sName = payload.shopName;
+          if (!sName || sName === "Unknown" || sName.trim() === "") {
+            var targetP = payload.phone ? payload.phone.toString().replace(/\D/g, '').slice(-10) : "";
+            if (targetP) {
+              var dSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Dealers");
+              if (dSheet) {
+                var dData = dSheet.getDataRange().getValues();
+                for (var di = 1; di < dData.length; di++) {
+                  if (dData[di][0] && dData[di][0].toString().replace(/\D/g, '').slice(-10) === targetP) {
+                    sName = dData[di][1] ? dData[di][1].toString().trim() : "Unknown";
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          logSheet.appendRow([new Date(), payload.phone, sName || "Unknown", payload.event, payload.details]);
         }
       } catch(logErr) {} 
       return ContentService.createTextOutput(JSON.stringify({success: true})).setMimeType(ContentService.MimeType.JSON);
