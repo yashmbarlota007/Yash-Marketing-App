@@ -674,6 +674,8 @@ function MainApp() {
     }
     localStorage.removeItem("yashDealerSession");
     localStorage.removeItem("yashDealerCart");
+    localStorage.removeItem("yashOrderRemarks");
+    localStorage.removeItem("yashPaymentMode");
     setUser(null);
     setCart({});
     handleSetView("catalog");

@@ -32,10 +32,37 @@ export function Cart(props) {
   const submitLock = useRef(false);
 
   const [schemes, setSchemes] = useState([]); 
-  const [paymentMode, setPaymentMode] = useState("");
+  const [paymentMode, setPaymentMode] = useState(() => {
+    try {
+      return localStorage.getItem("yashPaymentMode") || "";
+    } catch (e) {
+      return "";
+    }
+  });
   const [screenshotData, setScreenshotData] = useState(null);
   const [discounts, setDiscounts] = useState(DEFAULT_DISCOUNTS);
-  const [orderRemarks, setOrderRemarks] = useState("");
+  const [orderRemarks, setOrderRemarks] = useState(() => {
+    try {
+      return localStorage.getItem("yashOrderRemarks") || "";
+    } catch (e) {
+      return "";
+    }
+  });
+
+  const handleRemarksChange = (e) => {
+    const val = e.target.value;
+    setOrderRemarks(val);
+    try {
+      localStorage.setItem("yashOrderRemarks", val);
+    } catch (err) {}
+  };
+
+  const handleSelectPaymentMode = (mode) => {
+    setPaymentMode(mode);
+    try {
+      localStorage.setItem("yashPaymentMode", mode);
+    } catch (err) {}
+  };
 
   useEffect(() => {
     if (props.schemes && props.schemes.length > 0) {
@@ -338,6 +365,13 @@ export function Cart(props) {
         alert(confirmMsg);
         const orderSummary = `Val: ?${finalAmount} | Mode: ${paymentMode} | Items: ${cartItems.length} (${cartItems.map(i => (getProp(i, "ProductName") || i.ProductName || "Item") + " x" + i.qty).join(", ")})`;
         globalProps.logSpyData("Order Placed", orderSummary);
+        try {
+          localStorage.removeItem("yashOrderRemarks");
+          localStorage.removeItem("yashPaymentMode");
+        } catch (e) {}
+        setOrderRemarks("");
+        setPaymentMode("");
+        setScreenshotData(null);
         setCart({}); 
         setView("catalog");
       } else {
@@ -583,10 +617,10 @@ export function Cart(props) {
           {(!isEligibleForDiscount) && totalMissedSavings > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-red-50 border-2 border-red-500 shadow-md animate-pulse">
               <h4 className="font-black text-red-900 text-sm flex items-center gap-2">
-                ⚠️ MISSED SAVINGS: ₹{totalMissedSavings.toLocaleString('en-IN')}
+                ⚠️ {t('missed_savings_title', lang, { amount: totalMissedSavings.toLocaleString('en-IN') })}
               </h4>
               <p className="text-[10px] font-bold text-red-700 mt-1.5 leading-snug">
-                {t('missed_savings_hint', lang)} (Save ₹{totalMissedSavings.toLocaleString('en-IN')} via COD, UPI, or Daily Collection)
+                {t('missed_savings_hint', lang, { amount: totalMissedSavings.toLocaleString('en-IN') })}
               </p>
             </div>
           )}
@@ -595,7 +629,7 @@ export function Cart(props) {
           
           <div className="space-y-3 mb-8">
             <div 
-              onClick={() => setPaymentMode('COD')} 
+              onClick={() => handleSelectPaymentMode('COD')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'COD' ? 'border-blue-600 bg-blue-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -610,7 +644,7 @@ export function Cart(props) {
             </div>
 
             <div 
-              onClick={() => setPaymentMode('UPI')} 
+              onClick={() => handleSelectPaymentMode('UPI')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'UPI' ? 'border-purple-600 bg-purple-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -660,7 +694,7 @@ export function Cart(props) {
             </div>
             
             <div 
-              onClick={() => setPaymentMode('DAILY')} 
+              onClick={() => handleSelectPaymentMode('DAILY')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-emerald-600 bg-emerald-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -688,7 +722,7 @@ export function Cart(props) {
             </div>
             {/* 🚫 NO DISCOUNT OPTION */}
             <div 
-              onClick={() => setPaymentMode('NO_DISCOUNT')} 
+              onClick={() => handleSelectPaymentMode('NO_DISCOUNT')} 
               className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'NO_DISCOUNT' ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-gray-200 bg-white'}`}
             >
               <div className="flex justify-between items-center">
@@ -696,7 +730,7 @@ export function Cart(props) {
                   <span>🚫</span> {t('payment_no_discount', lang)}
                 </div>
                 <div className="bg-gray-200 text-gray-600 border border-gray-300 text-[8px] px-2 py-0.5 rounded font-black uppercase">
-                  0% Discount
+                  {t('zero_percent_discount', lang) || "0% Discount"}
                 </div>
               </div>
               <p className="text-[10px] text-gray-500 font-bold mt-1">
@@ -709,7 +743,7 @@ export function Cart(props) {
             <h3 className="font-black text-gray-800 text-sm mb-2 uppercase">💬 {t('order_remarks', lang)}</h3>
             <textarea
               value={orderRemarks}
-              onChange={(e) => setOrderRemarks(e.target.value)}
+              onChange={handleRemarksChange}
               placeholder={t('order_remarks_placeholder', lang)}
               className="w-full bg-white p-4 rounded-2xl border-2 border-gray-200 focus:border-blue-600 outline-none font-bold text-xs text-gray-700 shadow-sm transition-all"
               rows="2"
