@@ -501,6 +501,19 @@ function MainApp() {
       if (savedUser) {
         const parsed = JSON.parse(savedUser);
         setUser(parsed);
+        if (parsed && parsed.phone && (!parsed.shopName || parsed.shopName === "Unknown")) {
+          fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "verifyDealer", phone: parsed.phone }),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+          }).then(r => r.json()).then(res => {
+            if (res && res.success && res.shopName) {
+              parsed.shopName = res.shopName;
+              localStorage.setItem("yashDealerSession", JSON.stringify(parsed));
+              setUser({ ...parsed });
+            }
+          }).catch(() => {});
+        }
         const todayStr = new Date().toISOString().slice(0, 10);
         const sessionKey = `ym_app_open_${todayStr}_${parsed.phone}`;
         if (!sessionStorage.getItem(sessionKey)) {
