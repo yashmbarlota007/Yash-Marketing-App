@@ -312,7 +312,20 @@ function saveOrder(order) {
 
   if (order.comboDiscount && order.comboDiscount > 0) detailedItems += " | 🔥 Combo Discount: -₹" + order.comboDiscount;
   if (order.bulkDiscount && order.bulkDiscount > 0) detailedItems += " | Bulk Discount" + bulkPctText + ": -₹" + order.bulkDiscount;
-  if (order.upiDiscount && order.upiDiscount > 0) detailedItems += " | UPI Discount (2%): -₹" + order.upiDiscount;
+  if (order.upiDiscount && order.upiDiscount > 0) {
+    var discountName = "Cash Discount (2%)";
+    var pMode = String(order.paymentMode || "").toUpperCase();
+    if (order.cashDiscountLabel) {
+      discountName = order.cashDiscountLabel;
+    } else if (pMode === "DAILY") {
+      discountName = "Daily Collection Discount (2%)";
+    } else if (pMode === "COD") {
+      discountName = "COD Cash Discount (2%)";
+    } else if (pMode === "UPI") {
+      discountName = "UPI Discount (2%)";
+    }
+    detailedItems += " | " + discountName + ": -₹" + order.upiDiscount;
+  }
   if (order.rewards && order.rewards.trim() !== "") detailedItems += " | 🎁 Rewards Unlocked: " + order.rewards;
   
   if (order.remarks && order.remarks.trim() !== "") {
