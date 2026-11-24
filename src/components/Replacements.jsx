@@ -23,6 +23,7 @@ export default function ReplacementsView(props) {
   const [qty, setQty] = useState(1);
   const [currentItemPhotos, setCurrentItemPhotos] = useState([]);
   const [itemsList, setItemsList] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   // Help Ticket general states
   const [refNumber, setRefNumber] = useState("");
@@ -52,11 +53,26 @@ export default function ReplacementsView(props) {
 
   const uniqueBrands = [...new Set(products.map(p => String(getProp(p, "Brand") || "").trim()).filter(b => b !== ""))].sort();
   const filteredProducts = products.filter(p => 
-    String(getProp(p, "Brand") || "").trim() === brand &&
+    (!brand || String(getProp(p, "Brand") || "").trim() === brand) &&
     (productSearch === "" || 
     String(getProp(p, "ProductName") || "").toLowerCase().includes(productSearch.toLowerCase()) || 
     String(getProp(p, "ItemCode") || "").toLowerCase().includes(productSearch.toLowerCase()))
   );
+
+  const matchingModels = products.filter(p => {
+    const pBrand = String(getProp(p, "Brand") || "").trim();
+    const pName = String(getProp(p, "ProductName") || "");
+    const pCode = String(getProp(p, "ItemCode") || "");
+
+    const brandMatches = !brand || pBrand === brand;
+    if (!brandMatches) return false;
+
+    if (!productSearch || productSearch.trim() === "") return true;
+
+    const words = productSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const haystack = (pName + " " + pBrand + " " + pCode).toLowerCase();
+    return words.every(w => haystack.includes(w));
+  }).slice(0, 60);
 
   useEffect(() => {
     if (activeTab === "track") {
@@ -392,63 +408,201 @@ export default function ReplacementsView(props) {
                   {t('multi_item_subheading', lang)}
                 </p>
 
-                {/* 1. SELECT BRAND */}
+                {/* 1. SELECT BRAND (OPTIONAL / FILTER) */}
                 <div className="mb-3">
-                  <label className="text-[10px] font-bold text-gray-600 mb-1 block">
-                    {t('select_brand', lang)} *
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-bold text-gray-600 block">
+                      {t('select_brand', lang)} {brand ? `(${brand})` : `(${lang === 'mr' ? 'ऐच्छिक' : lang === 'hi' ? 'वैकल्पिक' : 'Optional'})`}
+                    </label>
+                    {brand && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBrand("");
+                          setShowSuggestions(false);
+                        }}
+                        className="text-[10px] font-bold text-blue-600 hover:underline"
+                      >
+                        {lang === 'mr' ? 'सर्व ब्रँड्स दाखवा' : lang === 'hi' ? 'सभी ब्रांड्स दिखाएं' : 'Show All Brands'}
+                      </button>
+                    )}
+                  </div>
                   <select 
                     value={brand} 
                     onChange={(e) => {
                       setBrand(e.target.value);
-                      setProductSearch("");
-                      setProductName("");
+                      setShowSuggestions(false);
                     }} 
                     className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none"
                   >
-                    <option value="">-- {t('select_brand', lang)} --</option>
+                    <option value="">-- {t('select_brand', lang)} ({uniqueBrands.length} Brands) --</option>
                     {uniqueBrands.map((b) => (
                       <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* 2. SELECT PRODUCT */}
-                {brand && (
-                  <div className="mb-3">
-                    <label className="text-[10px] font-bold text-gray-600 mb-1 block">
-                      {t('select_product', lang)} *
-                    </label>
-                    <div className="flex gap-2 mb-2">
+                {/* 2. SELECT PRODUCT / SEARCH MODEL */}
+                <div className="mb-3 relative">
+                  <label className="text-[10px] font-bold text-gray-600 mb-1 block">
+                    {t('select_product', lang)} *
+                  </label>
+                  
+                  {/* Live Search Input with Instant Model Suggestions */}
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
                       <input 
                         type="text" 
-                        placeholder={t('search_product_barcode', lang)}
+                        placeholder={lang === 'mr' ? 'मॉडेलचे नाव शोधा (उदा. Zen ANC, A325, 100)...' : lang === 'hi' ? 'मॉडल का नाम खोजें (उदा. Zen ANC, A325, 100)...' : 'Search model name (e.g. Zen ANC, A325, 100)...'}
                         value={productSearch} 
-                        onChange={(e) => setProductSearch(e.target.value)} 
-                        className="flex-1 bg-white p-2.5 rounded-xl text-xs font-bold border border-gray-200 outline-none" 
+                        onChange={(e) => {
+                          setProductSearch(e.target.value);
+                          setShowSuggestions(true);
+                        }} 
+                        onFocus={() => setShowSuggestions(true)}
+                        className="w-full bg-white p-2.5 pl-8 rounded-xl text-xs font-bold border-2 border-gray-200 focus:border-blue-600 outline-none transition-all shadow-sm" 
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => setIsScanning(true)} 
-                        className="bg-blue-900 text-white font-black text-xs px-3 rounded-xl shadow flex items-center gap-1 active:scale-95"
+                      <span className="absolute left-2.5 top-2.5 text-gray-400 text-xs pointer-events-none">🔍</span>
+                      {productSearch && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductSearch("");
+                            setShowSuggestions(false);
+                          }}
+                          className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 text-xs p-0.5"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsScanning(true)} 
+                      className="bg-blue-900 text-white font-black text-xs px-3 rounded-xl shadow flex items-center gap-1 active:scale-95 whitespace-nowrap"
+                    >
+                      📷 Scan
+                    </button>
+                  </div>
+
+                  {/* 🔍 LIVE MODEL SEARCH RESULTS DROPDOWN */}
+                  {showSuggestions && productSearch.trim().length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white border-2 border-blue-500 rounded-2xl shadow-2xl max-h-60 overflow-y-auto divide-y divide-gray-100 z-50 animate-fade-in">
+                      <div className="p-2 bg-blue-50 text-[10px] font-bold text-blue-900 flex justify-between items-center sticky top-0 border-b border-blue-100">
+                        <span>
+                          {lang === 'mr' ? 'सापडलेले मॉडेल्स' : lang === 'hi' ? 'मिले हुए मॉडल्स' : 'Matching Models'} ({matchingModels.length})
+                        </span>
+                        <button 
+                          type="button"
+                          onClick={() => setShowSuggestions(false)} 
+                          className="text-blue-900 font-bold hover:underline"
+                        >
+                          ✕ Close
+                        </button>
+                      </div>
+
+                      {matchingModels.length > 0 ? (
+                        matchingModels.map((p, idx) => {
+                          const rawName = String(getProp(p, "ProductName") || "");
+                          const pBrand = String(getProp(p, "Brand") || "");
+                          const itemCode = String(getProp(p, "ItemCode") || "");
+                          const isSelected = productName === rawName;
+                          return (
+                            <div
+                              key={idx}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                setProductName(rawName);
+                                if (pBrand) setBrand(pBrand);
+                                setShowSuggestions(false);
+                              }}
+                              className={`p-3 cursor-pointer flex justify-between items-center transition-colors active:bg-blue-100 ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            >
+                              <div className="pr-2">
+                                <div className="font-black text-xs text-gray-800 leading-snug">
+                                  {translateProductName(rawName, lang)}
+                                </div>
+                                <div className="text-[10px] text-gray-400 font-bold flex items-center gap-2 mt-1">
+                                  {pBrand && (
+                                    <span className="bg-gray-100 text-gray-700 px-1.5 py-0.5 rounded text-[9px] font-black uppercase">
+                                      {pBrand}
+                                    </span>
+                                  )}
+                                  {itemCode && <span className="font-mono">#{itemCode}</span>}
+                                </div>
+                              </div>
+                              <span className="text-blue-600 font-black text-xs bg-blue-50 hover:bg-blue-600 hover:text-white px-2.5 py-1 rounded-lg border border-blue-200 transition-all whitespace-nowrap">
+                                Select ✓
+                              </span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="p-4 text-center text-xs font-bold text-gray-400">
+                          {lang === 'mr' ? 'कोणतेही मॉडेल आढळले नाही. स्पेलिंग तपासा.' : lang === 'hi' ? 'कोई मॉडल नहीं मिला। कृपया स्पेलिंग चेक करें।' : 'No matching models found.'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SELECTED MODEL DISPLAY CARD */}
+                  {productName && (
+                    <div className="mt-2 p-3 bg-blue-50 border-2 border-blue-600 rounded-2xl flex justify-between items-center shadow-sm animate-fade-in">
+                      <div className="flex items-center gap-2.5 pr-2">
+                        <span className="text-xl">✅</span>
+                        <div>
+                          <div className="text-[9px] font-black text-blue-700 uppercase tracking-wider">
+                            {lang === 'mr' ? 'निवडलेले मॉडेल' : lang === 'hi' ? 'चुना हुआ मॉडल' : 'Selected Model'}
+                          </div>
+                          <div className="text-xs font-black text-blue-950 mt-0.5 leading-snug">
+                            {translateProductName(productName, lang)}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProductName("");
+                          setProductSearch("");
+                          setShowSuggestions(false);
+                        }}
+                        className="text-gray-500 hover:text-red-600 bg-white p-1 rounded-lg border border-gray-200 text-xs font-black px-2 shadow-sm whitespace-nowrap"
+                        title="Change model"
                       >
-                        📷 Scan
+                        ✕ Change
                       </button>
                     </div>
+                  )}
 
+                  {/* OR SELECT FROM DROPDOWN */}
+                  <div className="mt-2.5">
+                    <label className="text-[9px] text-gray-400 font-bold mb-1 block uppercase">
+                      {lang === 'mr' ? 'किंवा ड्रॉपडाउन यादीतून निवडा:' : lang === 'hi' ? 'या ड्रॉपडाउन लिस्ट से चुनें:' : 'Or choose from dropdown list:'}
+                    </label>
                     <select 
                       value={productName} 
-                      onChange={(e) => setProductName(e.target.value)} 
-                      className="w-full bg-white p-3 rounded-xl text-xs font-bold border border-gray-200 outline-none"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProductName(val);
+                        if (val) {
+                          const chosen = products.find(p => String(getProp(p, "ProductName")) === val);
+                          if (chosen) {
+                            const b = String(getProp(chosen, "Brand") || "");
+                            if (b) setBrand(b);
+                          }
+                        }
+                        setShowSuggestions(false);
+                      }} 
+                      className="w-full bg-white p-2.5 rounded-xl text-xs font-bold border border-gray-200 outline-none"
                     >
-                      <option value="">-- {t('select_product', lang)} --</option>
+                      <option value="">-- {t('select_product', lang)} ({filteredProducts.length} models) --</option>
                       {filteredProducts.map((p, idx) => {
                         const name = String(getProp(p, "ProductName"));
                         return <option key={idx} value={name}>{translateProductName(name, lang)}</option>;
                       })}
                     </select>
                   </div>
-                )}
+                </div>
 
                 {/* 3. DEFECT TYPE & QUANTITY */}
                 {productName && (
