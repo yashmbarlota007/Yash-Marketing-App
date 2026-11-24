@@ -334,6 +334,12 @@ export function Cart(props) {
 
     var finalItemsStr = itemsList.join(" | ");
     
+    const cashDiscountLabel = paymentMode === 'DAILY'
+      ? 'Daily Collection Discount (2%)'
+      : paymentMode === 'COD'
+      ? 'COD Cash Discount (2%)'
+      : 'UPI Discount (2%)';
+    
     callAPI({
       action: "placeOrder",
       order: { 
@@ -347,6 +353,7 @@ export function Cart(props) {
         bulkDiscount: bulkDiscountAmount, 
         bulkPercent: potentialBulkPercent, 
         upiDiscount: cashDiscountAmount,
+        cashDiscountLabel: cashDiscountLabel,
         targetDiscount: targetDiscountAmount,
         targetPercent: targetBonusPercent,
         rewards: unlockedSchemes.map(s => s.reward).join(", "), 
@@ -590,7 +597,11 @@ export function Cart(props) {
             {cashDiscountAmount > 0 && (
               <div className="flex justify-between items-center mt-2 text-green-700">
                 <span className="font-black uppercase text-[10px]">
-                  Cash Discount (2%)
+                  {paymentMode === 'DAILY'
+                    ? 'Daily Collection Discount (2%)'
+                    : paymentMode === 'COD'
+                    ? 'COD Cash Discount (2%)'
+                    : 'UPI Discount (2%)'}
                 </span>
                 <span className="font-black text-sm">
                   -₹{cashDiscountAmount.toLocaleString('en-IN')}
