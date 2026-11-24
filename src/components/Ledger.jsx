@@ -29,15 +29,20 @@ export function LedgerView(props) {
   const [ledgerData, setLedgerData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchLedger = () => {
     const phone = user && (user.phone || user.mobile) ? String(user.phone || user.mobile) : '';
     if (!phone) {
       setLoading(false);
       return;
     }
+    setLoading(true);
     fetch(API_URL, {
       method: 'POST',
-      body: JSON.stringify({ action: "getLedger", phone: phone }),
+      body: JSON.stringify({ 
+        action: "getLedger", 
+        phone: phone, 
+        shopName: (user && user.shopName) ? user.shopName : '' 
+      }),
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     }).then(r => r.json()).then(res => {
       if (res && res.success && Array.isArray(res.data)) {
@@ -49,6 +54,10 @@ export function LedgerView(props) {
       }
       setLoading(false);
     }).catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchLedger();
   }, [user]);
 
   if (loading) {
@@ -70,7 +79,17 @@ export function LedgerView(props) {
   return (
     <div className="p-4 bg-gray-50 min-h-screen pb-[100px] font-sans">
       <div className="bg-white rounded-2xl shadow-sm border p-4 mb-4">
-        <h2 className="font-black text-gray-800 text-lg mb-1">{t('account_summary', lang)}</h2>
+        <div className="flex justify-between items-center mb-1">
+          <h2 className="font-black text-gray-800 text-lg">{t('account_summary', lang)}</h2>
+          <button 
+            onClick={fetchLedger}
+            title="Refresh Ledger"
+            className="text-blue-900 hover:text-blue-700 active:scale-90 px-2.5 py-1 rounded-xl bg-blue-50 text-xs font-bold transition-all flex items-center gap-1"
+          >
+            <span>🔄</span>
+            <span className="text-[10px]">{lang === 'mr' ? 'रीलोड' : lang === 'hi' ? 'रीलोड' : 'Reload'}</span>
+          </button>
+        </div>
         <p className="text-xs text-gray-400 mb-4 uppercase font-bold">{t('outstanding_bal', lang)}</p>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-red-50 p-3 rounded-xl border border-red-100">
@@ -91,7 +110,16 @@ export function LedgerView(props) {
       <h3 className="font-black text-gray-800 text-md mb-3 px-1">{t('ledger_entries', lang)}</h3>
       <div className="space-y-3 font-mono">
         {ledgerData.length === 0 ? (
-          <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold">{t('no_ledger_record', lang)}</div>
+          <div className="text-center p-8 bg-white rounded-2xl border text-gray-400 font-bold flex flex-col items-center justify-center gap-3">
+            <div>{t('no_ledger_record', lang)}</div>
+            <button 
+              onClick={fetchLedger}
+              className="bg-blue-900 hover:bg-blue-800 text-white text-xs font-black px-4 py-2 rounded-xl shadow-md active:scale-95 transition-all inline-flex items-center gap-1.5"
+            >
+              <span>🔄</span>
+              <span>{lang === 'mr' ? 'पुन्हा तपासा / रीलोड' : lang === 'hi' ? 'पुनः प्रयास करें / रीलोड' : 'Refresh Ledger'}</span>
+            </button>
+          </div>
         ) : (
           ledgerData.map((item, index) => {
             const isDebit = Number(item.debit) > 0;

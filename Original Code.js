@@ -102,7 +102,7 @@ function doPost(e) {
     } else if (action === "placeOrder") {
       return ContentService.createTextOutput(JSON.stringify(saveOrder(payload.order))).setMimeType(ContentService.MimeType.JSON);
     } else if (action === "getLedger") {
-      return ContentService.createTextOutput(JSON.stringify(getLedger(payload.phone))).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify(getLedger(payload.phone, payload.shopName))).setMimeType(ContentService.MimeType.JSON);
     } else if (action === "getAnnouncements") {
       return ContentService.createTextOutput(JSON.stringify(getAnnouncements())).setMimeType(ContentService.MimeType.JSON);
     } else if (action === "getDiscounts") {
@@ -344,31 +344,123 @@ function getProducts() {
   }
   return { success: true, data: products };
 }
-function getLedger(phone) {
+function isMatchingLedgerSection(row, targetShopName, targetPhone) {
+  if (!row || row.length === 0) return false;
+
+  var rowStr = "";
+  for (var c = 0; c < Math.min(6, row.length); c++) {
+    rowStr += " " + String(row[c] || "").trim();
+  }
+  var rowLower = rowStr.toLowerCase();
+  var hasHeaderMarker = rowLower.indexOf("ledger:") > -1 || 
+                        rowLower.indexOf("ledger :") > -1 || 
+                        rowLower.indexOf("account:") > -1 ||
+                        rowLower.indexOf("party:") > -1;
+  if (!hasHeaderMarker) return false;
+
+  var sectionText = "";
+  var markerIdx = rowLower.indexOf("ledger:");
+  if (markerIdx === -1) markerIdx = rowLower.indexOf("ledger :");
+  if (markerIdx === -1) markerIdx = rowLower.indexOf("account:");
+  if (markerIdx === -1) markerIdx = rowLower.indexOf("party:");
+
+  if (markerIdx > -1) {
+    var colonPos = rowStr.indexOf(":", markerIdx);
+    if (colonPos > -1) {
+      sectionText = rowStr.substring(colonPos + 1).trim();
+    }
+  }
+
+  if (!sectionText) {
+    for (var c = 1; c < Math.min(5, row.length); c++) {
+      var val = String(row[c] || "").trim();
+      if (val && val.toLowerCase().indexOf("ledger") === -1) {
+        sectionText = val;
+        break;
+      }
+    }
+  }
+  if (!sectionText && row[1]) sectionText = String(row[1]).trim();
+  if (!sectionText && row[0]) sectionText = String(row[0]).trim();
+
+  function clean(s) {
+    return s ? s.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : "";
+  }
+
+  var normSection = clean(sectionText);
+  var normTarget = clean(targetShopName);
+
+  if (!normTarget || !normSection) return false;
+
+  if (normSection === normTarget) return true;
+
+  var cleanPhone = targetPhone ? targetPhone.toString().replace(/\D/g, '').slice(-10) : "";
+  if (cleanPhone && cleanPhone.length === 10 && normSection.indexOf(cleanPhone) > -1) return true;
+
+  if (normSection.indexOf(normTarget) > -1 || normTarget.indexOf(normSection) > -1) return true;
+
+  var strippedSection = normSection.replace(/^(ms|m\/s|shree|shri)/, '');
+  var strippedTarget = normTarget.replace(/^(ms|m\/s|shree|shri)/, '');
+  if (strippedSection === strippedTarget) return true;
+  if (strippedSection.length >= 5 && strippedTarget.length >= 5) {
+    if (strippedSection.indexOf(strippedTarget) > -1 || strippedTarget.indexOf(strippedSection) > -1) return true;
+  }
+
+  var genericWords = ['mobile', 'shopee', 'shop', 'services', 'agency', 'agencies', 'enterprises', 'telecom', 'point', 'world', 'pvt', 'ltd', 'and', 'the', 'co', 'communication', 'communications'];
+  var targetWords = targetShopName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(function(w) {
+    return w.length >= 3 && genericWords.indexOf(w) === -1;
+  });
+
+  if (targetWords.length > 0) {
+    var primaryWord = targetWords[0];
+    if (primaryWord.length >= 4 && normSection.indexOf(primaryWord) > -1) {
+      if (targetWords.length === 1) return true;
+      var otherMatches = targetWords.slice(1).some(function(tw) {
+        return normSection.indexOf(tw) > -1;
+      });
+      if (otherMatches) return true;
+      if (normSection.length <= primaryWord.length + 15) return true;
+    }
+  }
+
+  return false;
+}
+
+function getLedger(phone, optionalShopName) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var dealersSheet = ss.getSheetByName("Dealers");
-    var ledgerSheet = ss.getSheetByName("Ledger");
+    var dealersSheet = ss.getSheetByName("Dealers") || ss.getSheetByName("dealers") || ss.getSheetByName("DEALERS");
+    var ledgerSheet = ss.getSheetByName("Ledger") || ss.getSheetByName("ledger") || ss.getSheetByName("LEDGER");
     
-    if (!ledgerSheet || !dealersSheet) {
-      return { success: false, message: "'Ledger' ya 'Dealers' sheet nahi mila." };
+    // Fallback: If Ledger not in active spreadsheet, check connected main backend
+    if (!ledgerSheet) {
+      var mainBackendSpreadsheetId = "1nFxdcul3UiAgOoEaF2y-ejqSaMhFwDDGTnbp8BMvmvI";
+      try {
+        var mbSs = SpreadsheetApp.openById(mainBackendSpreadsheetId);
+        if (mbSs) {
+          ledgerSheet = mbSs.getSheetByName("Ledger") || mbSs.getSheetByName("ledger") || mbSs.getSheetByName("LEDGER");
+          if (!dealersSheet) dealersSheet = mbSs.getSheetByName("Dealers") || mbSs.getSheetByName("dealers");
+        }
+      } catch(mbErr) {}
+    }
+
+    if (!ledgerSheet) {
+      return { success: false, message: "'Ledger' sheet nahi mila." };
     }
     
     var targetPhone = phone ? phone.toString().replace(/\D/g, '').slice(-10) : "";
-    if (targetPhone === "") {
-      return { success: false, message: "Invalid login phone number." };
-    }
+    var targetShopName = optionalShopName ? optionalShopName.toString().trim() : "";
     
-    // 1. EXACT NAME MATCH
-    var dealersData = dealersSheet.getDataRange().getValues();
-    var targetShopName = "";
-    for (var i = 1; i < dealersData.length; i++) {
-      var dealerPhoneRaw = dealersData[i][0];
-      if (dealerPhoneRaw) {
-        var cleanDealerPhone = dealerPhoneRaw.toString().replace(/\D/g, '').slice(-10);
-        if (cleanDealerPhone === targetPhone) {
-          targetShopName = dealersData[i][1] ? dealersData[i][1].toString().trim() : "";
-          break;
+    if (dealersSheet) {
+      var dealersData = dealersSheet.getDataRange().getValues();
+      for (var i = 1; i < dealersData.length; i++) {
+        var dealerPhoneRaw = dealersData[i][0];
+        if (dealerPhoneRaw) {
+          var cleanDealerPhone = dealerPhoneRaw.toString().replace(/\D/g, '').slice(-10);
+          if (cleanDealerPhone === targetPhone) {
+            targetShopName = dealersData[i][1] ? dealersData[i][1].toString().trim() : targetShopName;
+            break;
+          }
         }
       }
     }
@@ -378,9 +470,6 @@ function getLedger(phone) {
     }
     
     var isTargetSection = false;
-    function cleanStr(str) { return str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : ""; }
-    var normTarget = cleanStr(targetShopName);
-    
     var ledgerData = ledgerSheet.getDataRange().getValues();
     var dealerTransactions = [];
     var lastSeenDate = ""; 
@@ -392,39 +481,46 @@ function getLedger(phone) {
       if (!row || row.length < 2) continue; 
       
       var colA = row[0] ? row[0].toString().trim() : "";
-      var colB = row[1] ? row[1].toString().trim() : "";
       
-      // 2. DETECT DEALER SECTION
-      if (colA !== "" && colA.toLowerCase().indexOf("ledger:") > -1) {
-        isTargetSection = false; 
-        var normSection = cleanStr(colB);
-        if (normSection.indexOf(normTarget) === 0) {
+      // Check for section header
+      var isHeaderRow = isMatchingLedgerSection(row, targetShopName, targetPhone);
+      var hasAnyLedgerMarker = false;
+      for (var c = 0; c < Math.min(4, row.length); c++) {
+        var cStr = String(row[c] || "").toLowerCase();
+        if (cStr.indexOf("ledger:") > -1 || cStr.indexOf("account:") > -1 || cStr.indexOf("party:") > -1) {
+          hasAnyLedgerMarker = true;
+          break;
+        }
+      }
+
+      if (hasAnyLedgerMarker) {
+        if (isHeaderRow) {
           isTargetSection = true;
           lastSeenDate = ""; 
           drIdx = 6; crIdx = 7; vchTypeIdx = 4; vchNoIdx = 5; partIdx = 2;
+        } else {
+          isTargetSection = false;
         }
-        continue; 
+        continue;
       }
       
       if (isTargetSection) {
-        // 3. DYNAMIC HEADER SCANNER
-        if (colA.toLowerCase() === "date" || colA.toLowerCase().indexOf("date") === 0) {
-          for (var c = 0; c < row.length; c++) {
-            var headerVal = row[c] ? row[c].toString().toLowerCase().replace(/\./g, '').trim() : "";
-            if (headerVal === "particulars") partIdx = c;
-            else if (headerVal === "vch type") vchTypeIdx = c;
-            else if (headerVal === "vch no") vchNoIdx = c;
-            else if (headerVal === "debit") drIdx = c;
-            else if (headerVal === "credit") crIdx = c;
-          }
-          continue; 
+        // Detect table header row (e.g. contains "date")
+        var hasDateHeader = false;
+        for (var c = 0; c < row.length; c++) {
+          var headerVal = row[c] ? row[c].toString().toLowerCase().replace(/\./g, '').trim() : "";
+          if (headerVal === "date") hasDateHeader = true;
+          else if (headerVal === "particulars") partIdx = c;
+          else if (headerVal === "vch type") vchTypeIdx = c;
+          else if (headerVal === "vch no") vchNoIdx = c;
+          else if (headerVal === "debit") drIdx = c;
+          else if (headerVal === "credit") crIdx = c;
         }
+        if (hasDateHeader) continue;
         
-        // Block Tally's Grand Total Leak
         var isDateColANumberOnly = colA !== "" && !isNaN(colA.replace(/,/g, '')) && colA.indexOf('-') === -1;
         if (isDateColANumberOnly) continue; 
         
-        // 4. EXTRACT DATA 
         var debitVal = parseFloat(row[drIdx] ? row[drIdx].toString().replace(/,/g, '') : "0") || 0;
         var creditVal = parseFloat(row[crIdx] ? row[crIdx].toString().replace(/,/g, '') : "0") || 0;
         var vchType = row[vchTypeIdx] ? row[vchTypeIdx].toString().replace(/\n/g, ' ').trim() : "";       
@@ -441,7 +537,6 @@ function getLedger(phone) {
         var isClosingBalance = (lowerP.indexOf("closing balance") > -1);
         var hasAmount = (debitVal > 0 || creditVal > 0);
         
-        // CORE FIX: Drop the Closing Balance completely to protect frontend math
         if (isClosingBalance) {
           continue; 
         }
@@ -450,7 +545,6 @@ function getLedger(phone) {
           continue; 
         }
         
-        // 5. INHERIT BLANK DATES
         var dateStr = "";
         if (row[0] instanceof Date) {
           dateStr = Utilities.formatDate(row[0], Session.getScriptTimeZone(), "dd-MM-yyyy");
@@ -480,31 +574,6 @@ function getLedger(phone) {
     return { success: true, data: dealerTransactions };
   } catch (err) {
     return { success: false, message: err.toString() };
-  }
-}
-
-function getAnnouncements() {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Announcements") || ss.getSheetByName("announcements");
-    if (!sheet) return { success: true, data: [] }; 
-    
-    var data = sheet.getDataRange().getValues();
-    if (data.length < 2) return { success: true, data: [] };
-    
-    var title = data[1][0] ? data[1][0].toString().trim() : ""; 
-    var message = data[1][1] ? data[1][1].toString().trim() : ""; 
-    var activeRaw = data[1][2]; 
-    var activeVal = activeRaw ? activeRaw.toString().trim().toUpperCase() : "";
-    var isActive = (activeVal === "YES" || activeVal === "TRUE" || activeVal === "ACTIVE" || activeRaw === true || activeRaw === "true");
-    
-    var list = [];
-    if ((title !== "" || message !== "") && isActive) {
-      list.push({ title: title, message: message });
-    }
-    return { success: true, data: list };
-  } catch(e) {
-    return { success: false, message: e.toString() };
   }
 }
 

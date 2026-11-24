@@ -112,7 +112,7 @@ function doPost(e) {
     else if (action === "increaseProductRates") return ContentService.createTextOutput(JSON.stringify(increaseAllProductRates(payload.percent || 5))).setMimeType(ContentService.MimeType.JSON);
     else if (action === "getProducts") return ContentService.createTextOutput(JSON.stringify(getProducts())).setMimeType(ContentService.MimeType.JSON);
     else if (action === "placeOrder") return ContentService.createTextOutput(JSON.stringify(saveOrder(payload.order))).setMimeType(ContentService.MimeType.JSON);
-    else if (action === "getLedger") return ContentService.createTextOutput(JSON.stringify(getLedger(payload.phone))).setMimeType(ContentService.MimeType.JSON);
+    else if (action === "getLedger") return ContentService.createTextOutput(JSON.stringify(getLedger(payload.phone, payload.shopName))).setMimeType(ContentService.MimeType.JSON);
     else if (action === "getAnnouncements") return ContentService.createTextOutput(JSON.stringify(getAnnouncements())).setMimeType(ContentService.MimeType.JSON);
     else if (action === "getDiscounts") return ContentService.createTextOutput(JSON.stringify(getDiscounts())).setMimeType(ContentService.MimeType.JSON);
     else if (action === "getDealerOrders") return ContentService.createTextOutput(JSON.stringify(getDealerOrders(payload.phone))).setMimeType(ContentService.MimeType.JSON);
