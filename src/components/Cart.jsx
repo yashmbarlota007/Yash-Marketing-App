@@ -9,6 +9,7 @@ import {
   compressImageFile,
   PHONEPE_QR_URL, 
   OFFICE_NUMBER,
+  UPI_NUMBER,
   roundToNine,
   DEFAULT_DISCOUNTS
 } from '../utils/helpers';
@@ -742,7 +743,7 @@ export function Cart(props) {
                     </div>
                   </div>
                   <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
-                    UPI NO: {OFFICE_NUMBER}
+                    UPI NO: {UPI_NUMBER}
                   </div>
                   <p className="text-[10px] font-bold mb-3 text-gray-400">
                     {screenshotData ? "✅ Screenshot Uploaded & Sharp Ready" : "Upload Screenshot after payment to confirm order"}
