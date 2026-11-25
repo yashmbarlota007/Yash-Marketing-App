@@ -955,7 +955,7 @@ function MainApp() {
         <div>
           <h1 className="font-extrabold text-sm flex items-center gap-1.5 select-none">
             <img src={LOGO_URL} className="w-6 h-6 rounded-full border border-blue-400" alt="Logo" />
-            {t('app_title', lang)} <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v4.0</span>
+            {t('app_title', lang)} <span className="text-[8px] bg-blue-800 text-blue-200 px-1 rounded font-normal select-none">v6.4</span>
           </h1>
           <p className="text-[9px] text-blue-200 font-bold uppercase mt-0.5 truncate max-w-[120px]">{user.shopName}</p>
         </div>
