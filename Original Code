@@ -66,7 +66,8 @@ var cacheBypass = "?v=" + new Date().getTime();
 const API_URL = "https://script.google.com/macros/s/AKfycbw_HtJl9dqW4J4OnjMZkDTM98nKmuvcwfnh7vnoBKWJGdlB2afWqKRi2nn19AgVkm1t8A/exec";
 const LOGO_URL = "https://drive.google.com/thumbnail?id=1paGW1Y6o4k9MH-z_VUpH4G6yRPwhc03t&sz=w500";
 const PHONEPE_QR_URL = "https://drive.google.com/thumbnail?id=1LIuWXaMd_oNT-zT_ESFtYv5uQ37zUxsi&sz=w1000";
-const OFFICE_NUMBER = "918378811922"; 
+const OFFICE_NUMBER = "918378811922";
+const UPI_NUMBER = "9422928031"; 
 
 // BULLETPROOF NUMBER PARSER
 const getNum = (val) => {
@@ -2142,7 +2143,7 @@ function Cart(props) {
                     </div>
                   </div>
                   <div className="text-center font-black text-purple-900 mt-3 mb-3 bg-purple-100 py-2 rounded-xl border border-purple-200 select-all">
-                    UPI NO: {OFFICE_NUMBER}
+                    UPI NO: {UPI_NUMBER}
                   </div>
                   <p className="text-[10px] text-gray-400 font-bold mb-3">Upload Screenshot after payment to confirm order</p>
                   <input 
