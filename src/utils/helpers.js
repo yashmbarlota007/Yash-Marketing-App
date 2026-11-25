@@ -522,6 +522,10 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
       var isNonSaleDebit = particulars.includes('bounc') || particulars.includes('bank') || particulars.includes('penalty') ||
                            particulars.includes('charge') || vchType === 'payment' || vchType === 'receipt' || vchType === 'journal';
 
+      // 🚫 Exclude smartphones from dealer sales target achievement calculation!
+      var isSmartphone = particulars.includes('smartphone') || particulars.includes('moto ') || particulars.includes('motorola');
+      if (isSmartphone) return;
+
       if (debit > 0 && isSale && !isNonSaleDebit) {
         var billEntry = {
           date: e.date,
@@ -586,6 +590,10 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
     appOrders.forEach(function(o) {
       var st = (o.status || '').toLowerCase();
       if (st === 'cancelled' || st === 'rejected') return;
+      // 🚫 Exclude smartphone orders from target calculation
+      var itemsStr = JSON.stringify(o.items || '').toLowerCase();
+      var isSmartphoneOrder = o.hasSmartphone || itemsStr.includes('smartphone') || itemsStr.includes('motorola') || itemsStr.includes('moto ');
+      if (isSmartphoneOrder) return;
       var oAmt = parseFloat(String(o.totalValue || o.finalAmount || o.amount || 0).replace(/,/g, '')) || 0;
       if (oAmt <= 0) return;
 
