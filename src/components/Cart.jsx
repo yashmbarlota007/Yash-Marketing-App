@@ -114,10 +114,19 @@ export function Cart(props) {
   // 📱 SMARTPHONE POLICY: COD/UPI Compulsory, 0% Extra Discounts, Excluded from Targets
   const isItemSmartphone = (item) => {
     if (!item) return false;
-    const type = String(getProp(item, "Type") || getProp(item, "Category") || "").toLowerCase();
-    const brand = String(getProp(item, "Brand") || "").toLowerCase();
-    const name = String(getProp(item, "ProductName") || "").toLowerCase();
-    return type.includes('smartphone') || type.includes('mobile') || brand.includes('motorola') || name.includes('moto');
+    const type = String(getProp(item, "Type") || getProp(item, "Category") || "").toLowerCase().trim();
+    const brand = String(getProp(item, "Brand") || "").toLowerCase().trim();
+    const name = String(getProp(item, "ProductName") || getProp(item, "Product Name") || "").toLowerCase().trim();
+
+    if (type.includes('earphone') || type.includes('headphone') || type.includes('cable') || type.includes('charger')) {
+      return false;
+    }
+
+    const isSmart = type.includes('smartphone') || type.includes('mobile') || type === 'motorola';
+    const isIPhone = type.includes('iphone') || type.includes('i phone') || brand.includes('apple') || brand === 'i phone' || name.includes('iphone') || name.includes('i phone');
+    const isMoto = brand.includes('motorola') || name.includes('moto');
+
+    return isSmart || isIPhone || isMoto;
   };
 
   const hasSmartphone = cartItems.some(isItemSmartphone);
@@ -619,7 +628,7 @@ export function Cart(props) {
             {smartphoneAmount > 0 && (
               <div className="flex justify-between items-center mt-3 p-2.5 bg-amber-50/90 rounded-xl border border-amber-200 shadow-2xs">
                 <span className="font-black uppercase text-[10px] text-amber-900 flex items-center gap-1.5">
-                  <span>📱</span> Smartphones ({cartItems.filter(isItemSmartphone).reduce((a,c) => a + getNum(c.qty), 0)} Pcs)
+                  <span>📱</span> Smartphones & iPhone ({cartItems.filter(isItemSmartphone).reduce((a,c) => a + getNum(c.qty), 0)} Pcs)
                 </span>
                 <span className="font-black text-xs text-amber-950">
                   ₹{smartphoneAmount.toLocaleString('en-IN')} <span className="text-[9px] font-bold text-amber-700">(Net • 0% Extra Disc)</span>
