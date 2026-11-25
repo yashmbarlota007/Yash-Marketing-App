@@ -110,6 +110,24 @@ export function Cart(props) {
   // ==========================================
   const cartItems = cart && typeof cart === 'object' && !Array.isArray(cart) ? Object.values(cart) : [];
 
+  // 📱 SMARTPHONE POLICY: COD/UPI Compulsory, 0% Extra Discounts, Excluded from Targets
+  const isItemSmartphone = (item) => {
+    if (!item) return false;
+    const type = String(getProp(item, "Type") || getProp(item, "Category") || "").toLowerCase();
+    const brand = String(getProp(item, "Brand") || "").toLowerCase();
+    const name = String(getProp(item, "ProductName") || "").toLowerCase();
+    return type.includes('smartphone') || type.includes('mobile') || brand.includes('motorola') || name.includes('moto');
+  };
+
+  const hasSmartphone = cartItems.some(isItemSmartphone);
+
+  // 📱 AUTO-ENFORCE COD/UPI WHEN CART CONTAINS SMARTPHONE
+  useEffect(() => {
+    if (hasSmartphone && paymentMode !== 'COD' && paymentMode !== 'UPI') {
+      handleSelectPaymentMode('COD');
+    }
+  }, [hasSmartphone, paymentMode]);
+
   const isComboScheme = (s) => {
     if (!s) return false;
     return String(s.type || '').toUpperCase().includes('COMBO') || 
@@ -178,14 +196,29 @@ export function Cart(props) {
     }
   }
 
-  const baseTotalAmount = cartItems.reduce((acc, item) => {
-    const price = getNum(getProp(item, "DealerPrice") || item.DealerPrice || item.rate || item.price);
-    return acc + (price * getNum(item.qty));
+  const smartphoneAmount = cartItems.reduce((acc, item) => {
+    if (isItemSmartphone(item)) {
+      const price = getNum(getProp(item, "DealerPrice") || item.DealerPrice || item.rate || item.price);
+      return acc + (price * getNum(item.qty));
+    }
+    return acc;
   }, 0);
-  
+
+  const regularBaseAmount = cartItems.reduce((acc, item) => {
+    if (!isItemSmartphone(item)) {
+      const price = getNum(getProp(item, "DealerPrice") || item.DealerPrice || item.rate || item.price);
+      return acc + (price * getNum(item.qty));
+    }
+    return acc;
+  }, 0);
+
+  const baseTotalAmount = smartphoneAmount + regularBaseAmount;
   const totalAmount = baseTotalAmount - comboDiscountAmount;
+  
+  const regularTotalAmount = Math.max(0, regularBaseAmount - comboDiscountAmount);
   const totalComboValue = combosApplied * singleComboEffectivePrice;
-  const nonComboAmount = Math.max(0, totalAmount - totalComboValue);
+  const regularNonComboAmount = Math.max(0, regularTotalAmount - totalComboValue);
+  const nonComboAmount = regularNonComboAmount;
 
   const safeDiscounts = Array.isArray(discounts) ? discounts : [];
   var sortedDiscountsDesc = [...safeDiscounts].map((d) => {
@@ -196,15 +229,16 @@ export function Cart(props) {
   
   let potentialBulkPercent = 0;
   for (var i = 0; i < sortedDiscountsDesc.length; i++) { 
-    if (totalAmount >= sortedDiscountsDesc[i].minAmount) { 
+    if (regularTotalAmount >= sortedDiscountsDesc[i].minAmount) { 
       potentialBulkPercent = sortedDiscountsDesc[i].percent; 
       break; 
     } 
   }
   
-  const potentialBulkDiscount = nonComboAmount > 0 ? Math.round(nonComboAmount * (potentialBulkPercent / 100)) : 0;
-  const nonComboAfterPotentialBulk = nonComboAmount - potentialBulkDiscount;
-  const potentialCashDiscount = nonComboAfterPotentialBulk > 0 ? Math.round(nonComboAfterPotentialBulk * 0.02) : 0;
+  // 🚫 Smartphone items receive ZERO bulk discount and ZERO cash discount!
+  const potentialBulkDiscount = regularNonComboAmount > 0 ? Math.round(regularNonComboAmount * (potentialBulkPercent / 100)) : 0;
+  const regularAfterPotentialBulk = Math.max(0, regularNonComboAmount - potentialBulkDiscount);
+  const potentialCashDiscount = regularAfterPotentialBulk > 0 ? Math.round(regularAfterPotentialBulk * 0.02) : 0;
 
   const isNoDiscountMode = paymentMode === 'NO_DISCOUNT';
   const isEligibleForDiscount = !isNoDiscountMode && (paymentMode === 'COD' || paymentMode === 'UPI' || paymentMode === 'DAILY');
@@ -221,17 +255,19 @@ export function Cart(props) {
     totalFreebieCost += (freeQty * 1); 
   });
 
-    // 🎯 Target Achievement Bonus Calculation (+2% for Monthly, +2% for Quarterly, up to +4%)
+  // 🎯 Target Achievement Bonus Calculation (+2% for Monthly, +2% for Quarterly, up to +4%)
+  // 🚫 Target discount applies ONLY to regular accessories! Zero target discount on smartphones!
   const targetBonusPercent = Number(targetStats.targetDiscountPercent) || (
     ((targetStats.monthlyUnlocked || (targetStats.monthlyTarget > 0 && targetStats.monthlyAchieved >= targetStats.monthlyTarget)) ? 2 : 0) +
     ((targetStats.quarterlyUnlocked || (targetStats.quarterlyTarget > 0 && targetStats.quarterlyAchieved >= targetStats.quarterlyTarget)) ? 2 : 0)
   );
 
-  const targetDiscountAmount = (targetBonusPercent > 0 && nonComboAmount > 0)
-    ? Math.round(nonComboAmount * (targetBonusPercent / 100))
+  const targetDiscountAmount = (targetBonusPercent > 0 && regularNonComboAmount > 0)
+    ? Math.round(regularNonComboAmount * (targetBonusPercent / 100))
     : 0;
 
-  const finalAmount = Math.max(0, totalComboValue + (nonComboAmount - bulkDiscountAmount - cashDiscountAmount - targetDiscountAmount) + totalFreebieCost);
+  const regularFinalAmount = Math.max(0, totalComboValue + (regularNonComboAmount - bulkDiscountAmount - cashDiscountAmount - targetDiscountAmount) + totalFreebieCost);
+  const finalAmount = regularFinalAmount + smartphoneAmount;
 
   // ==========================================
   // 4. EVENT HANDLERS
@@ -303,6 +339,13 @@ export function Cart(props) {
 
     if (!paymentMode) {
       return alert(lang === "mr" ? "कृपया पेमेंट पद्धत निवडा!" : lang === "hi" ? "कृपया भुगतान का तरीका चुनें!" : "Please select Payment Mode!");
+    }
+    if (hasSmartphone && paymentMode !== 'COD' && paymentMode !== 'UPI') {
+      return alert(lang === "mr" 
+        ? "स्मार्टफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
+        : lang === "hi" 
+        ? "स्मार्टफोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
+        : "For Smartphone orders, only COD or UPI payment is allowed!");
     }
     if (paymentMode === 'UPI' && !screenshotData) {
       return alert(lang === "mr" ? "कृपया प्रथम पेमेंट स्क्रीनशॉट अपलोड करा!" : lang === "hi" ? "कृपया पहले भुगतान का स्क्रीनशॉट अपलोड करें!" : "Upload Payment Screenshot first!");
@@ -572,6 +615,16 @@ export function Cart(props) {
               </div>
             )}
             
+            {smartphoneAmount > 0 && (
+              <div className="flex justify-between items-center mt-3 p-2.5 bg-amber-50/90 rounded-xl border border-amber-200 shadow-2xs">
+                <span className="font-black uppercase text-[10px] text-amber-900 flex items-center gap-1.5">
+                  <span>📱</span> Smartphones ({cartItems.filter(isItemSmartphone).reduce((a,c) => a + getNum(c.qty), 0)} Pcs)
+                </span>
+                <span className="font-black text-xs text-amber-950">
+                  ₹{smartphoneAmount.toLocaleString('en-IN')} <span className="text-[9px] font-bold text-amber-700">(Net • 0% Extra Disc)</span>
+                </span>
+              </div>
+            )}
             {combosApplied > 0 && comboDiscountAmount > 0 && (
               <div className="flex justify-between items-center mt-3 text-pink-700 bg-pink-50 p-2.5 rounded-xl border border-pink-200 shadow-sm">
                 <span className="font-black uppercase text-[10px] flex items-center gap-1">
@@ -704,9 +757,41 @@ export function Cart(props) {
               )}
             </div>
             
+            {/* 📱 SMARTPHONE POLICY CALLOUT BANNER */}
+            {hasSmartphone && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-400 rounded-2xl shadow-2xs">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-base">📱</span>
+                  <span className="text-xs font-black uppercase text-amber-950 tracking-wider">
+                    Smartphone Order Policy
+                  </span>
+                </div>
+                <p className="text-[11px] font-bold text-amber-900 leading-snug">
+                  {lang === 'mr'
+                    ? "स्मार्टफोनसाठी फक्त COD किंवा PhonePe UPI पेमेंट बंधनकारक आहे. स्मार्टफोनवर कोणतीही अतिरिक्त सूट किंवा टार्गेट काउंट लागू नाही."
+                    : lang === 'hi'
+                    ? "स्मार्टफोन के लिए सिर्फ COD या PhonePe UPI पेमेंट अनिवार्य है। स्मार्टफोन पर कोई अतिरिक्त छूट या टारगेट काउंट लागू नहीं होगा।"
+                    : "For Smartphones, COD or UPI payment is mandatory. No additional cash/bulk discounts or target credit apply to smartphones."}
+                </p>
+              </div>
+            )}
             <div 
-              onClick={() => handleSelectPaymentMode('DAILY')} 
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'DAILY' ? 'border-emerald-600 bg-emerald-50 shadow-md' : 'border-gray-200 bg-white'}`}
+              onClick={() => {
+                if (hasSmartphone) {
+                  alert(lang === "mr" 
+                    ? "स्मार्टफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
+                    : lang === "hi" 
+                    ? "स्मार्टफोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
+                    : "For Smartphone orders, only COD or UPI payment is allowed!");
+                  return;
+                }
+                handleSelectPaymentMode('DAILY');
+              }} 
+              className={`p-4 rounded-2xl border-2 transition-all ${
+                hasSmartphone 
+                  ? 'opacity-40 cursor-not-allowed bg-gray-100 border-gray-200' 
+                  : paymentMode === 'DAILY' ? 'border-emerald-600 bg-emerald-50 shadow-md cursor-pointer' : 'border-gray-200 bg-white cursor-pointer'
+              }`}
             >
               <div className="flex justify-between items-center">
                 <div className="font-black text-emerald-950 flex items-center gap-1.5 tracking-tight text-sm">
@@ -718,7 +803,7 @@ export function Cart(props) {
                 </div>
               </div>
               
-              {paymentMode === 'DAILY' && (
+              {!hasSmartphone && paymentMode === 'DAILY' && (
                 <div className="mt-4 rounded-xl overflow-hidden shadow-inner border border-gray-300">
                   <iframe 
                     title="Daily Collection Guide"
@@ -733,8 +818,22 @@ export function Cart(props) {
             </div>
             {/* 🚫 NO DISCOUNT OPTION */}
             <div 
-              onClick={() => handleSelectPaymentMode('NO_DISCOUNT')} 
-              className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${paymentMode === 'NO_DISCOUNT' ? 'border-amber-600 bg-amber-50 shadow-md' : 'border-gray-200 bg-white'}`}
+              onClick={() => {
+                if (hasSmartphone) {
+                  alert(lang === "mr" 
+                    ? "स्मार्टफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
+                    : lang === "hi" 
+                    ? "स्मार्टफोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
+                    : "For Smartphone orders, only COD or UPI payment is allowed!");
+                  return;
+                }
+                handleSelectPaymentMode('NO_DISCOUNT');
+              }} 
+              className={`p-4 rounded-2xl border-2 transition-all ${
+                hasSmartphone 
+                  ? 'opacity-40 cursor-not-allowed bg-gray-100 border-gray-200' 
+                  : paymentMode === 'NO_DISCOUNT' ? 'border-amber-600 bg-amber-50 shadow-md cursor-pointer' : 'border-gray-200 bg-white cursor-pointer'
+              }`}
             >
               <div className="flex justify-between items-center">
                 <div className="font-black text-gray-800 flex items-center gap-1.5 tracking-tight text-sm">
