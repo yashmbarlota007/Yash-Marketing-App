@@ -825,6 +825,12 @@ function saveOrder(order) {
     detailedItems += " | 💬 DEALER NOTE: " + order.remarks.trim();
   }
 
+  // 📱 Enforce COD / UPI payment for Smartphone orders
+  var isSmartphoneOrder = (detailedItems && (detailedItems.toLowerCase().includes("smartphone") || detailedItems.toLowerCase().includes("motorola") || detailedItems.toLowerCase().includes("moto "))) || order.hasSmartphone;
+  if (isSmartphoneOrder && order.paymentMode !== "COD" && order.paymentMode !== "UPI") {
+    return { success: false, message: "Smartphone orders require COD or PhonePe UPI payment mode." };
+  }
+
   var formattedItems = "";
   if (detailedItems) {
     var itemParts = detailedItems.split(" | ");
