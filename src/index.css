@@ -20,3 +20,15 @@ body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
   .max-w-md { max-width: 100% !important; box-shadow: none !important; }
   .bg-white { border: none !important; box-shadow: none !important; }
 }
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 22s linear infinite;
+}
+.animate-marquee:hover, .animate-marquee:active {
+  animation-play-state: paused;
+}
