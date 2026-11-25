@@ -994,7 +994,13 @@ export function Catalog(props) {
   } else if (!selectedType) {
     const types = [...new Set(inStockFlat.map((p) => {
       return String(getProp(p, "Type") || getProp(p, "Category") || "").trim();
-    }).filter(Boolean))].sort();
+    }).filter(Boolean))].sort((a, b) => {
+      const isPhoneA = /smartphone|mobile/i.test(a);
+      const isPhoneB = /smartphone|mobile/i.test(b);
+      if (isPhoneA && !isPhoneB) return -1;
+      if (!isPhoneA && isPhoneB) return 1;
+      return a.localeCompare(b);
+    });
     
     mainContent = (
       <div className="p-4 pb-[140px]">
@@ -1008,6 +1014,7 @@ export function Catalog(props) {
         )}
         <div className="grid grid-cols-2 gap-4">
           {types.map((type) => {
+            const isSmartphone = /smartphone|mobile/i.test(type);
             const cover = getSmartImage(inStockFlat.find((p) => {
               return String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type;
             }));
@@ -1019,19 +1026,38 @@ export function Catalog(props) {
               <div 
                 key={type} 
                 onClick={() => openCategory(type)} 
-                className="bg-white rounded-2xl p-4 shadow-sm flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40 border border-gray-100"
+                className={`rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer active:scale-95 h-40 relative transition-all ${
+                  isSmartphone 
+                    ? 'bg-gradient-to-b from-indigo-50/90 via-white to-white border-2 border-indigo-500 shadow-md ring-2 ring-indigo-200/60' 
+                    : 'bg-white rounded-2xl p-4 shadow-sm border border-gray-100'
+                }`}
               >
+                {isSmartphone && (
+                  <div className="absolute -top-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-indigo-600 text-white text-[8px] font-black px-2.5 py-0.5 rounded-full shadow-md uppercase tracking-wider whitespace-nowrap flex items-center gap-1 animate-pulse">
+                    <span>🔥</span>
+                    <span>NEW ARRIVAL</span>
+                  </div>
+                )}
                 {cover ? (
                   <img src={cover} className="h-16 object-contain mb-3" alt={type} /> 
                 ) : (
-                  <div className="text-3xl mb-3">📦</div>
+                  <div className="text-3xl mb-3">{isSmartphone ? '📱' : '📦'}</div>
                 )}
                 <h3 className="font-extrabold text-sm text-center truncate w-full text-gray-800 flex items-center justify-center gap-1.5">
                   {translateCategory(type, lang)} 
-                  <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-blue-100">
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border ${
+                    isSmartphone 
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs' 
+                      : 'bg-blue-50 text-blue-700 border-blue-100'
+                  }`}>
                     {categoryCount}
                   </span>
                 </h3>
+                {isSmartphone && (
+                  <span className="text-[9px] font-black text-indigo-700 tracking-tight mt-1 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+                    GST Bill Available
+                  </span>
+                )}
               </div>
             );
           })}
@@ -1062,6 +1088,25 @@ export function Catalog(props) {
 
     mainContent = (
       <div>
+        {/smartphone|mobile/i.test(selectedType) && (
+          <div className="m-3 mb-1 p-3.5 bg-gradient-to-r from-blue-950 via-indigo-900 to-slate-900 text-white rounded-2xl border-2 border-indigo-400 shadow-md">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-black uppercase text-amber-300 flex items-center gap-1.5">
+                <span>📱</span> MOTO SMARTPHONES • 100% GST BILL
+              </span>
+              <span className="bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                OFFICIAL STOCK
+              </span>
+            </div>
+            <p className="text-[11px] text-indigo-100 font-bold leading-snug">
+              {lang === 'mr' 
+                ? 'सर्व Moto मॉडेल्स 100% ओरिजिनल GST बिल आणि ब्रँड वॉरंटीसह उपलब्ध आहेत. लगेच ऑर्डर करा!'
+                : lang === 'hi'
+                ? 'सभी Moto मॉडल्स 100% ओरिजिनल GST बिल और ब्रांड वारंटी के साथ उपलब्ध हैं। तुरंत ऑर्डर करें!'
+                : 'All Moto smartphone models available with 100% Genuine GST Bill & Official Brand Warranty. Ready for dispatch!'}
+            </p>
+          </div>
+        )}
         <div className="p-4 bg-white bg-opacity-95 z-20 border-b flex justify-between items-center shadow-sm">
           <button 
             onClick={() => { window.history.back(); setBrandFilter(""); setSortFilter(""); }} 
@@ -1154,6 +1199,26 @@ export function Catalog(props) {
               ✕
             </button>
           )}
+        </div>
+        {/* 📢 RUNNING MARQUEE BANNER: MOTO SMARTPHONES WITH GST BILL */}
+        <div 
+          onClick={() => { setSearchQuery(""); openCategory('Smartphone'); }}
+          className="bg-gradient-to-r from-red-700 via-indigo-900 to-blue-900 px-3 py-2 flex items-center gap-2 cursor-pointer border-t border-indigo-400/30 overflow-hidden active:opacity-90 shadow-inner"
+        >
+          <span className="shrink-0 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider flex items-center gap-1 shadow animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+            NEW
+          </span>
+          <div className="overflow-hidden whitespace-nowrap relative w-full">
+            <div className="inline-block animate-marquee whitespace-nowrap text-[11px] font-black text-white tracking-wide">
+              <span>{lang === 'mr' ? '🔥 नवीन आगमन: MOTO SMARTPHONES आता 100% ओरिजिनल GST बिल आणि वॉरंटीसह उपलब्ध! • पाहण्यासाठी येथे टॅप करा 📱' : lang === 'hi' ? '🔥 नया आगमन: MOTO SMARTPHONES अब 100% ओरिजिनल GST बिल और वारंटी के साथ उपलब्ध हैं! • देखने के लिए यहाँ टैप करें 📱' : '🔥 NEW ARRIVAL: MOTO SMARTPHONES NOW AVAILABLE WITH 100% GENUINE GST BILL & BRAND WARRANTY! • TAP TO VIEW 📱'}</span>
+              <span className="mx-4 text-amber-300">•</span>
+              <span>{lang === 'mr' ? '🔥 नवीन आगमन: MOTO SMARTPHONES आता 100% ओरिजिनल GST बिल आणि वॉरंटीसह उपलब्ध! • पाहण्यासाठी येथे टॅप करा 📱' : lang === 'hi' ? '🔥 नया आगमन: MOTO SMARTPHONES अब 100% ओरिजिनल GST बिल और वारंटी के साथ उपलब्ध हैं! • देखने के लिए यहाँ टैप करें 📱' : '🔥 NEW ARRIVAL: MOTO SMARTPHONES NOW AVAILABLE WITH 100% GENUINE GST BILL & BRAND WARRANTY! • TAP TO VIEW 📱'}</span>
+            </div>
+          </div>
+          <span className="shrink-0 text-amber-300 text-[10px] font-black flex items-center gap-0.5 bg-white/10 px-1.5 py-0.5 rounded border border-white/20">
+            MOTO <span>›</span>
+          </span>
         </div>
       </div>
 
