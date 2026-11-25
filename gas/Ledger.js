@@ -553,6 +553,11 @@ function getDealerTargetStats(phone) {
 
           var debitVal = parseFloat(row[drIdx] ? row[drIdx].toString().replace(/,/g, '') : "0") || 0;
           if (debitVal > 0) {
+            // 🚫 Exclude smartphone transactions from target calculation
+            var rowText = row.join(" ").toLowerCase();
+            if (rowText.includes("smartphone") || rowText.includes("motorola") || rowText.includes("moto ")) {
+              continue;
+            }
             var txDate = null;
             if (row[0] instanceof Date) {
               txDate = row[0];
@@ -601,6 +606,11 @@ function getDealerTargetStats(phone) {
 
           var oPhone = phIdx > -1 && oRow[phIdx] ? oRow[phIdx].toString().replace(/\D/g, '').slice(-10) : "";
           if (oPhone === targetPhoneClean) {
+            // 🚫 Exclude smartphone orders from target calculation
+            var oItems = oHeaders.indexOf("items") > -1 ? oRow[oHeaders.indexOf("items")].toString().toLowerCase() : "";
+            if (oItems.includes("smartphone") || oItems.includes("motorola") || oItems.includes("moto ")) {
+              continue;
+            }
             var oAmt = parseFloat(amtIdx > -1 && oRow[amtIdx] ? oRow[amtIdx].toString().replace(/,/g, '') : "0") || 0;
             if (oAmt > 0) {
               var ordDate = null;
