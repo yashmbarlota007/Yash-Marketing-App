@@ -352,9 +352,9 @@ export function Cart(props) {
     }
     if (hasSmartphone && paymentMode !== 'COD' && paymentMode !== 'UPI') {
       return alert(lang === "mr" 
-        ? "स्मार्टफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
+        ? "मोटोरोला आणि आयफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
         : lang === "hi" 
-        ? "स्मार्टफोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
+        ? "मोटोरोला और आईफ़ोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
         : "For Smartphone orders, only COD or UPI payment is allowed!");
     }
     if (paymentMode === 'UPI' && !screenshotData) {
@@ -773,15 +773,15 @@ export function Cart(props) {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base">📱</span>
                   <span className="text-xs font-black uppercase text-amber-950 tracking-wider">
-                    Smartphone Order Policy
+                    Motorola & iPhone Policy
                   </span>
                 </div>
                 <p className="text-[11px] font-bold text-amber-900 leading-snug">
                   {lang === 'mr'
-                    ? "स्मार्टफोनसाठी फक्त COD किंवा PhonePe UPI पेमेंट बंधनकारक आहे. स्मार्टफोनवर कोणतीही अतिरिक्त सूट किंवा टार्गेट काउंट लागू नाही."
+                    ? "मोटोरोला आणि आयफोनसाठी फक्त COD किंवा PhonePe UPI पेमेंट बंधनकारक आहे. यावर कोणतीही अतिरिक्त सूट किंवा टार्गेट काउंट लागू नाही."
                     : lang === 'hi'
-                    ? "स्मार्टफोन के लिए सिर्फ COD या PhonePe UPI पेमेंट अनिवार्य है। स्मार्टफोन पर कोई अतिरिक्त छूट या टारगेट काउंट लागू नहीं होगा।"
-                    : "For Smartphones, COD or UPI payment is mandatory. No additional cash/bulk discounts or target credit apply to smartphones."}
+                    ? "मोटोरोला और आईफ़ोन के लिए सिर्फ COD या PhonePe UPI पेमेंट अनिवार्य है। इस पर कोई अतिरिक्त छूट या टारगेट काउंट लागू नहीं होगा।"
+                    : "For Motorola & iPhone, COD or UPI payment is mandatory. No additional cash/bulk discounts or target credit apply."}
                 </p>
               </div>
             )}
@@ -789,9 +789,9 @@ export function Cart(props) {
               onClick={() => {
                 if (hasSmartphone) {
                   alert(lang === "mr" 
-                    ? "स्मार्टफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
+                    ? "मोटोरोला आणि आयफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
                     : lang === "hi" 
-                    ? "स्मार्टफोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
+                    ? "मोटोरोला और आईफ़ोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
                     : "For Smartphone orders, only COD or UPI payment is allowed!");
                   return;
                 }
@@ -831,9 +831,9 @@ export function Cart(props) {
               onClick={() => {
                 if (hasSmartphone) {
                   alert(lang === "mr" 
-                    ? "स्मार्टफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
+                    ? "मोटोरोला आणि आयफोन ऑर्डर्ससाठी फक्त COD किंवा PhonePe UPI पेमेंट उपलब्ध आहे!" 
                     : lang === "hi" 
-                    ? "स्मार्टफोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
+                    ? "मोटोरोला और आईफ़ोन ऑर्डर्स के लिए सिर्फ COD या PhonePe UPI पेमेंट ही मान्य है!" 
                     : "For Smartphone orders, only COD or UPI payment is allowed!");
                   return;
                 }
