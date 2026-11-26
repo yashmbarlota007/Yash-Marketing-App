@@ -178,30 +178,92 @@ function ProgressBar(props) {
 
 function groupProductsByVariant(flatList) {
   var grouped = {};
+  var ramRomRegex = /\b(\d+\s*[/xX]\s*\d+)\s*(?:gb)?\b/i;
   var capacityRegex = /\b(\d+\s*?GB|\d+\s*?TB|\d+\s*?W|\d+\s*?MAH)\b/i;
+  var colorList = ['black', 'white', 'blue', 'green', 'gold', 'silver', 'red', 'purple', 'grey', 'gray', 'pink', 'yellow', 'capri', 'cilantro', 'bautical blue', 'nautical blue', 'impenetrable black', 'impenetrable'];
 
   flatList.forEach(function(p) {
-    var name = String(getProp(p, "ProductName") || "");
+    var rawName = String(getProp(p, "ProductName") || getProp(p, "Product Name") || "");
     var brand = String(getProp(p, "Brand") || "");
-    var type = String(getProp(p, "Type") || "");
+    var type = String(getProp(p, "Type") || getProp(p, "Category") || "");
     var itemCode = String(getProp(p, "ItemCode") || "");
+    var colorCol = String(getProp(p, "Colour Name") || getProp(p, "Colour") || getProp(p, "Color") || "").trim();
 
-    if (!name) {
-      name = "Product " + (itemCode || Math.random().toString(36).substr(2, 5));
+    if (!rawName) {
+      rawName = "Product " + (itemCode || Math.random().toString(36).substr(2, 5));
     }
 
-    var match = name.match(capacityRegex);
-    var capacity = match ? match[1].toUpperCase().replace(/\s/g, "") : "";
-
+    var name = rawName.trim();
+    var variantLabel = "";
     var baseName = name;
-    if (match) {
-      baseName = name.replace(match[0], "").replace(/\s+/g, " ").trim();
-      baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
-    }
+    var groupKey = "";
 
-    var groupKey = capacity
-    ? (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase())
-    : (brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode);
+    // 1. Phone Model + RAM/ROM pattern (e.g. "Moto G67 Power 12/256 Blue")
+    var ramMatch = name.match(ramRomRegex);
+    if (ramMatch) {
+      var spec = ramMatch[1].replace(/\s/g, '');
+      var matchIdx = name.indexOf(ramMatch[0]);
+      var modelPrefix = name.substring(0, matchIdx).trim();
+      var suffix = name.substring(matchIdx + ramMatch[0].length).trim();
+      
+      var detectedColor = colorCol || suffix.replace(/^[-/\s]+|[-/\s]+$/g, '').trim();
+      detectedColor = detectedColor.replace(/[()]/g, '').trim();
+
+      baseName = modelPrefix + " " + spec;
+      variantLabel = detectedColor || spec;
+      groupKey = "phone_" + brand.toLowerCase() + "_" + baseName.toLowerCase();
+    } 
+    // 2. Phone / Accessory with Storage & Color (e.g. "I Phone 15 Black 128gb")
+    else if (brand.toLowerCase().includes('phone') || brand.toLowerCase().includes('apple') || type.toLowerCase().includes('phone') || type.toLowerCase().includes('motorola')) {
+      var capMatchPhone = name.match(capacityRegex);
+      if (capMatchPhone) {
+        var capStr = capMatchPhone[1].toUpperCase().replace(/\s/g, "");
+        var withoutCap = name.replace(capMatchPhone[0], "").trim();
+        var foundColor = colorCol || "";
+        
+        if (!foundColor) {
+          for (var ci = 0; ci < colorList.length; ci++) {
+            var cRegex = new RegExp("\\b" + colorList[ci] + "\\b", "i");
+            if (cRegex.test(withoutCap)) {
+              foundColor = colorList[ci].charAt(0).toUpperCase() + colorList[ci].slice(1);
+              withoutCap = withoutCap.replace(cRegex, "").trim().replace(/\s+/g, " ");
+              break;
+            }
+          }
+        }
+        withoutCap = withoutCap.replace(/^[-/\s]+|[-/\s]+$/g, "").trim();
+
+        if (foundColor) {
+          baseName = withoutCap + " " + capStr;
+          variantLabel = foundColor;
+          groupKey = "phone_" + brand.toLowerCase() + "_" + baseName.toLowerCase();
+        } else {
+          baseName = withoutCap;
+          variantLabel = capStr;
+          groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase();
+        }
+      } else {
+        variantLabel = colorCol || "Standard";
+        baseName = name;
+        groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode;
+      }
+    }
+    // 3. Standard storage accessories (e.g. Pen drives, SD cards: "HV USB 3.0 32GB")
+    else {
+      var capMatch = name.match(capacityRegex);
+      if (capMatch) {
+        var capacity = capMatch[1].toUpperCase().replace(/\s/g, "");
+        baseName = name.replace(capMatch[0], "").replace(/\s+/g, " ").trim();
+        baseName = baseName.replace(/^[-/\s]+|[-/\s]+$/g, "").replace(/\s+/g, " ").trim();
+
+        variantLabel = capacity;
+        groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + baseName.toLowerCase();
+      } else {
+        variantLabel = "Standard";
+        baseName = name;
+        groupKey = brand.toLowerCase() + "_" + type.toLowerCase() + "_" + name.toLowerCase() + "_" + itemCode;
+      }
+    }
 
     if (!grouped[groupKey]) {
       grouped[groupKey] = {
@@ -219,14 +281,13 @@ function groupProductsByVariant(flatList) {
     grouped[groupKey].variants.push(
       Object.assign({}, p, {
         ProductName: name,
-        capacity: capacity || "Standard"
+        capacity: variantLabel || "Standard"
       })
     );
   });
 
   return Object.keys(grouped).map(function(k) {
     var group = grouped[k];
-
     group.variants.sort(function(a, b) {
       var numA = parseInt(a.capacity) || 0;
       var numB = parseInt(b.capacity) || 0;
@@ -234,9 +295,8 @@ function groupProductsByVariant(flatList) {
     });
 
     var primary = group.variants[0];
-    var primaryName = String(getProp(primary, "ProductName") || "");
     return Object.assign({}, primary, {
-      ProductName: group.variants.length > 1 ? group.baseName : primaryName,
+      ProductName: group.variants.length > 1 ? group.baseName : (getProp(primary, "ProductName") || getProp(primary, "Product Name")),
       isGrouped: group.variants.length > 1,
       variants: group.variants
     });
