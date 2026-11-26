@@ -858,7 +858,7 @@ export function translateCategory(cat, lang = 'en') {
     'Usb Hub': { mr: 'यूएसबी हब', hi: 'यूएसबी हब' },
     'Smartphone': { mr: 'स्मार्टफोन', hi: 'स्मार्टफ़ोन' },
     'Smartphones': { mr: 'स्मार्टफोन', hi: 'स्मार्टफ़ोन' },
-  'Motorola': { mr: 'स्मार्टफोन (Moto)', hi: 'स्मार्टफ़ोन (Moto)' },
+  'Motorola': { mr: 'मोटोरोला', hi: 'मोटोरोला' },
   'I Phone': { mr: 'आयफोन', hi: 'आईफ़ोन' },
   'iPhone': { mr: 'आयफोन', hi: 'आईफ़ोन' },
     'Mobile': { mr: 'मोबाईल', hi: 'मोबाइल' },
