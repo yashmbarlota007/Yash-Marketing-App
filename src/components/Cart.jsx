@@ -122,11 +122,12 @@ export function Cart(props) {
       return false;
     }
 
-    const isSmart = type.includes('smartphone') || type.includes('mobile') || type === 'motorola';
+    const isSmart = type.includes('smartphone') || type.includes('mobile') || type === 'motorola' || type.includes('poco');
     const isIPhone = type.includes('iphone') || type.includes('i phone') || brand.includes('apple') || brand === 'i phone' || name.includes('iphone') || name.includes('i phone');
     const isMoto = brand.includes('motorola') || name.includes('moto');
+    const isPoco = brand.includes('poco') || name.includes('poco');
 
-    return isSmart || isIPhone || isMoto;
+    return isSmart || isIPhone || isMoto || isPoco;
   };
 
   const hasSmartphone = cartItems.some(isItemSmartphone);
@@ -773,7 +774,7 @@ export function Cart(props) {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-base">📱</span>
                   <span className="text-xs font-black uppercase text-amber-950 tracking-wider">
-                    Motorola & iPhone Policy
+                    Motorola, iPhone & Poco Policy
                   </span>
                 </div>
                 <p className="text-[11px] font-bold text-amber-900 leading-snug">
@@ -781,7 +782,7 @@ export function Cart(props) {
                     ? "मोटोरोला आणि आयफोनसाठी फक्त COD किंवा PhonePe UPI पेमेंट बंधनकारक आहे. यावर कोणतीही अतिरिक्त सूट किंवा टार्गेट काउंट लागू नाही."
                     : lang === 'hi'
                     ? "मोटोरोला और आईफ़ोन के लिए सिर्फ COD या PhonePe UPI पेमेंट अनिवार्य है। इस पर कोई अतिरिक्त छूट या टारगेट काउंट लागू नहीं होगा।"
-                    : "For Motorola & iPhone, COD or UPI payment is mandatory. No additional cash/bulk discounts or target credit apply."}
+                    : "For Motorola, iPhone & Poco, COD or UPI payment is mandatory. No additional cash/bulk discounts or target credit apply."}
                 </p>
               </div>
             )}
