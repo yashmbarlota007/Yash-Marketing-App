@@ -515,3 +515,5 @@ export default function PriceList({ products = [], cart = {}, setCart, setView, 
     </div>
   );
 }
+
+export { PriceList };
