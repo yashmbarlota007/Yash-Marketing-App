@@ -1013,6 +1013,32 @@ export function Catalog(props) {
       <div className="p-4 pb-[140px]">
         {/* 🎯 DEALER TARGET VS ACHIEVEMENT DASHBOARD */}
         <TargetCard targetStats={targetStats} lang={lang} customerMode={globalProps ? globalProps.customerMode : false} setView={setView} globalProps={globalProps} user={user} callAPI={callAPI} />
+        {/* 📋 COMPLETE PRICE LIST BANNER CARD */}
+        <div className="mb-4">
+          <button 
+            onClick={() => setView('pricelist')}
+            className="w-full bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 hover:from-blue-800 hover:to-indigo-800 text-white p-3.5 rounded-2xl shadow-md border border-blue-700/50 flex items-center justify-between active:scale-[0.99] transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shadow-inner shrink-0">
+                📋
+              </span>
+              <div>
+                <div className="font-black text-sm flex items-center gap-1.5 text-white">
+                  {t('price_list', lang) || 'Price List'}
+                  <span className="bg-amber-400 text-blue-950 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+                    ALL PRODUCTS
+                  </span>
+                </div>
+                <div className="text-[11px] text-blue-200 font-medium mt-0.5">
+                  {t('price_list_desc', lang) || 'Brand & Category wise price list (Old to New)'}
+                </div>
+              </div>
+            </div>
+            <span className="text-white text-lg font-bold shrink-0">›</span>
+          </button>
+        </div>
+
         <h2 className="font-black text-gray-800 text-xl mb-4">{t('select_category', lang)}</h2>
         {types.length === 0 && !loading && (
           <div className="text-center p-8 bg-gray-50 rounded-2xl border text-gray-500 font-bold text-xs">
@@ -1190,22 +1216,32 @@ export function Catalog(props) {
             {/* 🟢 THE ENTIRE SCHEMES TRACKER GRID HAS BEEN REMOVED FROM HERE AS PER YOUR INSTRUCTION */}
           </React.Fragment>
         )}
-        <div className="p-3 bg-white flex items-center border-b">
-          <input 
-            type="text" 
-            placeholder={t('search_placeholder', lang)} 
-            value={searchQuery} 
-            onChange={handleSearchChange} 
-            className="w-full bg-gray-100 p-3 rounded-xl outline-none font-bold text-sm border focus:border-blue-300 transition-colors" 
-          />
-          {searchQuery && (
-            <button 
-              onClick={() => setSearchQuery("")} 
-              className="ml-2 bg-gray-200 text-gray-600 font-bold px-3 py-3 rounded-xl"
-            >
-              ✕
-            </button>
-          )}
+        <div className="p-3 bg-white flex items-center gap-2 border-b">
+          <div className="relative flex-1">
+            <input 
+              type="text" 
+              placeholder={t('search_placeholder', lang)} 
+              value={searchQuery} 
+              onChange={handleSearchChange} 
+              className="w-full bg-gray-100 p-3 pr-8 rounded-xl outline-none font-bold text-sm border focus:border-blue-300 transition-colors" 
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery("")} 
+                className="absolute right-2.5 top-3 text-gray-500 font-bold px-1"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <button 
+            onClick={() => setView('pricelist')}
+            className="shrink-0 bg-blue-50 hover:bg-blue-100 text-blue-900 border border-blue-200 px-3 py-3 rounded-xl font-black text-xs flex items-center gap-1 active:scale-95 transition-all shadow-xs"
+            title="View Complete Price List"
+          >
+            <span>📋</span>
+            <span className="hidden sm:inline">Price List</span>
+          </button>
         </div>
         {/* 📢 RUNNING MARQUEE BANNER: MOTO SMARTPHONES WITH GST BILL */}
         <div 
