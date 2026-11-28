@@ -214,7 +214,7 @@ function groupProductsByVariant(flatList) {
       groupKey = "phone_" + brand.toLowerCase() + "_" + baseName.toLowerCase();
     } 
     // 2. Phone / Accessory with Storage & Color (e.g. "I Phone 15 Black 128gb")
-    else if (brand.toLowerCase().includes('phone') || brand.toLowerCase().includes('apple') || type.toLowerCase().includes('phone') || type.toLowerCase().includes('motorola')) {
+    else if (brand.toLowerCase().includes('phone') || brand.toLowerCase().includes('apple') || brand.toLowerCase().includes('poco') || type.toLowerCase().includes('phone') || type.toLowerCase().includes('motorola') || type.toLowerCase().includes('poco')) {
       var capMatchPhone = name.match(capacityRegex);
       if (capMatchPhone) {
         var capStr = capMatchPhone[1].toUpperCase().replace(/\s/g, "");
@@ -2731,7 +2731,7 @@ function ProductDetailModal(props) {
                 </div>
                 <div className="text-[10px] text-green-600 font-bold mt-2 flex items-center gap-1">
                   <span>{showOnOrder ? '⏳' : '📦'}</span> 
-                  {showOnOrder ? "ON ORDER (Available Next Day)" : `In Stock Status: ${activeStock} units`}
+                  {showOnOrder ? "ON ORDER (Available Next Day)" : (Number.isInteger(activeStock) && activeStock > 0 && activeStock <= 10 ? `Only ${activeStock} left in stock` : "In Stock")}
                 </div>
               </div>
             ) : (
