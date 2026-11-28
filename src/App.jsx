@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { API_URL, LOGO_URL, cacheBypass, getNum, getProp, calculateSchemeProgress, triggerCelebration, logAppError, roundToNine, calculateGenuineSales } from './utils/helpers';
 import { LANGUAGES, t, translateReward } from './utils/translations';
 import { Catalog } from './components/Catalog';
+import PriceList from './components/PriceList';
 import { Cart } from './components/Cart';
 import OffersView from './components/Offers';
 import { LedgerView, OrdersHistoryView } from './components/Ledger';
