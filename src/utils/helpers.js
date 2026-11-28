@@ -112,7 +112,7 @@ export function groupProductsByVariant(flatList) {
       groupKey = "phone_" + brand.toLowerCase() + "_" + baseName.toLowerCase();
     } 
     // 2. Phone / Accessory with Storage & Color (e.g. "I Phone 15 Black 128gb")
-    else if (brand.toLowerCase().includes('phone') || brand.toLowerCase().includes('apple') || type.toLowerCase().includes('phone') || type.toLowerCase().includes('motorola')) {
+    else if (brand.toLowerCase().includes('phone') || brand.toLowerCase().includes('apple') || brand.toLowerCase().includes('poco') || type.toLowerCase().includes('phone') || type.toLowerCase().includes('motorola') || type.toLowerCase().includes('poco')) {
       var capMatchPhone = name.match(capacityRegex);
       if (capMatchPhone) {
         var capStr = capMatchPhone[1].toUpperCase().replace(/\s/g, "");
@@ -585,7 +585,7 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
                            particulars.includes('charge') || vchType === 'payment' || vchType === 'receipt' || vchType === 'journal';
 
       // 🚫 Exclude smartphones from dealer sales target achievement calculation!
-      var isSmartphone = particulars.includes('smartphone') || particulars.includes('moto ') || particulars.includes('motorola');
+      var isSmartphone = particulars.includes('smartphone') || particulars.includes('moto ') || particulars.includes('motorola') || particulars.includes('poco') || particulars.includes('iphone');
       if (isSmartphone) return;
 
       if (debit > 0 && isSale && !isNonSaleDebit) {
@@ -654,7 +654,7 @@ export function calculateGenuineSales(ledgerData, appOrders = []) {
       if (st === 'cancelled' || st === 'rejected') return;
       // 🚫 Exclude smartphone orders from target calculation
       var itemsStr = JSON.stringify(o.items || '').toLowerCase();
-      var isSmartphoneOrder = o.hasSmartphone || itemsStr.includes('smartphone') || itemsStr.includes('motorola') || itemsStr.includes('moto ');
+      var isSmartphoneOrder = o.hasSmartphone || itemsStr.includes('smartphone') || itemsStr.includes('motorola') || itemsStr.includes('moto ') || itemsStr.includes('poco') || itemsStr.includes('iphone');
       if (isSmartphoneOrder) return;
       var oAmt = parseFloat(String(o.totalValue || o.finalAmount || o.amount || 0).replace(/,/g, '')) || 0;
       if (oAmt <= 0) return;
