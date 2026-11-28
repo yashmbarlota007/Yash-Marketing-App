@@ -1,7 +1,7 @@
 // Yash Marketing Service Worker & PWA Controller
 importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
 
-const CACHE_NAME = 'ym-pwa-v6.6';
+const CACHE_NAME = 'ym-pwa-v6.7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
