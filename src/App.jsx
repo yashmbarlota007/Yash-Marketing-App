@@ -961,10 +961,18 @@ function MainApp() {
         </div>
         
         <div className="flex gap-1.5 items-center">
+          <button 
+            onClick={() => handleSetView(view === 'pricelist' ? 'catalog' : 'pricelist')}
+            className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm flex items-center gap-1 ${view === 'pricelist' ? 'bg-amber-400 text-blue-950 font-black' : 'bg-blue-800 text-blue-100 hover:bg-blue-700'}`}
+            title="View Price List"
+          >
+            <span>📋</span> {t('price_list', lang) || 'Price List'}
+          </button>
+
           <button onClick={() => {
             const m = !customerMode;
             setCustomerMode(m);
-            if (m && (view === "ledger" || view === "orders" || view === "replacements")) handleSetView("catalog");
+            if (m && (view === "ledger" || view === "orders" || view === "replacements" || view === "pricelist")) handleSetView("catalog");
             logSpyData(m ? "Enabled Customer Mode" : "Disabled Customer Mode");
           }} className={`text-[10px] font-black px-2.5 py-2 rounded-lg transition-colors shadow-sm ${customerMode ? 'bg-green-600 text-white' : 'bg-blue-800 text-blue-100'}`}>
             {customerMode ? `👥 ${t('customer_mode', lang)}` : `💼 ${t('dealer_mode', lang)}`}
@@ -981,6 +989,19 @@ function MainApp() {
         {view === "catalog" ? (
           <ErrorBoundary componentName="Catalog" lang={lang} onReset={() => handleSetView("catalog")}>
             <Catalog user={user} callAPI={callAPI} cart={cart} setCart={setCart} products={products} setProducts={setProducts} setView={handleSetView} globalProps={globalProps} schemes={schemes} lang={lang} setLang={handleSetLang} targetStats={targetStats} />
+          </ErrorBoundary>
+        ) : view === "pricelist" ? (
+          <ErrorBoundary componentName="PriceList" lang={lang} onReset={() => handleSetView("catalog")}>
+            <PriceList 
+              products={products} 
+              cart={cart} 
+              setCart={setCart} 
+              setView={handleSetView} 
+              user={user} 
+              globalProps={globalProps} 
+              schemes={schemes} 
+              lang={lang} 
+            />
           </ErrorBoundary>
         ) : view === "cart" ? (
           <ErrorBoundary componentName="Cart" lang={lang} onReset={() => handleSetView("catalog")}>
