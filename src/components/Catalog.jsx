@@ -996,6 +996,7 @@ export function Catalog(props) {
       const lower = String(cat || '').toLowerCase().trim();
       if (lower.includes('smartphone') || lower === 'motorola' || lower === 'mobile') return 1;
       if (lower.includes('iphone') || lower.includes('i phone') || lower === 'apple') return 2;
+      if (lower.includes('poco')) return 3;
       return 100;
     };
 
@@ -1020,7 +1021,7 @@ export function Catalog(props) {
         )}
         <div className="grid grid-cols-2 gap-4">
           {types.map((type) => {
-            const isSmartphone = /smartphone|mobile|motorola|iphone|i phone/i.test(type);
+            const isSmartphone = /smartphone|mobile|motorola|iphone|i phone|poco/i.test(type);
             const cover = getSmartImage(inStockFlat.find((p) => {
               return String(getProp(p, "Type") || getProp(p, "Category") || "").trim() === type;
             }));
@@ -1050,7 +1051,7 @@ export function Catalog(props) {
                   <div className="text-3xl mb-3">{isSmartphone ? '📱' : '📦'}</div>
                 )}
                 <h3 className="font-extrabold text-sm text-center truncate w-full text-gray-800 flex items-center justify-center gap-1.5">
-                  {type === 'Motorola' ? 'Motorola' : type === 'I Phone' ? 'iPhone' : translateCategory(type, lang)} 
+                  {type === 'Motorola' ? 'Motorola' : type === 'I Phone' ? 'iPhone' : type === 'Poco' ? 'Poco' : translateCategory(type, lang)} 
                   <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border ${
                     isSmartphone 
                       ? 'bg-indigo-600 text-white border-indigo-700 shadow-xs' 
@@ -1217,9 +1218,9 @@ export function Catalog(props) {
           </span>
           <div className="overflow-hidden whitespace-nowrap relative w-full">
             <div className="inline-block animate-marquee whitespace-nowrap text-[11px] font-black text-white tracking-wide">
-              <span>{lang === 'mr' ? '🔥 नवीन आगमन: MOTOROLA आणि iPHONE आता 100% ओरिजिनल GST बिल आणि वॉरंटीसह उपलब्ध! • पाहण्यासाठी येथे टॅप करा 📱' : lang === 'hi' ? '🔥 नया आगमन: MOTOROLA और iPHONE अब 100% ओरिजिनल GST बिल और वारंटी के साथ उपलब्ध हैं! • देखने के लिए यहाँ टैप करें 📱' : '🔥 NEW ARRIVAL: MOTOROLA & iPHONE NOW AVAILABLE WITH 100% GENUINE GST BILL & BRAND WARRANTY! • TAP TO VIEW 📱'}</span>
+              <span>{lang === 'mr' ? '🔥 नवीन आगमन: MOTOROLA, iPHONE आणि POCO आता 100% ओरिजिनल GST बिल आणि वॉरंटीसह उपलब्ध! • पाहण्यासाठी येथे टॅप करा 📱' : lang === 'hi' ? '🔥 नया आगमन: MOTOROLA, iPHONE और POCO अब 100% ओरिजिनल GST बिल और वारंटी के साथ उपलब्ध हैं! • देखने के लिए यहाँ टैप करें 📱' : '🔥 NEW ARRIVAL: MOTOROLA, iPHONE & POCO NOW AVAILABLE WITH 100% GENUINE GST BILL & BRAND WARRANTY! • TAP TO VIEW 📱'}</span>
               <span className="mx-4 text-amber-300">•</span>
-              <span>{lang === 'mr' ? '🔥 नवीन आगमन: MOTOROLA आणि iPHONE आता 100% ओरिजिनल GST बिल आणि वॉरंटीसह उपलब्ध! • पाहण्यासाठी येथे टॅप करा 📱' : lang === 'hi' ? '🔥 नया आगमन: MOTOROLA और iPHONE अब 100% ओरिजिनल GST बिल और वारंटी के साथ उपलब्ध हैं! • देखने के लिए यहाँ टैप करें 📱' : '🔥 NEW ARRIVAL: MOTOROLA & iPHONE NOW AVAILABLE WITH 100% GENUINE GST BILL & BRAND WARRANTY! • TAP TO VIEW 📱'}</span>
+              <span>{lang === 'mr' ? '🔥 नवीन आगमन: MOTOROLA, iPHONE आणि POCO आता 100% ओरिजिनल GST बिल आणि वॉरंटीसह उपलब्ध! • पाहण्यासाठी येथे टॅप करा 📱' : lang === 'hi' ? '🔥 नया आगमन: MOTOROLA, iPHONE और POCO अब 100% ओरिजिनल GST बिल और वारंटी के साथ उपलब्ध हैं! • देखने के लिए यहाँ टैप करें 📱' : '🔥 NEW ARRIVAL: MOTOROLA, iPHONE & POCO NOW AVAILABLE WITH 100% GENUINE GST BILL & BRAND WARRANTY! • TAP TO VIEW 📱'}</span>
             </div>
           </div>
           <span className="shrink-0 text-amber-300 text-[10px] font-black flex items-center gap-0.5 bg-white/10 px-1.5 py-0.5 rounded border border-white/20">
@@ -1466,7 +1467,13 @@ export function ProductDetailModal(props) {
                 </div>
                 <div className={`text-[10px] font-bold mt-2 flex items-center gap-1 ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
                   <span>{isOutOfStock ? '🚫' : showOnOrder ? '⏳' : '📦'}</span> 
-                  {isOutOfStock ? t('item_out_of_stock', lang) : showOnOrder ? `${t('on_order_badge', lang)} (${t('on_order_badge_desc', lang)})` : t('in_stock_status', lang, { count: stockVal })}
+                  {isOutOfStock 
+                    ? t('item_out_of_stock', lang) 
+                    : showOnOrder 
+                      ? `${t('on_order_badge', lang)} (${t('on_order_badge_desc', lang)})` 
+                      : (Number.isInteger(stockVal) && stockVal > 0 && stockVal <= 10)
+                        ? (lang === 'mr' ? `फक्त ${stockVal} शिल्लक (In Stock)` : lang === 'hi' ? `केवल ${stockVal} उपलब्ध (In Stock)` : `Only ${stockVal} left in stock`)
+                        : (lang === 'mr' ? 'स्टॉकमध्ये उपलब्ध (In Stock)' : lang === 'hi' ? 'स्टॉक में उपलब्ध (In Stock)' : 'In Stock')}
                 </div>
               </div>
             ) : (
